@@ -1,0 +1,18 @@
+# Requirements com ranges flexíveis (recomendado para dev)
+# Permite atualizações de segurança mantendo compatibilidade
+
+Flask>=3.0.0,<4.0.0
+supabase>=2.3.4,<3.0.0
+postgrest>=0.15.1,<1.0.0
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.0
+google-auth>=2.23.4
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+google-api-python-client>=2.108.0
+pystray>=0.19.5
+Pillow>=10.1.0
+pyinstaller>=6.3.0
+
+# Nota: Este arquivo permite atualizações de patch/minor
+# Para produção/build, use requirements.txt com versões fixadas

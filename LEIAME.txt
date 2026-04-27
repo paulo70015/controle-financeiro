@@ -1,0 +1,286 @@
+# 💰 Controle Financeiro Pessoal v1.3.0
+
+Bem-vindo! Este é um aplicativo de controle financeiro pessoal que roda no seu computador.
+Interface moderna acessada pelo navegador, com opção de banco local (SQLite) ou na nuvem (Supabase).
+
+---
+
+## 🚀 Início Rápido
+
+### Opção 1: Modo Simples (SQLite Local) - RECOMENDADO
+Perfeito se você quer começar imediatamente sem configurações:
+
+1. Execute `iniciar_log.bat` (Windows) ou `./iniciar_log.sh` (Linux/Mac)
+2. Pronto! O navegador abrirá automaticamente
+3. Seus dados ficam salvos localmente em `financeiro.db`
+
+### Opção 2: Modo Nuvem (Supabase)
+Ideal se você quer acessar de vários dispositivos ou ter backup automático:
+
+1. Crie uma conta gratuita em https://supabase.com
+2. Configure seu banco (veja seção "Configuração Supabase" abaixo)
+3. Execute `iniciar_log.bat` ou `./iniciar_log.sh`
+4. Seus dados ficam na nuvem, acessíveis de qualquer lugar
+
+---
+
+## 📋 Requisitos
+
+- **Python 3.10 ou superior** (baixe em https://python.org)
+- **pip** (já vem com Python)
+- **Navegador moderno** (Chrome, Firefox, Edge, Safari)
+
+---
+
+## ⚙️ Configuração Supabase (Opcional)
+
+Se você escolheu usar o modo nuvem, siga estes passos:
+
+### Passo 1: Criar Projeto no Supabase (5 minutos)
+
+1. Acesse https://supabase.com e crie uma conta gratuita
+2. Clique em "New Project"
+3. Escolha um nome e senha (anote a senha!)
+4. Aguarde ~2 minutos enquanto o banco é criado
+
+### Passo 2: Configurar o Banco de Dados
+
+1. No painel do Supabase, clique em **SQL Editor** (ícone de banco de dados)
+2. Clique em **+ New Query**
+3. Abra o arquivo `specs/schema-supabase.sql` deste projeto
+4. Copie todo o conteúdo e cole no editor SQL
+5. Clique em **Run** (ou pressione Ctrl+Enter)
+6. Pronto! As tabelas foram criadas ✅
+
+**Opcional:** Se quiser dados de exemplo para testar:
+- Repita o processo acima com o arquivo `specs/dados-supabase.sql`
+
+### Passo 3: Obter Suas Credenciais
+
+1. No painel do Supabase, vá em **Settings** (engrenagem) → **API**
+2. Você verá duas informações importantes:
+   - **Project URL** (algo como: https://xxxxx.supabase.co)
+   - **anon public** key (uma chave longa que começa com "eyJ...")
+3. Copie essas duas informações
+
+### Passo 4: Configurar o Aplicativo
+
+1. Na pasta do projeto, crie um arquivo chamado `.env` (sem extensão .txt)
+2. Cole o seguinte conteúdo (substituindo pelos seus valores):
+
+```
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_KEY=sua_chave_publica_aqui
+DB_MODE=supabase
+```
+
+3. Salve o arquivo
+4. Execute `iniciar_log.bat` (Windows) ou `./iniciar_log.sh` (Linux/Mac)
+
+**Pronto!** Agora seus dados estão na nuvem e você pode acessar de qualquer computador.
+
+---
+
+## 🔄 Alternando Entre SQLite e Supabase
+
+Você pode mudar de modo a qualquer momento:
+
+**Para usar SQLite (local):**
+- Apague o arquivo `.env` OU
+- Edite `.env` e mude para `DB_MODE=sqlite`
+
+**Para usar Supabase (nuvem):**
+- Configure o `.env` conforme explicado acima
+- Use `DB_MODE=supabase`
+
+---
+
+## 📦 Gerar Executável (Distribuir para Outros)
+
+Quer compartilhar o aplicativo com amigos ou família? Use os scripts de build:
+
+### Modo Standalone (RECOMENDADO para compartilhar)
+```
+construir.bat --com-sqlite
+```
+- Gera um executável que funciona imediatamente
+- Não precisa configurar nada
+- Cada pessoa terá seu próprio banco local
+
+### Modo Supabase Vazio (cada um cria sua conta)
+```
+construir.bat --com-env-vazio
+```
+- Cada pessoa precisa criar conta no Supabase
+- Dados ficam na nuvem de cada um
+
+### Modo Pessoal (suas credenciais)
+```
+construir.bat --com-env
+```
+- ⚠️ **NÃO COMPARTILHE** - acessa SEU banco
+- Use apenas para você em outro computador
+
+**Mais detalhes:** Veja o arquivo `DISTRIBUICAO.md`
+
+---
+
+## 🚀 Funcionalidades
+
+### 📊 Visão Despesas (Gestão do Dia a Dia)
+
+**Tabela Inteligente:**
+- Grade com categorias × 12 meses + coluna Total
+- Clique na célula para lançar ou ver detalhes
+- **Quadrado Mágico:** Segure SHIFT + Clique para somar várias células
+- Arraste categorias para reordenar
+- Redimensione colunas arrastando o cabeçalho
+
+**Status de Pagamento:**
+- Ícone no canto da célula: Em aberto → Agendado 🕐 → Pago ✔
+- Marcar mês inteiro: passe o mouse no cabeçalho do mês
+
+**Lançamentos:**
+- Despesas e Receitas por mês ou "Todos os meses"
+- Edição inline com ícone de lápis
+- Pilha de Desfazer (Undo) antes de fechar modais
+- Digite valores livremente: "R$ 1.234,56" ou "1234.56"
+
+**Despesas Fixas:**
+- Recorrências mensais (ex: cartão, aluguel)
+- Configure por dia do mês
+- **Mês Fiscal (Competência):** Configure o dia de fechamento do cartão (padrão: dia 25)
+  - Antes do fechamento: despesas vão para próxima fatura
+  - Depois do fechamento: despesas vão para fatura seguinte
+- **Aplicação Automática:** Fixas são marcadas como aplicadas quando o dia passa
+- **Aplicação Manual:** Marque fixas como pagas antes do dia esperado (botão ✓)
+- Remova/restaure por mês específico
+- Edição inline rápida
+- Indicador de "Mês fiscal" no painel lateral
+
+**Contas Correntes:**
+- Saldo inicial + depósitos/saques
+- Saldo acumulado automático
+
+**Metas Financeiras:**
+- Defina valor alvo e ano
+- Marque como concluída com checkbox
+- Acompanhe progresso no painel lateral
+
+### 📈 Visão Rendimentos (Investimentos)
+
+**Locais de Rendimento:**
+- Crie locais (CDB, Ações, Fundos, etc.)
+- Reordene arrastando
+- Lance aportes e rendimentos
+
+**Projeções:**
+- Configure taxa de projeção
+- Pré-visualização antes de aplicar
+- Saldo acumulado automático
+
+### 🎨 Recursos Visuais
+
+**Ícones de Bancos:**
+- Digite `[BB]`, `[CX]` ou `[NU]` em qualquer texto
+- Converte automaticamente em ícones coloridos
+- Botões de atalho nos modais
+
+**Exportação/Importação CSV:**
+- Exporte dados do ano
+- Importe de planilhas
+- Desfazer importação se necessário
+- Formato compatível com Excel PT-BR
+
+---
+
+## 📁 Estrutura de Arquivos
+
+```
+📂 Projeto
+├── 📄 LEIAME.txt              ← Você está aqui!
+├── 📄 DISTRIBUICAO.md         ← Guia para compartilhar executável
+├── 📄 .env                    ← Suas credenciais (criar manualmente)
+├── 📄 .env.example            ← Modelo de configuração
+├── 📄 .env.sqlite             ← Configuração para modo SQLite
+├── 📄 app.py                  ← Servidor Flask
+├── 📄 index.html              ← Interface web
+├── 📄 iniciar_log.bat         ← Iniciar no Windows
+├── 📄 iniciar_log.sh          ← Iniciar no Linux/Mac
+├── 📄 construir.bat           ← Gerar executável Windows
+├── 📄 construir.sh            ← Gerar executável Linux/Mac
+├── 📄 financeiro.db           ← Banco SQLite (criado automaticamente)
+├── 📂 specs/
+│   ├── schema-supabase.sql   ← Script de criação do banco
+│   └── dados-supabase.sql    ← Dados de exemplo (opcional)
+├── 📂 static/                 ← CSS e JavaScript
+└── 📂 financeiro/             ← Código Python (backend)
+```
+
+---
+
+## 🆘 Problemas Comuns
+
+### "Python não encontrado"
+- Instale Python 3.10+ em https://python.org
+- No Windows, marque "Add to PATH" durante instalação
+
+### "Erro ao conectar no Supabase"
+- Verifique se o `.env` está na pasta correta
+- Confirme que copiou a URL e KEY corretas
+- Teste se consegue acessar o painel do Supabase
+
+### "Banco de dados vazio"
+- Execute o script `specs/schema-supabase.sql` no SQL Editor do Supabase
+- Ou use modo SQLite que cria automaticamente
+
+### "Executável não abre"
+- Modo SQLite: funciona imediatamente
+- Modo Supabase: precisa criar arquivo `.env` na pasta do executável
+
+---
+
+## 💡 Dicas de Uso
+
+✨ **Lançar em todos os meses:** Use "Todos os meses" ao criar despesa/receita
+✨ **Marcar como pago:** Clique no ícone no canto da célula
+✨ **Ver detalhes:** Clique no valor da célula
+✨ **Soma rápida:** SHIFT + Clique em várias células
+✨ **Reordenar:** Arraste pela alça ≡
+✨ **Redimensionar colunas:** Arraste a borda do cabeçalho
+✨ **Ícones de banco:** Digite [BB], [CX] ou [NU] em qualquer texto
+✨ **Mês Fiscal:** Configure nas ⚙️ Configurações o dia de fechamento do cartão
+✨ **Fixas aplicadas:** Marque manualmente com ✓ quando pagar antes do vencimento
+
+---
+
+## 🔒 Privacidade e Segurança
+
+**Modo SQLite:**
+- Dados 100% locais no seu computador
+- Nenhuma informação enviada para internet
+- Você controla seus backups
+
+**Modo Supabase:**
+- Dados criptografados em trânsito (HTTPS)
+- Armazenados em servidores seguros do Supabase
+- Você é o único com acesso (suas credenciais)
+- Plano gratuito: 500MB (suficiente para anos de uso)
+
+---
+
+## 📞 Suporte
+
+- **Documentação Supabase:** https://supabase.com/docs
+- **Guia de Distribuição:** Veja `DISTRIBUICAO.md`
+- **Exemplos de Build:** Veja `EXEMPLO-BUILD.md`
+
+---
+
+## 🎉 Aproveite!
+
+Agora você está pronto para controlar suas finanças de forma simples e eficiente.
+Comece pelo modo SQLite se quiser testar rapidamente, ou configure o Supabase
+se preferir ter seus dados na nuvem desde o início.
+
+Bom controle financeiro! 💰📊

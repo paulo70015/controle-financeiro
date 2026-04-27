@@ -1,0 +1,83 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║     💰 CONTROLE FINANCEIRO PESSOAL v1.3.0                   ║
+║                                                              ║
+║     Bem-vindo! Você está a 30 segundos de começar.          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+🚀 INÍCIO RÁPIDO (30 segundos)
+═══════════════════════════════════════════════════════════════
+
+Windows:
+  → Dê duplo clique em: iniciar_log.bat
+
+Linux/Mac:
+  → Execute no terminal: ./iniciar_log.sh
+
+Pronto! O navegador abrirá automaticamente.
+
+
+📚 DOCUMENTAÇÃO
+═══════════════════════════════════════════════════════════════
+
+Primeira vez? Leia nesta ordem:
+
+1. docs/INICIO-RAPIDO.md  ← Comece aqui! (5 minutos)
+2. LEIAME.txt             ← Guia completo (15 minutos)
+3. docs/FAQ.md            ← Dúvidas? Consulte aqui
+
+Quer compartilhar?
+→ docs/DISTRIBUICAO.md    ← Como gerar executável
+
+
+❓ DÚVIDAS RÁPIDAS
+═══════════════════════════════════════════════════════════════
+
+P: Preciso instalar algo?
+R: Apenas Python 3.10+ (baixe em python.org)
+
+P: Meus dados ficam onde?
+R: No arquivo financeiro.db (local) ou Supabase (nuvem)
+
+P: É grátis?
+R: Sim! 100% gratuito
+
+P: Funciona offline?
+R: Sim, no modo SQLite (padrão)
+
+P: Posso usar em vários computadores?
+R: Sim, configure o modo Supabase (veja INICIO-RAPIDO.md)
+
+
+🎯 PRÓXIMOS PASSOS
+═══════════════════════════════════════════════════════════════
+
+1. Execute iniciar_log.bat (ou .sh)
+2. Crie suas categorias (Alimentação, Transporte, etc.)
+3. Lance suas despesas e receitas
+4. Configure despesas fixas (aluguel, cartão, etc.)
+5. Defina suas metas financeiras
+
+
+💡 DICA
+═══════════════════════════════════════════════════════════════
+
+Comece simples! Não precisa cadastrar tudo de uma vez.
+Vá adicionando conforme usa o sistema.
+
+
+🆘 PRECISA DE AJUDA?
+═══════════════════════════════════════════════════════════════
+
+→ docs/FAQ.md      (Perguntas frequentes)
+→ LEIAME.txt       (Guia completo)
+→ docs/INDICE.md   (Índice de todos os guias)
+
+
+═══════════════════════════════════════════════════════════════
+
+Bom controle financeiro! 💰📊
+
+═══════════════════════════════════════════════════════════════

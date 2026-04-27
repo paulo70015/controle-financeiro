@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Controle Financeiro v1.3.0</title>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<header>
+  <h1>&#9672; Controle Financeiro</h1>
+  <div class="ano-tabs" id="anoTabs"></div>
+  <button class="header-action" onclick="adicionarAno()">+ Ano</button>
+  <div class="csv-menu" id="csvMenu">
+    <button class="header-action csv-trigger" onclick="toggleCsvMenu()">&#9783; CSV &#9660;</button>
+    <div class="csv-dropdown" id="csvDropdown">
+      <button onclick="document.getElementById('inputCsv').click();toggleCsvMenu()">&#10515; Importar CSV</button>
+      <button onclick="exportarCSV();toggleCsvMenu()">&#10514; Exportar CSV</button>
+    </div>
+  </div>
+  <button class="header-action btn-undo" id="btnUndoCsv" onclick="desfazerImportacaoCsv()" style="display:none" title="Desfazer a última importação">&#8617; Desfazer Importação</button>
+<input type="file" id="inputCsv" accept=".csv" style="display:none" onchange="importarCSV(this)">
+<span class="versao">v1.3.0</span>
+    <button class="btn-cfg" onclick="abrirCfgApp()" title="Configurações">&#8859;</button>
+</header>
+<div class="main">
+  <div class="card">
+    <div class="card-toolbar">
+      <div class="view-tabs">
+        <button id="viewTabDespesas" class="view-tab ativo" onclick="setView('despesas')">Despesas</button>
+        <button id="viewTabRendimentos" class="view-tab" onclick="setView('rendimentos')">Rendimentos</button>
+      </div>
+      <div id="acoesDespesas" class="acoes-group" style="display:flex">
+        <button class="btn bv bs" onclick="abrirD()">+ Despesa</button>
+        <button class="btn ba bs" onclick="abrirR()">+ Receita</button>
+        <button class="btn bc bs" onclick="abrirC()">+ Categoria</button>
+        <button class="btn bco bs" onclick="abrirConta()">+ Conta</button>
+      </div>
+      <div id="acoesRendimentos" class="acoes-group" style="display:none">
+        <button class="btn bv bs" onclick="abrirRendimentoAdd()">+ Lançamento</button>
+        <button class="btn ba bs" onclick="abrirRendimentoLocal()">+ Local</button>
+      </div>
+    </div>
+    <div class="tbl-wrap" id="tw"></div>
+  </div>
+  <div class="drawer-tabs">
+    <button class="drawer-tab" id="tabFixas" onclick="toggleDrawer('fixas')">&#9906; Despesas Fixas</button>
+    <button class="drawer-tab" id="tabMetas" onclick="toggleDrawer('metas')">&#8857; Metas</button>
+  </div>
+
+  {% include 'partials/drawers.html' %}
+  {% include 'partials/modals.html' %}
+
+<script src="/static/js/domain/fixas-domain.js?v=1.3.0"></script>
+<script src="/static/js/application/tabela-usecases.js?v=1.3.0"></script>
+<script src="/static/js/modules/ui-helpers.js?v=1.3.0"></script>
+<script src="/static/js/modules/undo-manager.js?v=1.3.0"></script>
+<script src="/static/js/modules/render-tabela.js?v=1.3.0"></script>
+<script src="/static/js/modules/render-rendimentos.js?v=1.3.0"></script>
+<script src="/static/js/modules/actions-ano-csv-status.js?v=1.3.0"></script>
+<script src="/static/js/modules/ui-drawer-config-scroll.js?v=1.3.0"></script>
+<script src="/static/js/modules/fixas-metas-categorias.js?v=1.3.0"></script>
+<script src="/static/js/modules/lote-lancamentos.js?v=1.3.0"></script>
+<script src="/static/js/modules/contas-movimentacoes.js?v=1.3.0"></script>
+<script src="/static/js/modules/detalhes-local.js?v=1.3.0"></script>
+<script src="/static/js/modules/lancamentos.js?v=1.3.0"></script>
+<script src="/static/js/modules/magic-square.js?v=1.3.0"></script>
+<script>window.CF_BOOT = { ano: {{ ano|tojson }}, meses: {{ meses|tojson }}, meses_abrev: {{ meses_abrev|tojson }}, anos: {{ anos|tojson }} };</script>
+<script src="/static/js/app-main.js?v=1.3.0"></script>
+</body>
+</html>

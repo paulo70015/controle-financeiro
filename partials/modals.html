@@ -1,0 +1,300 @@
+<div class="ov" id="ovAno"><div class="mo">
+  <h3>&#8862; Novo Ano</h3>
+  <div class="fr"><label>Ano</label><input type="number" id="anoNovoVal" placeholder="2026" style="width:100px"></div>
+  <div class="fr">
+    <label class="check-label" style="font-size:13px">
+      <input type="checkbox" id="anoNovoDuplicar">
+      <span>Duplicar lançamentos do ano anterior</span>
+    </label>
+  </div>
+  <p id="anoNovoDuplicarInfo" style="font-size:11px;color:#666;margin:2px 0 8px 26px;display:none">
+    Copia despesas, receitas, fixas e metas do ano atual para o novo ano.
+  </p>
+  <div class="mb">
+    <button class="btn" onclick="fecharModal('ovAno')">Cancelar</button>
+    <button class="btn bv" onclick="confirmarNovoAno()">Criar Ano</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovD"><div class="mo">
+  <h3>&#9783; Nova Despesa</h3>
+  <div class="fr"><label>Categoria</label>
+    <div style="display:flex;gap:5px;align-items:center">
+      <select id="dC" style="flex:1"></select>
+      <button type="button" class="btn ba" style="padding:5px 9px;font-size:12px;white-space:nowrap" onclick="novaCatInline()" title="Nova categoria">+ Nova</button>
+    </div>
+    <div id="novaCatBox" style="display:none;margin-top:6px">
+      <div style="display:flex;gap:5px;align-items:center">
+        <input type="text" id="novaCatNome" placeholder="Nome da nova categoria" style="flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px">
+        <button type="button" class="btn bv" style="padding:5px 9px;font-size:12px;white-space:nowrap" onclick="confirmarCatInline()">Criar</button>
+        <button type="button" class="btn" style="padding:5px 9px;font-size:12px" onclick="cancelarCatInline()">✕</button>
+      </div>
+    </div>
+  </div>
+  <div class="fr"><label>Mês</label><select id="dM"></select></div>
+  <div class="fr"><label>Valor (R$)</label><input type="text" id="dV" step="0.01" placeholder="0,00"></div>
+  <div class="fr"><label>Nota</label><textarea id="dN"></textarea></div>
+  <div class="fr">
+    <label class="check-label">
+      <input type="checkbox" id="dIgnorar">
+      <span>Não somar no total do mês (Despesa de Cartão)</span>
+    </label>
+  </div>
+  <div class="mb">
+      <button class="btn" onclick="fecharModal('ovD')">Cancelar</button>
+      <button class="btn bv" onclick="salvarD()">Salvar</button>
+    </div>
+</div></div>
+
+<div class="ov" id="ovR"><div class="mo">
+  <h3>&#9672; Nova Receita</h3>
+  <div class="fr"><label>Descrição</label><input type="text" id="rD" placeholder="Salário, PLR..."></div>
+  <div class="fr"><label>Mês</label><select id="rM"></select></div>
+  <div class="fr"><label>Valor (R$)</label><input type="text" id="rV" step="0.01" placeholder="0,00"></div>
+  <div class="fr"><label>Nota</label><textarea id="rN"></textarea></div>
+  <div class="mb">
+      <button class="btn" onclick="fecharModal('ovR')">Cancelar</button>
+      <button class="btn bv" onclick="salvarR()">Salvar</button>
+    </div>
+</div></div>
+
+<div class="ov" id="ovC"><div class="mo">
+  <h3>&#9635; Nova Categoria</h3>
+  <div class="fr"><label>Nome</label><input type="text" id="cN" placeholder="Ex: Educação"></div>
+  <div class="fr">
+    <label class="check-label">
+      <input type="checkbox" id="cFixas">
+      <span>&#9906; Somar total das Despesas Fixas nesta linha</span>
+    </label>
+  </div>
+  <div class="mb"><button class="btn" onclick="fecharModal('ovC')">Cancelar</button><button class="btn ba" onclick="salvarC()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="ovRen"><div class="mo">
+  <h3>&#9998; Configurar Categoria</h3>
+  <div class="fr"><label>Nome</label><input type="text" id="renN"></div>
+  <div class="fr" style="margin-top:6px;margin-bottom:12px">
+    <label class="check-label">
+      <input type="checkbox" id="renFixas">
+      <span>&#9906; Incluir despesas fixas nesta categoria</span>
+    </label>
+  </div>
+  <div class="fr">
+    <label>&#10020; Conta Vinculada <small style="color:#888">— opcional</small></label>
+    <select id="renConta" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+      <option value="">— Sem vínculo de conta —</option>
+    </select>
+  </div>
+  <div id="renContaInfo" style="display:none;background:#e3f2fd;border-radius:5px;padding:6px 10px;font-size:11px;color:#1565c0;margin-top:-6px">
+    &#9432; Ao lançar despesa: valor positivo <strong>debita</strong> a conta e valor negativo <strong>credita</strong> (resgate).
+  </div>
+  <div class="fr">
+    <label>Tooltip</label>
+    <input type="text" id="renTooltip" placeholder="Texto exibido ao passar o mouse">
+  </div>
+  <div class="mb">
+    <button class="btn br" onclick="confirmarDelCategoria()" title="Remover categoria">&#10005; Remover Categoria</button>
+    <button class="btn" onclick="fecharModal('ovRen')">Cancelar</button>
+    <button class="btn ba" onclick="confirmarRen()">Salvar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovDet"><div class="mo">
+  <div class="modal-top-bar">
+    <h3 id="detT">Detalhes</h3>
+    <select id="detStatus" onchange="mudarStatusDet(this.value)" style="padding:4px 6px; border-radius:4px; border:1px solid var(--borda); font-size:12px; display:none; background:#f0f6ff; color:var(--azul); font-weight:600; outline:none">
+      <option value="0">Em aberto</option>
+      <option value="1">⏱ Agendado</option>
+      <option value="2">✔ Pago</option>
+    </select>
+    <select id="detRecStatus" onchange="mudarStatusRec(this.value)" style="padding:4px 6px; border-radius:4px; border:1px solid var(--borda); font-size:12px; display:none; background:#f0f6ff; color:var(--azul); font-weight:600; outline:none">
+      <option value="2">✔ Realizado</option>
+      <option value="1">⏱ Previsto</option>
+    </select>
+  </div>
+  <div class="dl" id="detL"></div>
+  <div id="detMesContainer" class="fr" style="display:none; margin-bottom:8px;">
+    <label for="detMesEditar" style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+      <span style="color:var(--azul);font-size:13px;">&#8862;</span>
+      <span>Alterar o Mês</span>
+    </label>
+    <select id="detMesEditar" class="det-mes-select"></select>
+  </div>
+  <div class="action-bar-wrap">
+    <input type="text" id="aV" placeholder="Valor (R$)" step="0.01" style="flex:1;min-width:85px;padding:5px;border:1px solid var(--borda);border-radius:4px;background:var(--bg-card);color:var(--text-main)">
+    <input type="text" id="aN" placeholder="Nota" style="flex:2;min-width:90px;padding:5px;border:1px solid var(--borda);border-radius:4px;background:var(--bg-card);color:var(--text-main)">
+    <button class="btn bv bs" onclick="addLanc()">+ Lançar</button>
+  </div>
+  <div id="detIgnorarContainer" style="margin-top:8px; display:block;">
+    <label class="check-label">
+      <input type="checkbox" id="detIgnorar">
+      <span>Não somar no total do mês (Despesa de Cartão)</span>
+    </label>
+  </div>
+  <div class="mb" style="margin-top:8px">
+      <button class="btn" id="detBtnUndo" style="display:none;background:#ff6f00;color:#fff" onclick="desfazerDet()">↩ Desfazer</button>
+      <button class="btn" onclick="fecharEefetivarDet()">Fechar</button>
+      <button class="btn ba" onclick="addLancEFechar()">Salvar e Fechar</button>
+    </div>
+</div></div>
+
+<div class="ov" id="ovCfgApp"><div class="mo">
+  <h3>&#8859; Configurações</h3>
+  <div class="fr">
+    <label>Linhas de categorias visíveis antes do scroll vertical</label>
+    <input type="number" id="cfgLinhas" min="5" max="50" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:4px">
+  </div>
+  <div class="fr" style="margin-top: 15px;">
+    <label>Dia de início do mês fiscal (competência)</label>
+    <input type="number" id="cfgDiaInicioMesFiscal" min="1" max="31" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:4px">
+    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+      Define quando começa o mês fiscal/competência (ex: 25 = fechamento do cartão no dia 25)
+    </small>
+  </div>
+  <div class="fr" style="margin-top: 15px;">
+    <label class="check-label">
+      <input type="checkbox" id="cfgTema">
+      <span>Ativar Modo Escuro (Dark Mode)</span>
+    </label>
+  </div>
+  <div class="fr" style="margin-top: 15px;">
+    <button class="btn br" onclick="resetarLargurasColunas()" style="width: 100%;">
+      &#8644; Resetar Larguras das Colunas
+    </button>
+    <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px;">
+      Restaura as larguras padrão baseadas no conteúdo
+    </small>
+  </div>
+  <div class="mb">
+    <button class="btn" onclick="fecharModal('ovCfgApp')">Cancelar</button>
+    <button class="btn ba" onclick="salvarCfgApp()">Salvar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovLote"><div class="mo">
+  <h3 id="ltTitulo" style="margin-bottom:2px">Lançar em Todos os Meses</h3>
+  <div id="ltSub" style="font-size:13px;color:#666;font-weight:600;margin-bottom:12px">Categoria</div>
+  <div class="fr" id="ltDescRow" style="display:none"><label>Descrição</label><input type="text" id="ltD" value="Receita"></div>
+  <div class="fr"><label>Valor Base (R$)</label><input type="text" id="ltV" placeholder="0,00" oninput="atualizarLotePreview()"></div>
+  <div class="fr"><label>Acréscimo Mensal (R$)</label><input type="text" id="ltA" placeholder="0,00" oninput="atualizarLotePreview()"></div>
+  <div class="fr"><label>Nota</label><input type="text" id="ltN"></div>
+  <div id="ltPreview" style="display:none;background:#f5f5f5;padding:8px;border-radius:4px;font-size:11px;margin-bottom:10px;max-height:100px;overflow-y:auto"></div>
+  <div class="mb">
+    <button class="btn br" id="ltBtnDel" onclick="apagarLote()" style="margin-right:auto" title="Apagar todos os lançamentos">&#10005; Apagar Todos</button>
+    <button class="btn" onclick="fecharModal('ovLote')">Cancelar</button>
+    <button class="btn ba" onclick="salvarLote()">Salvar Lote</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovConta"><div class="mo">
+  <h3>&#10020; Nova Conta</h3>
+  <div class="fr"><label>Nome</label><input type="text" id="ctN" placeholder="Ex: Nubank"></div>
+  <div class="fr"><label>Saldo Inicial (R$)</label><input type="text" inputmode="decimal" id="ctSI" placeholder="0,00"></div>
+  <div class="mb"><button class="btn" onclick="fecharModal('ovConta')">Cancelar</button><button class="btn ba" onclick="salvarConta()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="ovEditConta"><div class="mo">
+  <h3>&#9998; Editar Conta</h3>
+  <div class="fr"><label>Nome</label><input type="text" id="ecN"></div>
+  <div class="fr"><label>Saldo Inicial (R$)</label><input type="text" inputmode="decimal" id="ecSI" placeholder="0,00"></div>
+  <div class="mb"><button class="btn" onclick="fecharModal('ovEditConta')">Cancelar</button><button class="btn ba" onclick="salvarEditConta()">Salvar</button></div>
+</div></div>
+
+<div class="ov" id="ovDep"><div class="mo">
+  <div id="depHeader" class="modal-top-bar">
+    <h3 id="depContaNome">Conta</h3>
+  </div>
+  <div style="font-size:12px;margin-bottom:8px">Saldo Acumulado: <strong id="depSaldoAtual"></strong></div>
+  <div class="dl" id="depL"></div>
+  <div class="action-bar-wrap">
+    <input type="text" inputmode="decimal" id="depV" placeholder="Valor (R$)" style="flex:1;min-width:85px;padding:5px;border:1px solid var(--borda);background:var(--bg-card);color:var(--text-main);border-radius:4px">
+    <input type="text" id="depN" placeholder="Nota" style="flex:2;min-width:90px;padding:5px;border:1px solid var(--borda);background:var(--bg-card);color:var(--text-main);border-radius:4px">
+    <button class="btn bv bs" onclick="salvarDeposito()">+ Lançar</button>
+  </div>
+  <div class="mb" style="margin-top:8px">
+    <button class="btn" id="depBtnUndo" style="display:none;background:#ff6f00;color:#fff" onclick="desfazerDep()">↩ Desfazer</button>
+    <button class="btn" onclick="fecharEefetivarDep()">Fechar</button>
+    <button class="btn ba" onclick="salvarDepositoEFechar()">Salvar e Fechar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovMov"><div class="mo">
+  <h3>&#8644; Movimentação Mensal</h3>
+  <p style="font-size:12px;color:#666;margin-bottom:10px">Mês: <strong id="movMesNome"></strong></p>
+  <div class="fr"><label>Conta Origem/Destino</label><select id="movConta"></select></div>
+  <div class="fr"><label>Valor (R$)</label><input type="text" inputmode="decimal" id="movValor" placeholder="0,00"></div>
+  <div class="fr"><label>Nota</label><input type="text" id="movNota" placeholder="Opcional"></div>
+  <div class="mb">
+    <button class="btn br" id="movBtnDel" onclick="delMov()" style="margin-right:auto;display:none">&#10005; Excluir</button>
+    <button class="btn" onclick="fecharModal('ovMov')">Cancelar</button>
+    <button class="btn ba" onclick="salvarMov()">Salvar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovRendLocal"><div class="mo">
+  <h3>&#10020; Local de Rendimento</h3>
+  <input type="hidden" id="rendLocalId">
+  <div class="fr"><label>Nome</label><input type="text" id="rendLocalNome" placeholder="Ex: Nu Conta, Turbo 120% CDI"></div>
+  <div class="mb">
+    <button class="btn br" id="rendLocalDelBtn" onclick="excluirRendimentoLocal()" style="margin-right:auto;display:none">&#10005; Excluir</button>
+    <button class="btn" onclick="fecharModal('ovRendLocal')">Cancelar</button>
+    <button class="btn ba" onclick="salvarRendimentoLocal()">Salvar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovRendLanc"><div class="mo" onclick="event.stopPropagation()">
+  <div id="rendLancHeader" class="modal-top-bar">
+    <h3 id="rendLancTit">Local - Mês</h3>
+  </div>
+  <input type="hidden" id="rendLancLocalId">
+  <input type="hidden" id="rendLancMes">
+  <div class="dl" id="rendLancLista"></div>
+  <div class="action-bar-wrap">
+    <select id="rendLancTipo" style="padding:5px;border:1px solid #ddd;border-radius:4px;background:#fff">
+      <option value="aporte">Aporte</option>
+      <option value="rendimento">Rendimento</option>
+    </select>
+    <input type="text" id="rendLancValor" placeholder="Valor (R$)" style="flex:1;min-width:85px;padding:5px;border:1px solid #ddd;border-radius:4px">
+    <input type="text" id="rendLancNota" placeholder="Nota" style="flex:2;min-width:90px;padding:5px;border:1px solid #ddd;border-radius:4px">
+    <button class="btn bv bs" onclick="salvarRendimentoLancamento()">+ Lançar</button>
+  </div>
+  <div class="mb" style="margin-top:8px">
+    <button class="btn" id="rendBtnUndo" style="display:none;background:#ff6f00;color:#fff" onclick="desfazerRend()">↩ Desfazer</button>
+    <button class="btn" onclick="fecharEefetivarRend()">Fechar</button>
+    <button class="btn ba" onclick="salvarRendimentoLancamentoEFechar()">Salvar e Fechar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovRendAdd"><div class="mo">
+  <h3>&#10532; Novo Lançamento</h3>
+  <div class="fr"><label>Local</label><select id="rendAddLocal"></select></div>
+  <div class="fr">
+    <label>Tipo</label>
+    <select id="rendAddTipo">
+      <option value="rendimento">Rendimento</option>
+      <option value="aporte">Aporte</option>
+    </select>
+  </div>
+  <div class="fr"><label>Mês</label><select id="rendAddMes"></select></div>
+  <div class="fr"><label>Valor (R$)</label><input type="text" id="rendAddValor" placeholder="0,00"></div>
+  <div class="fr"><label>Nota</label><textarea id="rendAddNota"></textarea></div>
+  <div class="mb">
+    <button class="btn" onclick="fecharModal('ovRendAdd')">Cancelar</button>
+    <button class="btn ba" onclick="salvarRendimentoAdd()">Salvar</button>
+  </div>
+</div></div>
+
+<div class="ov" id="ovRendProj"><div class="mo">
+  <h3 style="margin-bottom:2px">&#10532; Projetar Rendimentos</h3>
+  <p id="rendProjSub" style="font-size:12px;color:#666;margin-bottom:12px"></p>
+  <input type="hidden" id="rendProjLocalId">
+  <div class="fr">
+    <label>Taxa de Rendimento Mensal (%)</label>
+    <input type="text" id="rendProjPct" placeholder="1,00" oninput="atualizarPreviewRendimentoProjecao()">
+  </div>
+  <div id="rendProjPreview" style="display:none;background:#f5f5f5;padding:8px;border-radius:4px;font-size:11px;margin-bottom:10px;max-height:150px;overflow-y:auto;border:1px solid #ddd"></div>
+  <div class="mb">
+    <button class="btn" onclick="fecharModal('ovRendProj')">Cancelar</button>
+    <button class="btn ba" onclick="salvarRendimentoProjecao()">Salvar</button>
+  </div>
+</div></div>
