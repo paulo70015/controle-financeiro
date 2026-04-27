@@ -1,0 +1,30 @@
+<!-- Overlay Escuro -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="toggleDrawer()"></div>
+
+<!-- Drawer de Despesas Fixas -->
+<div id="drawerFixas" class="drawer-panel">
+  <div class="drawer-header">
+    <h3 style="margin:0">&#9906; Despesas Fixas</h3>
+    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div id="mesFiscalInfo" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;padding:4px 8px;background:rgba(0,0,0,0.05);border-radius:4px;text-align:center"></div>
+    <div id="lf"></div>
+    <div id="tf" class="drawer-tf"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn bv btn-block" onclick="abrirF()">+ Nova Despesa Fixa</button>
+  </div>
+</div>
+
+<!-- Drawer de Metas Financeiras -->
+<div id="drawerMetas" class="drawer-panel">
+  <div class="drawer-header">
+    <h3>&#8857; Metas Financeiras</h3>
+    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="lm"></div>
+  <div class="drawer-footer">
+    <button class="btn bv btn-block" onclick="abrirM()">+ Nova Meta</button>
+  </div>
+</div>

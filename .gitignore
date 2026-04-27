@@ -1,0 +1,38 @@
+# Variáveis de Ambiente e Credenciais (MUITO SENSÍVEL)
+.env
+*.json
+!package.json
+!package-lock.json
+
+# Se houver chaves de conta de serviço específicas do GCP/Drive:
+projeto-financeiro-*.json
+service_account.json
+credentials.json
+
+# Bancos de Dados SQLite (SEUS DADOS PESSOAIS)
+*.db
+*.db.bak
+*.sqlite
+*.sqlite3
+
+# Compilações do PyInstaller (Binários pesados)
+dist/
+build/
+*.spec
+*.exe
+
+# Python / Ambientes Virtuais
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+
+# Logs e Temporários
+*.log
+.DS_Store
+.vscode/
+.idea/
+.kiro/
