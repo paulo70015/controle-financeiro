@@ -87,6 +87,10 @@ echo [OK] Dependencias instaladas.
 
 echo.
 echo [2/3] Gerando executavel com PyInstaller...
+
+echo Preparando ambiente embutido...
+copy /Y "%INCLUIR_ENV%" ".env_embutido" >nul
+
 call "%PYTHON_CMD%" -m PyInstaller ^
     --onefile ^
     --noconsole ^
@@ -94,7 +98,7 @@ call "%PYTHON_CMD%" -m PyInstaller ^
     --add-data "index.html;." ^
     --add-data "partials;partials" ^
     --add-data "static;static" ^
-    --add-data "%INCLUIR_ENV%;." ^
+    --add-data ".env_embutido;." ^
     --hidden-import flask ^
     --hidden-import PIL ^
     --hidden-import pystray ^
@@ -106,6 +110,8 @@ call "%PYTHON_CMD%" -m PyInstaller ^
     --hidden-import supabase ^
     --collect-submodules financeiro ^
     app.py
+
+del /Q ".env_embutido" >nul
 
 if errorlevel 1 (
     echo ERRO: Falha ao gerar executavel.
