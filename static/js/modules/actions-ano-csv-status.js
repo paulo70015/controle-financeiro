@@ -163,23 +163,80 @@ async function confirmarNovoAno() {
   window.location = '?ano=' + novoAno;
 }
 
+function nomeArquivoExportacao(nomeBase, extensao) {
+  const agora = new Date();
+  const dd = String(agora.getDate()).padStart(2, '0');
+  const mm = String(agora.getMonth() + 1).padStart(2, '0');
+  const aaaa = agora.getFullYear();
+  return nomeBase + '_' + dd + mm + aaaa + '.' + extensao.replace(/^\./, '');
+}
+
 function exportarCSV() {
   const url = '/api/exportar/' + ano;
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'despesas-' + ano + '.csv';
+  a.download = nomeArquivoExportacao('despesas-' + ano, 'csv');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 }
 
+function exportarDB() {
+  const url = '/api/db/exportar';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArquivoExportacao('controle-financeiro-bd', 'txt');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function importarDB(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  if (!confirm('Importar este TXT substituirá todos os dados atuais do banco Supabase. Deseja continuar?')) {
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('arquivo', file);
+
+  try {
+    const r = await fetch('/api/db/importar', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!d.ok) {
+      alert('Erro ao importar BD: ' + (d.erro || JSON.stringify(d)));
+      return;
+    }
+
+    const total = Object.values(d.importados || {}).reduce((soma, qtd) => soma + Number(qtd || 0), 0);
+    alert('BD importado com sucesso!\n' + total + ' registro(s) importado(s).');
+    window.location.reload();
+  } catch (e) {
+    alert('Falha na importação do BD: ' + e.message);
+  }
+}
+
 function toggleCsvMenu() {
-  document.getElementById('csvDropdown').classList.toggle('open');
+  const dropdown = document.getElementById('csvDropdown');
+  if (dropdown) dropdown.classList.toggle('open');
+}
+
+function toggleDbMenu() {
+  const dropdown = document.getElementById('dbDropdown');
+  if (dropdown) dropdown.classList.toggle('open');
 }
 document.addEventListener('click', function(e) {
-  const menu = document.getElementById('csvMenu');
-  if (menu && !menu.contains(e.target)) {
-    document.getElementById('csvDropdown').classList.remove('open');
+  const menus = [
+    { menu: document.getElementById('csvMenu'), dropdown: document.getElementById('csvDropdown') },
+    { menu: document.getElementById('dbMenu'), dropdown: document.getElementById('dbDropdown') }
+  ];
+  for (const item of menus) {
+    if (item.menu && item.dropdown && !item.menu.contains(e.target)) {
+      item.dropdown.classList.remove('open');
+    }
   }
 });
 

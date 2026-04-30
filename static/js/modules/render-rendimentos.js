@@ -13,6 +13,48 @@ function toggleEditUiRend(isEdit) {
   if (b2) b2.textContent = isEdit ? 'Alterar e fechar' : 'Salvar e fechar';
 }
 
+function atualizarRendLancDiffUi() {
+  const tipoEl = document.getElementById('rendLancTipo');
+  const boxEl = document.getElementById('rendLancDiffBox');
+  const diffEl = document.getElementById('rendLancDiff');
+  const labelEl = document.getElementById('rendLancDiffLabel');
+  if (!tipoEl || !boxEl) return;
+
+  const isRendimento = tipoEl.value === 'rendimento';
+  boxEl.style.display = isRendimento ? 'flex' : 'none';
+  if (diffEl && !rendEditandoId) diffEl.checked = isRendimento;
+  if (labelEl) {
+    labelEl.textContent = `Usar valor final informado e lançar só a diferença em relação ao mês anterior (${BRL(obterValorAnteriorRendimentoLancamento())}).`;
+  }
+}
+window.atualizarRendLancDiffUi = atualizarRendLancDiffUi;
+
+function obterValorAnteriorRendimentoLancamento() {
+  const localId = parseInt(document.getElementById('rendLancLocalId')?.value || rendCtx.local_id || '0');
+  const mes = parseInt(document.getElementById('rendLancMes')?.value || rendCtx.mes || '0');
+  if (!localId || !mes) return 0;
+
+  const { historico } = calcularSaldoAcumuladoLocal(localId, mes);
+  return historico[mes - 1]?.saldoMesAnterior || 0;
+}
+
+function obterValorRendimentoPorDiferenca(localId, mes, valorFinalInformado) {
+  const { historico } = calcularSaldoAcumuladoLocal(localId, mes);
+  const mesInfo = historico[mes - 1];
+  if (!mesInfo) return valorFinalInformado;
+
+  const rendimentoOriginal = rendEditandoId && rendOriginalData?.tipo === 'rendimento'
+    ? parseFloat(rendOriginalData.valor || 0)
+    : 0;
+  const saldoAntesDoRendimento = arred2(mesInfo.saldoMesAnterior + mesInfo.aporte);
+  const outrosRendimentos = arred2((mesInfo.qtdRend > 0 ? mesInfo.rendimento : 0) - rendimentoOriginal);
+  return arred2(valorFinalInformado - saldoAntesDoRendimento - outrosRendimentos);
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.id === 'rendLancTipo') atualizarRendLancDiffUi();
+});
+
 window.editarRend = function(id, tipo, valor, nota) {
   window.iniciarEdicaoInline({
     checkLock: true,
@@ -28,6 +70,9 @@ window.editarRend = function(id, tipo, valor, nota) {
     toggleFn: isEdit => toggleEditUiRend(isEdit),
     focusId: 'rendLancValor'
   });
+  const diffEl = document.getElementById('rendLancDiff');
+  if (diffEl) diffEl.checked = false;
+  atualizarRendLancDiffUi();
 };
 
 function arred2(v) {
@@ -595,14 +640,20 @@ async function abrirRendimentoLanc(localId, localNome, mes) {
   document.getElementById('rendLancTit').textContent = tit;
   const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(tit) : tit;
   document.getElementById('rendLancTit').innerHTML = tituloFormatado;
-  document.getElementById('rendLancTipo').value = 'aporte';
+  const tipoEl = document.getElementById('rendLancTipo');
+  if (!tipoEl) return;
+  tipoEl.value = 'aporte';
   document.getElementById('rendLancValor').value = '';
   document.getElementById('rendLancNota').value = '';
+  const diffEl = document.getElementById('rendLancDiff');
+  if (diffEl) diffEl.checked = true;
+  atualizarRendLancDiffUi();
 
   const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
-  document.getElementById('rendLancTipo').disabled = locked;
+  tipoEl.disabled = locked;
   document.getElementById('rendLancValor').disabled = locked;
   document.getElementById('rendLancNota').disabled = locked;
+  if (diffEl) diffEl.disabled = locked;
   const b1 = document.querySelector('button[onclick="salvarRendimentoLancamento()"]');
   const b2 = document.querySelector('button[onclick="salvarRendimentoLancamentoEFechar()"]');
   if (b1) b1.style.display = locked ? 'none' : 'inline-block';
@@ -673,6 +724,7 @@ async function salvarRendimentoLancamento() {
   const tipo = document.getElementById('rendLancTipo').value;
   const valor = parseVal(document.getElementById('rendLancValor').value);
   const nota = (document.getElementById('rendLancNota').value || '').trim();
+  const diffEl = document.getElementById('rendLancDiff');
   if (!local_id || !mes) {
     alert('Local/mês inválido');
     return false;
@@ -684,11 +736,14 @@ async function salvarRendimentoLancamento() {
 
   try {
     if (valor !== null || nota) {
+      const valorLancamento = tipo === 'rendimento' && valor !== null && diffEl?.checked
+        ? obterValorRendimentoPorDiferenca(local_id, mes, valor)
+        : valor;
       const url = rendEditandoId ? '/api/rendimento/lancamento/' + rendEditandoId : '/api/rendimento/lancamento';
       const method = rendEditandoId ? 'PUT' : 'POST';
       const body = rendEditandoId 
-          ? { tipo, valor: valor || 0, nota }
-          : { ano, mes, local_id, tipo, valor: valor || 0, nota };
+          ? { tipo, valor: valorLancamento || 0, nota }
+          : { ano, mes, local_id, tipo, valor: valorLancamento || 0, nota };
           
       await safeApiCall(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }, 'Falha ao salvar');
       if (rendEditandoId) {
@@ -706,6 +761,7 @@ async function salvarRendimentoLancamento() {
 
     document.getElementById('rendLancValor').value = '';
     document.getElementById('rendLancNota').value = '';
+    if (diffEl && !rendEditandoId) diffEl.checked = tipo === 'rendimento';
     await debouncedLoad();
     setView('rendimentos', false);
     await carregarRendimentoDetalhe();

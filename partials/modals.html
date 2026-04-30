@@ -254,6 +254,12 @@
       <option value="aporte">Aporte</option>
       <option value="rendimento">Rendimento</option>
     </select>
+    <div id="rendLancDiffBox" style="display:none;flex-basis:100%;margin:0">
+      <label class="check-label" style="font-size:13px">
+        <input type="checkbox" id="rendLancDiff" checked>
+        <span id="rendLancDiffLabel">Usar valor final informado e lançar só a diferença em relação ao mês anterior (R$ 0,00).</span>
+      </label>
+    </div>
     <input type="text" id="rendLancValor" placeholder="Valor (R$)" style="flex:1;min-width:85px;padding:5px;border:1px solid #ddd;border-radius:4px">
     <input type="text" id="rendLancNota" placeholder="Nota" style="flex:2;min-width:90px;padding:5px;border:1px solid #ddd;border-radius:4px">
     <button class="btn bv bs" onclick="salvarRendimentoLancamento()">+ Lançar</button>
