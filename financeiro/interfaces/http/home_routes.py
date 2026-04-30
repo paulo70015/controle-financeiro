@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request
 
 from financeiro.application.home.use_cases import HomeUseCases
-from financeiro.infrastructure.repository_factory import get_home_repository
+from financeiro.infrastructure.repository_factory import get_db_mode, get_home_repository
 
 # Nomes completos dos meses para modais
 MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -21,7 +21,7 @@ def create_home_blueprint(client_factory=None, meses=None):
     def index():
         ano = request.args.get("ano", datetime.now().year, type=int)
         return render_template("index.html", ano=ano, anos=use_cases.listar_anos(ano), 
-                             meses=MESES, meses_abrev=MESES_ABREV)
+                             meses=MESES, meses_abrev=MESES_ABREV, db_mode=get_db_mode())
 
     return bp
 

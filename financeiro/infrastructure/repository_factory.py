@@ -185,3 +185,15 @@ def get_csv_repository():
     else:
         from financeiro.infrastructure.supabase.csv_repository import SupabaseCSVRepository
         return SupabaseCSVRepository(_get_supabase_client, MESES)
+
+
+def get_db_backup_repository():
+    mode = get_db_mode()
+
+    if mode == 'sqlite':
+        _ensure_sqlite_initialized()
+        from financeiro.infrastructure.sqlite.db_backup_repository import SQLiteDBBackupRepository
+        return SQLiteDBBackupRepository(_get_sqlite_connection)
+    else:
+        from financeiro.infrastructure.supabase.db_backup_repository import SupabaseDBBackupRepository
+        return SupabaseDBBackupRepository(_get_supabase_client)

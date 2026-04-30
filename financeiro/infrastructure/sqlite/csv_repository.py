@@ -4,6 +4,9 @@ import re
 import os
 import shutil
 
+from financeiro.infrastructure.csv_utils import linha_tem_mes_csv, mes_por_cabecalho_csv
+from financeiro.infrastructure.export_files import nome_arquivo_exportacao
+
 
 class SQLiteCSVRepository:
     def __init__(self, connection_factory, meses):
@@ -87,6 +90,15 @@ class SQLiteCSVRepository:
         for i, h in enumerate(header):
             if h in nomes_m:
                 col_to_mes[i] = nomes_m.index(h) + 1
+        if not col_to_mes:
+            for i, r in enumerate(rows[:5]):
+                if linha_tem_mes_csv(r):
+                    linha_cabecalho = i
+                    break
+            for i, h in enumerate(rows[linha_cabecalho]):
+                mes = mes_por_cabecalho_csv(h)
+                if mes:
+                    col_to_mes[i] = mes
 
         def parse_valor(s):
             s = s.strip()
@@ -449,6 +461,6 @@ class SQLiteCSVRepository:
         csv_bytes = ("\ufeff" + out.getvalue()).encode("utf-8")
         headers = {
             "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": f"attachment; filename=despesas-{ano}.csv",
+            "Content-Disposition": f"attachment; filename={nome_arquivo_exportacao(f'despesas-{ano}', 'csv')}",
         }
         return (csv_bytes, 200, headers)

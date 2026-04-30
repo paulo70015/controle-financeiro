@@ -32,6 +32,7 @@ from financeiro.interfaces.http.contas_routes import create_contas_blueprint
 from financeiro.interfaces.http.planejamento_routes import create_planejamento_blueprint
 from financeiro.interfaces.http.admin_routes import create_admin_blueprint
 from financeiro.interfaces.http.csv_routes import create_csv_blueprint
+from financeiro.interfaces.http.db_backup_routes import create_db_backup_blueprint
 from financeiro.interfaces.http.dashboard_routes import create_dashboard_blueprint
 from financeiro.interfaces.http.home_routes import create_home_blueprint
 from financeiro.interfaces.http.rendimentos_routes import create_rendimentos_blueprint
@@ -75,6 +76,7 @@ def register_blueprints(flask_app):
     flask_app.register_blueprint(create_planejamento_blueprint())
     flask_app.register_blueprint(create_admin_blueprint())
     flask_app.register_blueprint(create_csv_blueprint(meses=MESES))
+    flask_app.register_blueprint(create_db_backup_blueprint())
     flask_app.register_blueprint(create_dashboard_blueprint(meses=MESES))
     flask_app.register_blueprint(create_home_blueprint(meses=MESES))
     flask_app.register_blueprint(create_rendimentos_blueprint())

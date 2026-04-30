@@ -36,6 +36,7 @@ def test_sqlite_repositories():
             get_admin_repository,
             get_home_repository,
             get_csv_repository,
+            get_db_backup_repository,
             get_db_mode
         )
         
@@ -53,6 +54,7 @@ def test_sqlite_repositories():
             ("Admin", get_admin_repository),
             ("Home", get_home_repository),
             ("CSV", get_csv_repository),
+            ("DB Backup", get_db_backup_repository),
         ]
         
         print("Testando criação de repositórios:")
