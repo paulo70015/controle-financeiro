@@ -39,3 +39,4 @@ ENV/
 .idea/
 .kiro/
 specs/dados-supabase.sql
+.env_embutido
