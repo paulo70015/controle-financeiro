@@ -1,4 +1,4 @@
-﻿﻿﻿﻿var renCtx = {};
+﻿﻿var renCtx = {};
 
 function renderFixas() {
   const ulLf = document.getElementById('lf');
@@ -97,6 +97,8 @@ function abrirRen(id, nome, fixaFlag = 0, contaVinculadaId = null, tooltip = '')
   renCtx = {id, nomeOriginal: nome};
   document.getElementById('renN').value = nome;
   document.getElementById('renTooltip').value = tooltip;
+  const cat = (dados.categorias || []).find(c => c.id === id);
+  document.getElementById('renCartao').checked = cat ? !!cat.is_cartao : false;
   const outraTemFixas = (dados.categorias || []).some(c => c.inclui_fixas && c.id !== id);
   const rowRenFixas = document.getElementById('renFixas').closest('.fr');
   if (outraTemFixas) {
@@ -132,11 +134,12 @@ async function confirmarRen() {
   const contaVal = document.getElementById('renConta').value;
   const conta_vinculada_id = contaVal ? parseInt(contaVal) : null;
   const tooltip = document.getElementById('renTooltip').value.trim();
+  const is_cartao = document.getElementById('renCartao').checked ? 1 : 0;
   try {
     await safeApiCall('/api/categoria/' + renCtx.id, {
       method: 'PUT',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({tooltip, nome, inclui_fixas, conta_vinculada_id, nome_original: renCtx.nomeOriginal})
+      body: JSON.stringify({tooltip, nome, inclui_fixas, conta_vinculada_id, is_cartao, nome_original: renCtx.nomeOriginal})
     });
     fecharModal('ovRen');
     debouncedLoad();
@@ -349,15 +352,22 @@ async function salvarC() {
   const n = document.getElementById('cN').value.trim();
   if (!n) return alert('Informe o nome');
   const inclui_fixas = document.getElementById('cFixas').checked ? 1 : 0;
+  const is_cartao = document.getElementById('cCartao').checked ? 1 : 0;
+  const contaVal = document.getElementById('cConta').value;
+  const conta_vinculada_id = contaVal ? parseInt(contaVal) : null;
+  const tooltip = document.getElementById('cTooltip').value.trim();
   try {
     await safeApiCall('/api/categoria', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({nome:n, inclui_fixas, ano})
+      body: JSON.stringify({nome:n, inclui_fixas, is_cartao, conta_vinculada_id, tooltip, ano})
     });
     fecharModal('ovC');
     document.getElementById('cN').value = '';
     document.getElementById('cFixas').checked = false;
+    document.getElementById('cCartao').checked = false;
+    document.getElementById('cConta').value = '';
+    document.getElementById('cTooltip').value = '';
     debouncedLoad();
   } catch (error) {
     alert('Erro ao criar categoria: ' + error.message);
@@ -367,6 +377,21 @@ async function salvarC() {
 function abrirC() {
   document.getElementById('cN').value = '';
   document.getElementById('cFixas').checked = false;
+  document.getElementById('cCartao').checked = false;
+  document.getElementById('cTooltip').value = '';
+  const sel = document.getElementById('cConta');
+  sel.innerHTML = '<option value="">— Sem vínculo de conta —</option>';
+  (dados.contas || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = '❖ ' + c.nome;
+    sel.appendChild(opt);
+  });
+  const info = document.getElementById('cContaInfo');
+  info.style.display = 'none';
+  sel.onchange = () => {
+    info.style.display = sel.value ? 'block' : 'none';
+  };
   const jaTemFixas = (dados.categorias || []).some(c => c.inclui_fixas);
   const rowFixas = document.getElementById('cFixas').closest('.fr');
   if (jaTemFixas) {

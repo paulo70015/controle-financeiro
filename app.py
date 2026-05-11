@@ -125,7 +125,8 @@ if __name__ == "__main__":
     else:
         print(f"\n Controle de Financas v1.3.0 ({db_mode.upper()}) em: http://localhost:8080\n")
     threading.Thread(target=lambda:app.run(debug=False,port=8080,use_reloader=False),daemon=True).start()
-    threading.Timer(1.2,lambda:webbrowser.open("http://localhost:8080")).start()
+    if not os.getenv("FLASK_SKIP_BROWSER"):
+        threading.Timer(1.2,lambda:webbrowser.open("http://localhost:8080")).start()
     try:
         if args.show_console:
             input()

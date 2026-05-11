@@ -15,13 +15,15 @@ class SQLiteCategoriasRepository:
             or 0
         )
         conn.execute(
-            "INSERT INTO categorias(nome,ordem,inclui_fixas,conta_vinculada_id,ano) VALUES(?,?,?,?,?)",
+            "INSERT INTO categorias(nome,ordem,inclui_fixas,conta_vinculada_id,ano,is_cartao,tooltip) VALUES(?,?,?,?,?,?,?)",
             (
                 categoria.nome,
                 ultima_ordem + 1,
                 categoria.inclui_fixas,
                 categoria.conta_vinculada_id,
                 categoria.ano,
+                categoria.is_cartao,
+                categoria.tooltip,
             ),
         )
         conn.commit()
@@ -51,6 +53,11 @@ class SQLiteCategoriasRepository:
             conn.execute(
                 "UPDATE categorias SET inclui_fixas=? WHERE id=?",
                 (1 if payload["inclui_fixas"] else 0, categoria_id),
+            )
+        if "is_cartao" in payload:
+            conn.execute(
+                "UPDATE categorias SET is_cartao=? WHERE id=?",
+                (1 if payload["is_cartao"] else 0, categoria_id),
             )
         if "tooltip" in payload:
             conn.execute(

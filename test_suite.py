@@ -318,6 +318,31 @@ def test_ddd_categoria_vinculada(r):
     requests.delete(f"{BASE_URL}/api/despesa/{despesa_id}")
     requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/Cat Vinculada Teste")
 
+@runner.test("DDD: Categoria com flag is_cartao")
+def test_ddd_categoria_cartao(r):
+    # Criar categoria com flag is_cartao
+    resp = requests.post(f"{BASE_URL}/api/categoria", json={
+        "ano": ANO_TESTE,
+        "nome": "Cat Cartao Teste",
+        "ordem": 998,
+        "inclui_fixas": False,
+        "is_cartao": True
+    })
+    assert resp.status_code == 200
+    
+    # Verificar se a flag foi salva
+    resp = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}")
+    dados = resp.json()
+    categorias = dados.get("categorias", [])
+    cat = next((c for c in categorias if c["nome"] == "Cat Cartao Teste"), None)
+    
+    assert cat is not None, "Categoria não criada"
+    assert cat.get("is_cartao") == 1 or cat.get("is_cartao") is True, f"Flag is_cartao não foi salva corretamente: {cat}"
+    print(f"    ✓ Categoria criada com flag is_cartao ativa")
+    
+    # Limpar
+    requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/Cat Cartao Teste")
+
 # ============================================================================
 # EXECUÇÃO
 # ============================================================================

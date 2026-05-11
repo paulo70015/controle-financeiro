@@ -8,7 +8,7 @@ class SQLiteDashboardRepository:
         cats = [
             dict(r)
             for r in conn.execute(
-                "SELECT id,nome,inclui_fixas,conta_vinculada_id,tooltip FROM categorias WHERE ano=? ORDER BY ordem",
+                "SELECT id,nome,inclui_fixas,conta_vinculada_id,tooltip,is_cartao FROM categorias WHERE ano=? ORDER BY ordem",
                 (ano,),
             ).fetchall()
         ]

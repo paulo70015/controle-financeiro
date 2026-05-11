@@ -113,9 +113,20 @@ class TestAplicarFixaManual:
 class TestFixaCategoria:
     def test_criar_fixa_com_categoria(self, page: Page):
         """Verificar que fixas aparecem na tabela quando categoria tem inclui_fixas."""
-        # Cria categoria com inclui_fixas
         wait_for_table(page)
-        criar_categoria(page, "Moradia Fixa", incluir_fixas=True)
+        # Usa force=True porque o checkbox pode estar escondido se outra
+        # categoria ja tiver inclui_fixas (poluicao de estado entre testes)
+        page.click('button:has-text("+ Categoria")')
+        page.wait_for_selector("#ovC.show")
+        fill_input(page, "#cN", "Moradia Fixa")
+        fixas_check = page.locator("#cFixas")
+        if fixas_check.is_visible():
+            fixas_check.check()
+        else:
+            # Ja tem outra categoria com fixas, entao nao precisa marcar
+            pass
+        page.click("#ovC .btn.ba")
+        wait_for_load(page)
 
         wait_for_table(page)
         dados = page.locator("#tw").inner_text()

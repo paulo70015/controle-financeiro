@@ -84,13 +84,17 @@ def get_table_data(page: Page) -> list[list[str]]:
 #  Pre-condicoes (setup helpers)
 # ═══════════════════════════════════════════════════════════════
 
-def criar_categoria(page: Page, nome: str, incluir_fixas: bool = False):
+def criar_categoria(page: Page, nome: str, incluir_fixas: bool = False, is_cartao: bool = False, tooltip: str = ""):
     """Cria uma categoria via modal ovC."""
     page.click('button:has-text("+ Categoria")')
     page.wait_for_selector("#ovC.show")
     fill_input(page, "#cN", nome)
     if incluir_fixas:
         page.check("#cFixas")
+    if is_cartao:
+        page.check("#cCartao")
+    if tooltip:
+        fill_input(page, "#cTooltip", tooltip)
     page.click("#ovC .btn.ba")  # Botao Salvar (azul)
     wait_for_load(page)
     expect(page.locator("#ovC.show")).to_be_hidden()

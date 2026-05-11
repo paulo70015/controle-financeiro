@@ -70,7 +70,7 @@ class TestLinhasVisiveis:
 
         # Altera para 20
         fill_input(page, "#cfgLinhas", "20")
-        page.click("#ovCfgApp .btn.bv")
+        page.click("#ovCfgApp button:has-text('Salvar')")
         wait_for_load(page)
 
         # Nao quebrou = sucesso
@@ -90,7 +90,7 @@ class TestLinhasVisiveis:
             dialog.accept()
         page.on("dialog", handle_dialog)
 
-        page.click("#ovCfgApp .btn.bv")
+        page.click("#ovCfgApp button:has-text('Salvar')")
         page.wait_for_timeout(500)
         assert dialog_msg[0] is not None, "Esperado alerta de validacao"
 
@@ -104,7 +104,7 @@ class TestDiaInicioMesFiscal:
         expect(dia_input).to_be_visible()
 
         fill_input(page, "#cfgDiaInicioMesFiscal", "20")
-        page.click("#ovCfgApp .btn.bv")
+        page.click("#ovCfgApp button:has-text('Salvar')")
         wait_for_load(page)
 
         # O drawer de fixas deve refletir a alteracao
@@ -113,7 +113,8 @@ class TestDiaInicioMesFiscal:
         info_fiscal = page.locator("#mesFiscalInfo")
         if info_fiscal.is_visible():
             texto = info_fiscal.inner_text()
-            assert "Competencia" in texto, f"Info fiscal: {texto}"
+            # A UI pode mostrar "Competência" (com acento) ou "Competencia"
+            assert "compet" in texto.lower(), f"Info fiscal nao reconhecida: {texto}"
         fechar_drawer(page)
 
     def test_dia_fiscal_fora_range(self, page: Page):
@@ -129,6 +130,6 @@ class TestDiaInicioMesFiscal:
             dialog.accept()
         page.on("dialog", handle_dialog)
 
-        page.click("#ovCfgApp .btn.bv")
+        page.click("#ovCfgApp button:has-text('Salvar')")
         page.wait_for_timeout(500)
         assert dialog_msg[0] is not None, "Esperado alerta de validacao"

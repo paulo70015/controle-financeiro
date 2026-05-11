@@ -17,7 +17,7 @@ class SupabaseDashboardRepository:
         
         # Categorias
         cats_response = client.table("categorias") \
-            .select("id, nome, inclui_fixas, conta_vinculada_id, tooltip") \
+            .select("id, nome, inclui_fixas, conta_vinculada_id, tooltip, is_cartao") \
             .eq("ano", ano) \
             .order("ordem") \
             .execute()
