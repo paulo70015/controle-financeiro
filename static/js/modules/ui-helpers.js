@@ -9,9 +9,10 @@ window.formatBankIcons = function(text) {
   
   let newText = text;
   for (const [tag, b] of Object.entries(window.BANK_ICONS_CFG)) {
-    if (newText.includes(tag)) {
+    const regex = new RegExp(tag.replace(/\[/g, '\\[').replace(/\]/g, '\\]'), 'gi');
+    if (regex.test(newText)) {
       const badge = `<span style="display:inline-flex; align-items:center; justify-content:center; background:${b.bg}; color:${b.color}; font-size:10px; font-weight:900; width:22px; height:14px; border-radius:3px; vertical-align:middle; margin:0 3px; line-height:1; transform:translateY(-1px);" title="${b.title}">${b.label}</span>`;
-      newText = newText.split(tag).join(badge);
+      newText = newText.replace(regex, badge);
     }
   }
   return newText;

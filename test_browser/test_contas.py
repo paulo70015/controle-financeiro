@@ -59,30 +59,29 @@ class TestDeposito:
         if page.locator("#tw:has-text('Itau')").count() == 0:
             page.click('button:has-text("+ Conta")')
             page.wait_for_selector("#ovConta.show", timeout=3000)
-            fill_input(page, "#contaNome", "Itau")
-            fill_input(page, "#contaSaldoInicial", "5000,00")
-            page.click("#ovConta .btn.bv")
+            fill_input(page, "#ctN", "Itau")
+            fill_input(page, "#ctSI", "5000,00")
+            page.click("#ovConta button:has-text('Salvar')")
             wait_for_load(page)
 
-    def test_abrir_deposito(self, page: Page):
-        """Clicar na linha da conta abre o modal de deposito."""
+    def _abrir_deposito(self, page: Page):
+        """Clica na celula de valor (mes 1) da conta para abrir ovDep."""
         wait_for_table(page)
-        # Linha da conta tem classe tr-conta
         linha_conta = page.locator("#tw table tbody tr.tr-conta")
         if linha_conta.count() == 0:
             pytest.skip("Linha de conta nao encontrada")
-        # Clica na primeira celula (nome da conta)
-        linha_conta.first.locator("td").first.click()
+        # Clica na segunda celula (mes 1), que tem onclick="abrirDep(...)"
+        celula_valor = linha_conta.first.locator("td").nth(1)
+        celula_valor.click()
         page.wait_for_selector("#ovDep.show", timeout=3000)
+
+    def test_abrir_deposito(self, page: Page):
+        """Clicar na celula de valor da conta abre o modal de deposito."""
+        self._abrir_deposito(page)
         modal_should_be_visible(page, "ovDep")
 
     def test_lancar_deposito_positivo(self, page: Page):
-        wait_for_table(page)
-        linha_conta = page.locator("#tw table tbody tr.tr-conta").first
-        if linha_conta.count() == 0:
-            pytest.skip("Linha de conta nao encontrada")
-        linha_conta.locator("td").first.click()
-        page.wait_for_selector("#ovDep.show", timeout=3000)
+        self._abrir_deposito(page)
 
         fill_input(page, "#depV", "1000,00")
         fill_input(page, "#depN", "Deposito teste")
@@ -92,14 +91,8 @@ class TestDeposito:
 
     def test_lancar_deposito_negativo(self, page: Page):
         """Deposito negativo (saque)."""
-        wait_for_table(page)
-        linha_conta = page.locator("#tw table tbody tr.tr-conta").first
-        if linha_conta.count() == 0:
-            pytest.skip("Linha de conta nao encontrada")
-        linha_conta.locator("td").first.click()
-        page.wait_for_selector("#ovDep.show", timeout=3000)
+        self._abrir_deposito(page)
 
-        # Valor negativo = saque
         fill_input(page, "#depV", "-200,00")
         fill_input(page, "#depN", "Saque teste")
         page.click('#ovDep button:has-text("Salvar e fechar")')
@@ -108,12 +101,7 @@ class TestDeposito:
 
     def test_deposito_valor_zero_bloqueado(self, page: Page):
         """Tentar depositar zero deve ser rejeitado."""
-        wait_for_table(page)
-        linha_conta = page.locator("#tw table tbody tr.tr-conta").first
-        if linha_conta.count() == 0:
-            pytest.skip("Linha de conta nao encontrada")
-        linha_conta.locator("td").first.click()
-        page.wait_for_selector("#ovDep.show", timeout=3000)
+        self._abrir_deposito(page)
 
         fill_input(page, "#depV", "0")
 
@@ -132,7 +120,7 @@ class TestDeposito:
 
 class TestMovimentacaoMensal:
     def test_abrir_movimentacao(self, page: Page):
-        """Abrir modal de movimentacao mensal via kebab da conta."""
+        """Abrir modal de edicao da conta via kebab."""
         wait_for_table(page)
         linha_conta = page.locator("#tw table tbody tr.tr-conta").first
         if linha_conta.count() == 0:
@@ -145,17 +133,14 @@ class TestMovimentacaoMensal:
         kebabs.first.click(force=True)
         page.wait_for_timeout(200)
 
-        # Procura opcao de movimentacao
-        link_mov = page.locator(
-            ".dropdown-content a:has-text('Editar')"
-        )
-        if link_mov.count() > 0:
-            link_mov.first.click(force=True)
+        # Procura opcao de editar conta
+        link_edit = linha_conta.locator(".dropdown-content a:has-text('Editar')")
+        if link_edit.count() > 0:
+            link_edit.first.click(force=True)
             page.wait_for_timeout(300)
 
-        # Tenta abrir movimentacao via clique na celula de saldo/movimentacao
-        # (algumas celulas de conta abrem ovMov ao inves de ovDep)
-        page.keyboard.press("Escape")  # fecha qualquer modal
+        # Fecha qualquer modal
+        page.keyboard.press("Escape")
         wait_for_load(page)
 
 
@@ -172,7 +157,7 @@ class TestEditarExcluirConta:
         kebabs.first.click(force=True)
         page.wait_for_timeout(200)
 
-        link_excluir = page.locator(
+        link_excluir = linha_conta.locator(
             ".dropdown-content a:has-text('Excluir')"
         )
         if link_excluir.count() == 0:

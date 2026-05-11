@@ -117,7 +117,8 @@ def flask_server():
     env["DB_MODE"] = "sqlite"
     env["PYTHONPATH"] = str(PROJETO_RAIZ)
 
-    # Sem --show-console: o servidor usa loop infinito (tray falha -> while True)
+    # FLASK_SKIP_BROWSER evita que o app.py abra o navegador padrão
+    env["FLASK_SKIP_BROWSER"] = "1"
     proc = subprocess.Popen(
         [sys.executable, "app.py"],
         env=env,
@@ -159,26 +160,45 @@ def flask_server():
     _restore_db()
 
 
-@pytest.fixture(scope="function")
-def page(flask_server):
-    """Abre navegador Chromium e retorna uma Page pronta para teste."""
+@pytest.fixture(scope="session")
+def playwright_instance():
+    """Instância do Playwright (uma por sessão)."""
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            viewport={"width": 1280, "height": 900},
-            locale="pt-BR",
-        )
-        page_obj = context.new_page()
-        page_obj.goto(flask_server)
+        yield p
 
-        # Aguardar a SPA carregar completamente
-        page_obj.wait_for_function(
-            "() => window.CF_BOOT && "
-            "(document.querySelector('#tw table') || document.querySelector('.view-tab'))"
-        )
-        page_obj.wait_for_timeout(100)
 
-        yield page_obj
+@pytest.fixture(scope="session")
+def browser(playwright_instance, flask_server):
+    """Navegador Chromium headless (compartilhado por todos os testes)."""
+    brw = playwright_instance.chromium.launch(headless=True)
+    yield brw
+    brw.close()
 
-        context.close()
-        browser.close()
+
+@pytest.fixture(scope="function")
+def context(browser):
+    """Contexto isolado por teste (cookies/localStorage separados)."""
+    ctx = browser.new_context(
+        viewport={"width": 1280, "height": 900},
+        locale="pt-BR",
+    )
+    yield ctx
+    ctx.close()
+
+
+@pytest.fixture(scope="function")
+def page(context, flask_server):
+    """Nova aba no navegador compartilhado, com contexto limpo a cada teste."""
+    page_obj = context.new_page()
+    page_obj.goto(flask_server)
+
+    # Aguardar a SPA carregar completamente
+    page_obj.wait_for_function(
+        "() => window.CF_BOOT && "
+        "(document.querySelector('#tw table') || document.querySelector('.view-tab'))"
+    )
+    page_obj.wait_for_timeout(100)
+
+    yield page_obj
+
+    page_obj.close()

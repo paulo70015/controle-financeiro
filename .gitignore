@@ -12,6 +12,7 @@ credentials.json
 # Bancos de Dados SQLite e Exportações (SEUS DADOS PESSOAIS)
 *.db
 *.db.bak
+.env.bak_tests
 *.sqlite
 *.sqlite3
 *.csv

@@ -33,7 +33,10 @@ def init_db(connection_factory):
         if current_version < 2:
             _migration_v2(cur)
             _update_schema_version(cur, 2)
-            
+        
+        if current_version < 3:
+            _migration_v3(cur)
+            _update_schema_version(cur, 3)
             
         conn.commit()
     except Exception as e:
@@ -158,3 +161,12 @@ def _migration_v2(cur):
     cur.execute("INSERT INTO movimentacoes_mensais_new (id, ano, mes, conta_id, valor, nota) SELECT id, ano, mes, conta_id, valor, nota FROM movimentacoes_mensais")
     cur.execute("DROP TABLE movimentacoes_mensais")
     cur.execute("ALTER TABLE movimentacoes_mensais_new RENAME TO movimentacoes_mensais")
+
+def _migration_v3(cur):
+    """
+    Migração V3 - Adiciona coluna is_cartao à tabela categorias.
+    """
+    try:
+        cur.execute("ALTER TABLE categorias ADD COLUMN is_cartao INTEGER DEFAULT 0")
+    except Exception:
+        pass  # Coluna já existe

@@ -11,6 +11,8 @@ class CategoriasUseCases:
             nome=payload["nome"],
             inclui_fixas=int(payload.get("inclui_fixas", 0)),
             conta_vinculada_id=payload.get("conta_vinculada_id"),
+            is_cartao=int(payload.get("is_cartao", 0)),
+            tooltip=payload.get("tooltip")
         )
         self.repository.add_categoria(categoria)
 

@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS categorias (
     inclui_fixas INTEGER DEFAULT 0,
     conta_vinculada_id INTEGER DEFAULT NULL,
     tooltip TEXT,
-    ano INTEGER NOT NULL
+    ano INTEGER NOT NULL,
+    is_cartao INTEGER DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_categorias_ano ON categorias(ano);

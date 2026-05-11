@@ -1,6 +1,12 @@
-﻿﻿function popularSel() {
+﻿function popularSel() {
   const cats = dados.categorias || [];
-  document.getElementById('dC').innerHTML = cats.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+  document.getElementById('dC').innerHTML = cats.map(c => `<option value="${c.nome}" data-cartao="${c.is_cartao ? 1 : 0}">${c.nome}</option>`).join('');
+  document.getElementById('dC').onchange = function() {
+    const opt = this.options[this.selectedIndex];
+    const isCartao = opt && opt.getAttribute('data-cartao') === '1';
+    const container = document.getElementById('dIgnorarContainer');
+    if (container) container.style.display = isCartao ? 'none' : '';
+  };
   ['dM', 'rM'].forEach(id => {
     document.getElementById(id).innerHTML =
       `<option value="0">— Todos os meses —</option>` +
@@ -43,7 +49,9 @@ function abrirDet(mes, cat, tit) {
   }
 
   if (document.getElementById('detIgnorarContainer')) {
-    document.getElementById('detIgnorarContainer').style.display = (cat === '__rec__' || locked) ? 'none' : 'block';
+    const catData = (dados.categorias || []).find(c => c.nome === catReal);
+    const isCartao = catData ? !!catData.is_cartao : false;
+    document.getElementById('detIgnorarContainer').style.display = (cat === '__rec__' || locked || isCartao) ? 'none' : 'block';
   }
   if (document.getElementById('detIgnorar')) document.getElementById('detIgnorar').checked = false;
 
@@ -115,6 +123,7 @@ function abrirD() {
   document.getElementById('dV').value = '';
   document.getElementById('dN').value = '';
   if (document.getElementById('dIgnorar')) document.getElementById('dIgnorar').checked = false;
+  if (document.getElementById('dC').onchange) document.getElementById('dC').onchange();
   abrirModal('ovD');
   setTimeout(() => document.getElementById('dV').focus(), 200);
 }

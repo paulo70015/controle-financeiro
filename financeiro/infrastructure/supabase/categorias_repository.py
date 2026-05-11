@@ -37,7 +37,9 @@ class SupabaseCategoriasRepository:
             "ordem": ultima_ordem + 1,
             "inclui_fixas": inclui_fixas_int,
             "conta_vinculada_id": categoria.conta_vinculada_id,
-            "ano": categoria.ano
+            "ano": categoria.ano,
+            "is_cartao": 1 if categoria.is_cartao else 0,
+            "tooltip": categoria.tooltip
         }).execute()
 
     def update_categoria(self, categoria_id: int, payload: dict) -> bool:
@@ -82,6 +84,10 @@ class SupabaseCategoriasRepository:
         # Atualizar inclui_fixas (converter boolean para INTEGER)
         if "inclui_fixas" in payload:
             updates["inclui_fixas"] = 1 if payload["inclui_fixas"] else 0
+            
+        # Atualizar is_cartao
+        if "is_cartao" in payload:
+            updates["is_cartao"] = 1 if payload["is_cartao"] else 0
         
         # Atualizar tooltip
         if "tooltip" in payload:

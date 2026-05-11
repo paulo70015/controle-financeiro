@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿var detCtx = {};
+﻿﻿﻿﻿﻿var detCtx = {};
 var editandoId = null;
 var editandoTipo = null;
 var depEditandoId = null;
@@ -147,7 +147,9 @@ async function carregarDetLocal() {
     el.innerHTML = visiveis.map(r => {
       const descricaoEscaped = (r.descricao || 'Receita').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const notaEscaped = (r.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      return buildRowDetalheHtml(BRL(r.valor), 'var(--verde)', r.descricao + (r.nota ? ` (${r.nota})` : ''), locked ? '' : `delR(${r.id})`, locked ? '' : `editarDet(${r.id}, 'receita', ${r.valor}, '${descricaoEscaped}', false, '${notaEscaped}')`);
+      let notaFormatada = r.descricao + (r.nota ? ` (${r.nota})` : '');
+      if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);
+      return buildRowDetalheHtml(BRL(r.valor), 'var(--verde)', notaFormatada, locked ? '' : `delR(${r.id})`, locked ? '' : `editarDet(${r.id}, 'receita', ${r.valor}, '${descricaoEscaped}', false, '${notaEscaped}')`);
     }).join('');
   } else {
     const r = await fetch(`/api/despesas_detalhe/${ano}/${mes}/${encodeURIComponent(cat)}?_=${Date.now()}`);
@@ -200,7 +202,8 @@ async function carregarDetLocal() {
       const ehCartao = r.ignorar_total === 1 || r.ignorar_total === true;
       const icone = ehCartao ? '&#9645; ' : '';
       const cor = ehCartao ? 'var(--text-muted)' : (r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)');
-      const notaFormatada = ehCartao ? (r.nota ? r.nota + ' (Não somado)' : 'Cartão (Não somado)') : r.nota;
+      let notaFormatada = ehCartao ? (r.nota ? r.nota + ' (Não somado)' : 'Cartão (Não somado)') : r.nota;
+      if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);
       const notaEscaped = (r.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       return buildRowDetalheHtml(icone + BRL(r.valor), cor, notaFormatada, locked ? '' : `delD(${r.id})`, locked ? '' : `editarDet(${r.id}, 'despesa', ${r.valor}, '${notaEscaped}', ${ehCartao})`);
     }).join('');

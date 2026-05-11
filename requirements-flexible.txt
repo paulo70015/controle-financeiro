@@ -13,6 +13,8 @@ google-api-python-client>=2.108.0
 pystray>=0.19.5
 Pillow>=10.1.0
 pyinstaller>=6.3.0
+pytest>=8.0.0,<10.0.0
+playwright>=1.48.0,<2.0.0
 
 # Nota: Este arquivo permite atualizações de patch/minor
 # Para produção/build, use requirements.txt com versões fixadas

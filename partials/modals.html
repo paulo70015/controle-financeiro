@@ -34,7 +34,7 @@
   <div class="fr"><label>Mês</label><select id="dM"></select></div>
   <div class="fr"><label>Valor (R$)</label><input type="text" id="dV" step="0.01" placeholder="0,00"></div>
   <div class="fr"><label>Nota</label><textarea id="dN"></textarea></div>
-  <div class="fr">
+  <div class="fr" id="dIgnorarContainer">
     <label class="check-label">
       <input type="checkbox" id="dIgnorar">
       <span>Não somar no total do mês (Despesa de Cartão)</span>
@@ -67,16 +67,41 @@
       <span>&#9906; Somar total das Despesas Fixas nesta linha</span>
     </label>
   </div>
+  <div class="fr" style="margin-top:6px;margin-bottom:12px">
+    <label class="check-label">
+      <input type="checkbox" id="cCartao">
+      <span>Cartão de Crédito</span>
+    </label>
+  </div>
+  <div class="fr">
+    <label>&#10020; Conta Vinculada <small style="color:#888">— opcional</small></label>
+    <select id="cConta" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+      <option value="">— Sem vínculo de conta —</option>
+    </select>
+  </div>
+  <div id="cContaInfo" style="display:none;background:#e3f2fd;border-radius:5px;padding:6px 10px;font-size:11px;color:#1565c0;margin-top:-6px">
+    &#9432; Ao lançar despesa: valor positivo <strong>debita</strong> a conta e valor negativo <strong>credita</strong> (resgate).
+  </div>
+  <div class="fr">
+    <label>Tooltip</label>
+    <input type="text" id="cTooltip" placeholder="Texto exibido ao passar o mouse">
+  </div>
   <div class="mb"><button class="btn" onclick="fecharModal('ovC')">Cancelar</button><button class="btn ba" onclick="salvarC()">Salvar</button></div>
 </div></div>
 
 <div class="ov" id="ovRen"><div class="mo">
   <h3>&#9998; Configurar Categoria</h3>
   <div class="fr"><label>Nome</label><input type="text" id="renN"></div>
-  <div class="fr" style="margin-top:6px;margin-bottom:12px">
+  <div class="fr" style="margin-top:6px;margin-bottom:6px">
     <label class="check-label">
       <input type="checkbox" id="renFixas">
       <span>&#9906; Incluir despesas fixas nesta categoria</span>
+    </label>
+  </div>
+  <div class="fr" style="margin-bottom:12px">
+    <label class="check-label">
+      <input type="checkbox" id="renCartao">
+      <span>Cartão de Crédito</span>
     </label>
   </div>
   <div class="fr">
