@@ -51,8 +51,36 @@ Ao criar ou alterar funcionalidade que envolva backend, seguir este fluxo:
 
 Apos alteracoes relevantes, rodar os testes aplicaveis:
 
+### Testes unitarios / integracao
 - `python test_suite.py`
 - `python test_sqlite_mode.py`
 - `python test_dependencies_compatibility.py`
+
+### Testes E2E com Playwright
+
+Os testes de ponta a ponta usam **Playwright** com **Chromium headless** e rodam
+contra um servidor Flask efemero com SQLite temporario. **Nunca tocam no Supabase**
+— o `DB_MODE=sqlite` e forcado pelos scripts.
+
+| Sistema     | Comando                                |
+|-------------|----------------------------------------|
+| macOS/Linux | `bash test_browser/rodar-testes.sh`    |
+| Windows     | `test_browser\rodar-testes.bat`        |
+
+Ambos aceitam opcoes extras do pytest (ex: `-k "test_despesas"`).
+
+Cobertura atual dos testes E2E (`test_browser/`):
+- Navegacao entre abas e anos (`test_navegacao.py`)
+- CRUD de despesas, receitas, fixas, contas, categorias e metas
+- Status de pagamento (`test_status_pagamento.py`)
+- Lazy Commit em modais de detalhe (`test_lazy_commit.py`)
+- Validacao de formularios (`test_validacao.py`)
+- Interacoes de UI (botoes, confirmacoes, loading) (`test_ui_interactions.py`)
+- Rendimentos com saldo acumulado (`test_rendimentos.py`)
+- Fixas avancado — excecoes, duplicacao, remapeamento (`test_fixas_avancado.py`)
+- Configuracoes (`test_config.py`)
+
+Ao adicionar ou alterar fluxos de UI, considere incluir ou atualizar o teste E2E
+correspondente em `test_browser/`.
 
 Se algum teste nao puder ser executado, informe o motivo.

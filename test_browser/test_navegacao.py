@@ -53,15 +53,22 @@ class TestTrocaAno:
         expect(page.locator("#anoTabs a.ativo")).to_have_count(1)
 
     def test_criar_e_navegar_novo_ano(self, page: Page):
-        from datetime import datetime
+        import datetime, random
 
-        ano_futuro = str(datetime.now().year + 1)
+        # Usa offset aleatorio para evitar colisao com outros testes que criam anos
+        ano_futuro = str(datetime.datetime.now().year + 2 + random.randint(0, 3))
         tabs_antes = page.locator("#anoTabs a").count()
 
         page.click('button:has-text("+ Ano")')
         page.wait_for_selector("#ovAno.show")
         page.fill("#anoNovoVal", ano_futuro)
         page.click("#ovAno .btn.bv")
+        # Aguarda a navegacao (confirmarNovoAno faz window.location)
+        try:
+            page.wait_for_url(f"**/?ano={ano_futuro}", timeout=10000)
+        except Exception:
+            # Se a navegacao falhou (ex: alerta de erro), tenta fechar dialog e seguir
+            pass
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(500)
 
@@ -73,7 +80,7 @@ class TestTrocaAno:
         wait_for_table(page)
 
         # Volta ao ano corrente
-        ano_atual = str(datetime.now().year)
+        ano_atual = str(datetime.datetime.now().year)
         page.click(f"#anoTabs a:has-text('{ano_atual}')")
         wait_for_load(page)
         wait_for_table(page)

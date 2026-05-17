@@ -7,6 +7,7 @@ class SQLiteCategoriasRepository:
 
     def add_categoria(self, categoria: Categoria) -> None:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (categoria.ano,))
         ultima_ordem = (
             conn.execute(
                 "SELECT MAX(ordem) FROM categorias WHERE ano=?",

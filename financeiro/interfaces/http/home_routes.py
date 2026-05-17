@@ -20,7 +20,10 @@ def create_home_blueprint(client_factory=None, meses=None):
     @bp.route("/")
     def index():
         ano = request.args.get("ano", datetime.now().year, type=int)
-        return render_template("index.html", ano=ano, anos=use_cases.listar_anos(ano), 
+        # Garante que o ano fique registrado na tabela `anos` (best-effort)
+        use_cases.garantir_ano_existe(ano)
+        anos = use_cases.listar_anos(ano)
+        return render_template("index.html", ano=ano, anos=anos, 
                              meses=MESES, meses_abrev=MESES_ABREV, db_mode=get_db_mode())
 
     return bp

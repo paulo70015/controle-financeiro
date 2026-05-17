@@ -20,6 +20,15 @@ def create_admin_blueprint(client_factory=None):
             return jsonify({"ok": False, "erro": erro}), 400
         return jsonify({"ok": True})
 
+    @bp.route("/api/ano", methods=["POST"])
+    def criar_ano():
+        data = request.get_json() or {}
+        ano = data.get("ano")
+        if not ano:
+            return jsonify({"ok": False, "erro": "Ano obrigatório"}), 400
+        use_cases.criar_ano(int(ano))
+        return jsonify({"ok": True})
+
     @bp.route("/api/ano/<int:ano>", methods=["DELETE"])
     def remover_ano(ano):
         use_cases.remover_ano(ano)

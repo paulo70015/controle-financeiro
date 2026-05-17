@@ -17,5 +17,9 @@ class AdminUseCases:
         self.repository.duplicate_year(ano_origem=ano_origem, ano_destino=ano_destino)
         return (True, "")
 
+    def criar_ano(self, ano: int) -> None:
+        """Registra um ano na tabela `anos` sem duplicar dados."""
+        self.repository.create_year(ano)
+
     def remover_ano(self, ano: int) -> None:
         self.repository.delete_year(ano)

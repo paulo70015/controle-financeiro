@@ -11,21 +11,12 @@ class SupabaseHomeRepository:
         self.client_factory = client_factory
 
     def get_anos(self) -> set:
-        """Retorna conjunto de anos com dados"""
+        """Retorna conjunto de anos com dados — fonte única: tabela `anos`."""
         client: Client = self.client_factory()
-        
-        anos = set()
-        
-        # Anos de despesas
-        desp_response = client.table("despesas").select("ano").execute()
-        anos.update(r["ano"] for r in desp_response.data)
-        
-        # Anos de receitas
-        rec_response = client.table("receitas").select("ano").execute()
-        anos.update(r["ano"] for r in rec_response.data)
-        
-        # Anos de categorias
-        cat_response = client.table("categorias").select("ano").execute()
-        anos.update(r["ano"] for r in cat_response.data)
-        
-        return anos
+        response = client.table("anos").select("ano").order("ano", desc=True).execute()
+        return {r["ano"] for r in response.data}
+
+    def ensure_year_exists(self, ano: int) -> None:
+        """Garante que o ano existe na tabela `anos` (idempotente)."""
+        client: Client = self.client_factory()
+        client.table("anos").upsert({"ano": ano}).execute()

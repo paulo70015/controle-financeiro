@@ -55,6 +55,7 @@ class SQLitePlanejamentoRepository:
 
     def add_fixa(self, fixa: Fixa) -> None:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (fixa.ano,))
         cat_id = self._normalizar_cat_id(conn, fixa.cat_id, fixa.ano)
         conn.execute(
             "INSERT INTO despesas_fixas_cartao(descricao,valor,dia,cat_id,ano) VALUES(?,?,?,?,?)",
@@ -89,6 +90,9 @@ class SQLitePlanejamentoRepository:
 
     def add_meta(self, meta: Meta) -> None:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (meta.ano_meta,))
+        if meta.ano_criacao != meta.ano_meta:
+            conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (meta.ano_criacao,))
         conn.execute(
             "INSERT INTO metas(descricao,valor,ano_meta,ano_criacao) VALUES(?,?,?,?)",
             (meta.descricao, meta.valor, meta.ano_meta, meta.ano_criacao),

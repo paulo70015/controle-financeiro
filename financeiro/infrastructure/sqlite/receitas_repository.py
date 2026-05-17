@@ -7,6 +7,7 @@ class SQLiteReceitasRepository:
 
     def add_receita(self, receita: Receita) -> int:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (receita.ano,))
         cur = conn.execute(
             "INSERT INTO receitas(ano,mes,descricao,valor,nota,data_alteracao) VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)",
             (receita.ano, receita.mes, receita.descricao, receita.valor, receita.nota),
@@ -48,6 +49,7 @@ class SQLiteReceitasRepository:
 
     def add_receita_lote(self, lote: ReceitaLote, meses: list[int]) -> None:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (lote.ano,))
         for i, mes in enumerate(meses):
             valor = round(lote.valor_base + (lote.acrescimo * i), 2)
             conn.execute(

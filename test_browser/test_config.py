@@ -111,10 +111,10 @@ class TestDiaInicioMesFiscal:
         from test_browser.helpers import abrir_drawer, fechar_drawer
         abrir_drawer(page, "fixas")
         info_fiscal = page.locator("#mesFiscalInfo")
-        if info_fiscal.is_visible():
-            texto = info_fiscal.inner_text()
-            # A UI pode mostrar "Competência" (com acento) ou "Competencia"
-            assert "compet" in texto.lower(), f"Info fiscal nao reconhecida: {texto}"
+        # Aguarda o drawer popular o texto assincronamente
+        expect(info_fiscal).to_contain_text("Competência", timeout=5000)
+        texto = info_fiscal.inner_text()
+        assert "compet" in texto.lower(), f"Info fiscal nao reconhecida: {texto}"
         fechar_drawer(page)
 
     def test_dia_fiscal_fora_range(self, page: Page):

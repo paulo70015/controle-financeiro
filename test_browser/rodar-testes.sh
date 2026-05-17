@@ -3,6 +3,11 @@
 # Uso: bash rodar-testes.sh [opcoes do pytest]
 cd "$(dirname "$0")"
 
+# ═══════════════════════════════════════════════════════════════════
+# FORÇAR SQLite — os testes NUNCA devem tocar no Supabase
+# ═══════════════════════════════════════════════════════════════════
+export DB_MODE=sqlite
+
 VERMELHO='\033[0;31m'
 VERDE='\033[0;32m'
 AZUL='\033[0;34m'

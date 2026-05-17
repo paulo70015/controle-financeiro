@@ -68,7 +68,7 @@ if [ ! -f ".env" ]; then
     read -p "Pressione [Enter] para sair..."
     exit 1
 fi
-echo ".env ........... OK (Supabase configurado)"
+echo ".env ........... OK"
 echo ""
 
 echo "[4/4] Iniciando servidor em http://localhost:8080"
@@ -79,7 +79,7 @@ echo " Pressione Ctrl+C para encerrar"
 echo "============================================"
 echo ""
 
-$PYTHON_CMD app.py --show-console
+$PYTHON_CMD app.py --show-console "$@"
 
 echo ""
 echo "Servidor encerrado."

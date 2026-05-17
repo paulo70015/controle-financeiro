@@ -4,11 +4,14 @@ class SQLiteHomeRepository:
 
     def get_anos(self):
         conn = self.connection_factory()
-        anos = set(
-            [r[0] for r in conn.execute("SELECT DISTINCT ano FROM despesas").fetchall()]
-            + [r[0] for r in conn.execute("SELECT DISTINCT ano FROM receitas").fetchall()]
-            + [r[0] for r in conn.execute("SELECT DISTINCT ano FROM categorias").fetchall()]
-        )
+        rows = conn.execute("SELECT ano FROM anos ORDER BY ano DESC").fetchall()
         conn.close()
-        return anos
+        return {r[0] for r in rows}
+
+    def ensure_year_exists(self, ano: int) -> None:
+        """Garante que o ano existe na tabela `anos` (idempotente)."""
+        conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
+        conn.commit()
+        conn.close()
 

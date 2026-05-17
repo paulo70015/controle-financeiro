@@ -14,6 +14,8 @@ class SQLiteAdminRepository:
 
     def duplicate_year(self, ano_origem: int, ano_destino: int) -> None:
         conn = self.connection_factory(auto_sync=True)
+        # Garantir que o ano de destino existe na tabela `anos`
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano_destino,))
         cat_map = {}
         cats = conn.execute("SELECT * FROM categorias WHERE ano=?", (ano_origem,)).fetchall()
         for c in cats:
@@ -78,42 +80,24 @@ class SQLiteAdminRepository:
         conn.commit()
         conn.close()
 
+    def create_year(self, ano: int) -> None:
+        """Registra um ano na tabela `anos` sem duplicar dados."""
+        conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
+        conn.commit()
+        conn.close()
+
     def year_has_data(self, ano: int) -> bool:
         conn = self.connection_factory()
-        tables = [
-            ("categorias", "ano"),
-            ("despesas", "ano"),
-            ("receitas", "ano"),
-            ("despesas_fixas_cartao", "ano"),
-            ("depositos_conta", "ano"),
-            ("movimentacoes_mensais", "ano"),
-            ("fixas_excecoes", "ano"),
-            ("pagamento_status", "ano"),
-            ("rendimentos_locais", "ano"),
-            ("rendimentos_lancamentos", "ano"),
-            ("metas", "ano_criacao"),
-        ]
         try:
-            for table, col in tables:
-                row = conn.execute(f"SELECT 1 FROM {table} WHERE {col}=? LIMIT 1", (ano,)).fetchone()
-                if row:
-                    return True
-            return False
+            row = conn.execute("SELECT 1 FROM anos WHERE ano=? LIMIT 1", (ano,)).fetchone()
+            return row is not None
         finally:
             conn.close()
 
     def delete_year(self, ano: int) -> None:
+        """Remove o ano e TODOS os dados vinculados via ON DELETE CASCADE."""
         conn = self.connection_factory(auto_sync=True)
-        conn.execute("DELETE FROM despesas WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM receitas WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM depositos_conta WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM movimentacoes_mensais WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM fixas_excecoes WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM categorias WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM despesas_fixas_cartao WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM pagamento_status WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM rendimentos_lancamentos WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM rendimentos_locais WHERE ano=?", (ano,))
-        conn.execute("DELETE FROM metas WHERE ano_criacao=?", (ano,))
+        conn.execute("DELETE FROM anos WHERE ano=?", (ano,))
         conn.commit()
         conn.close()

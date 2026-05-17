@@ -1,6 +1,7 @@
 -- ============================================
 -- Schema PostgreSQL para Supabase v1.3.0
 -- Migração de SQLite → PostgreSQL
+-- Inclui tabela `anos` + FKs ON DELETE CASCADE
 -- ============================================
 
 -- Ativar extensões necessárias
@@ -26,6 +27,13 @@ VALUES ('dia_inicio_mes_fiscal', '25')
 ON CONFLICT (chave) DO NOTHING;
 
 -- ============================================
+-- Tabela: anos (fonte da verdade para listagem de anos)
+-- ============================================
+CREATE TABLE IF NOT EXISTS anos (
+    ano INTEGER PRIMARY KEY
+);
+
+-- ============================================
 -- Tabela: categorias
 -- Categorias de despesas por ano
 -- ============================================
@@ -37,7 +45,8 @@ CREATE TABLE IF NOT EXISTS categorias (
     conta_vinculada_id INTEGER DEFAULT NULL,
     tooltip TEXT,
     ano INTEGER NOT NULL,
-    is_cartao INTEGER DEFAULT 0
+    is_cartao INTEGER DEFAULT 0,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_categorias_ano ON categorias(ano);
@@ -55,7 +64,8 @@ CREATE TABLE IF NOT EXISTS despesas (
     valor NUMERIC(10,2) NOT NULL,
     nota TEXT DEFAULT '',
     data_alteracao TIMESTAMP DEFAULT NOW(),
-    ignorar_total BOOLEAN DEFAULT FALSE
+    ignorar_total BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_despesas_ano_mes ON despesas(ano, mes);
@@ -73,7 +83,8 @@ CREATE TABLE IF NOT EXISTS receitas (
     valor NUMERIC(10,2) NOT NULL,
     nota TEXT DEFAULT '',
     data_alteracao TIMESTAMP DEFAULT NOW(),
-    status INTEGER DEFAULT 0
+    status INTEGER DEFAULT 0,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_receitas_ano_mes ON receitas(ano, mes);
@@ -89,7 +100,8 @@ CREATE TABLE IF NOT EXISTS despesas_fixas_cartao (
     dia INTEGER DEFAULT 1,
     ativa INTEGER DEFAULT 1,
     cat_id INTEGER,
-    ano INTEGER NOT NULL
+    ano INTEGER NOT NULL,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_fixas_ano ON despesas_fixas_cartao(ano);
@@ -104,7 +116,8 @@ CREATE TABLE IF NOT EXISTS fixas_excecoes (
     ano INTEGER NOT NULL,
     mes INTEGER NOT NULL,
     cat_id INTEGER NOT NULL,
-    UNIQUE(ano, mes, cat_id)
+    UNIQUE(ano, mes, cat_id),
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_fixas_excecoes_ano_mes ON fixas_excecoes(ano, mes);
@@ -119,7 +132,8 @@ CREATE TABLE IF NOT EXISTS fixas_aplicadas_manual (
     mes INTEGER NOT NULL,
     fixa_id INTEGER NOT NULL,
     data_aplicacao TIMESTAMP DEFAULT NOW(),
-    UNIQUE(ano, mes, fixa_id)
+    UNIQUE(ano, mes, fixa_id),
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_fixas_aplicadas_ano_mes ON fixas_aplicadas_manual(ano, mes);
@@ -135,7 +149,8 @@ CREATE TABLE IF NOT EXISTS pagamento_status (
     mes INTEGER NOT NULL,
     categoria TEXT NOT NULL,
     status INTEGER DEFAULT 0,
-    UNIQUE(ano, mes, categoria)
+    UNIQUE(ano, mes, categoria),
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_pagamento_status_ano_mes ON pagamento_status(ano, mes);
@@ -150,7 +165,9 @@ CREATE TABLE IF NOT EXISTS metas (
     valor NUMERIC(10,2) NOT NULL,
     ano_meta INTEGER NOT NULL,
     concluida INTEGER DEFAULT 0,
-    ano_criacao INTEGER NOT NULL
+    ano_criacao INTEGER NOT NULL,
+    FOREIGN KEY (ano_meta) REFERENCES anos(ano) ON DELETE CASCADE,
+    FOREIGN KEY (ano_criacao) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_metas_ano_meta ON metas(ano_meta);
@@ -178,6 +195,7 @@ CREATE TABLE IF NOT EXISTS depositos_conta (
     valor NUMERIC(10,2) NOT NULL DEFAULT 0,
     nota TEXT DEFAULT '',
     despesa_id INTEGER DEFAULT NULL,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
     FOREIGN KEY (conta_id) REFERENCES contas_correntes(id) ON DELETE CASCADE
 );
 
@@ -196,6 +214,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_mensais (
     valor NUMERIC(10,2) NOT NULL DEFAULT 0,
     nota TEXT DEFAULT '',
     UNIQUE(ano, mes),
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
     FOREIGN KEY (conta_id) REFERENCES contas_correntes(id) ON DELETE CASCADE
 );
 
@@ -210,7 +229,8 @@ CREATE TABLE IF NOT EXISTS rendimentos_locais (
     ano INTEGER NOT NULL,
     nome TEXT NOT NULL,
     ordem INTEGER DEFAULT 0,
-    projecao_taxa NUMERIC(5,2) DEFAULT NULL
+    projecao_taxa NUMERIC(5,2) DEFAULT NULL,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_rendimentos_locais_ano ON rendimentos_locais(ano);
@@ -228,6 +248,7 @@ CREATE TABLE IF NOT EXISTS rendimentos_lancamentos (
     valor NUMERIC(10,2) NOT NULL DEFAULT 0,
     nota TEXT DEFAULT '',
     data_alteracao TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
     FOREIGN KEY (local_id) REFERENCES rendimentos_locais(id) ON DELETE CASCADE
 );
 
@@ -245,6 +266,7 @@ CREATE INDEX IF NOT EXISTS idx_rendimentos_lancamentos_local_id ON rendimentos_l
 -- ============================================
 -- Comentários nas tabelas (documentação)
 -- ============================================
+COMMENT ON TABLE anos IS 'Fonte da verdade para anos — DELETE CASCADE para todas as tabelas filhas';
 COMMENT ON TABLE categorias IS 'Categorias de despesas por ano';
 COMMENT ON TABLE despesas IS 'Lançamentos de despesas';
 COMMENT ON TABLE receitas IS 'Lançamentos de receitas';
@@ -266,7 +288,7 @@ COMMENT ON TABLE rendimentos_lancamentos IS 'Aportes e rendimentos por local';
 CREATE OR REPLACE FUNCTION proximo_ano_disponivel()
 RETURNS INTEGER AS $$
 BEGIN
-    RETURN COALESCE((SELECT MAX(ano) FROM categorias), EXTRACT(YEAR FROM NOW())::INTEGER);
+    RETURN COALESCE((SELECT MAX(ano) FROM anos), EXTRACT(YEAR FROM NOW())::INTEGER);
 END;
 $$ LANGUAGE plpgsql;
 
