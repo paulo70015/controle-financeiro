@@ -23,7 +23,15 @@ env_path = os.path.join(DATA_DIR, ".env")
 if not os.path.exists(env_path) and getattr(sys, 'frozen', False):
     env_path = os.path.join(BASE_DIR, ".env_embutido")
 
+# Proteger DB_MODE definido externamente (ex: testes forcam sqlite)
+_db_mode_before_dotenv = os.environ.get("DB_MODE")
 load_dotenv(env_path, override=True)
+if _db_mode_before_dotenv:
+    os.environ["DB_MODE"] = _db_mode_before_dotenv
+
+# Permite forcar SQLite via --sqlite na linha de comando (antes dos imports)
+if "--sqlite" in sys.argv:
+    os.environ["DB_MODE"] = "sqlite"
 
 from financeiro.interfaces.http.despesas_routes import create_despesas_blueprint
 from financeiro.interfaces.http.receitas_routes import create_receitas_blueprint
@@ -94,8 +102,12 @@ if __name__ == "__main__":
     import argparse, webbrowser
     parser=argparse.ArgumentParser()
     parser.add_argument("--show-console",action="store_true",help="Exibe logs no console")
+    parser.add_argument("--sqlite",action="store_true",help="Usa banco SQLite local em vez de Supabase")
     args=parser.parse_args()
-    
+
+    if args.sqlite:
+        os.environ["DB_MODE"] = "sqlite"
+
     db_mode = get_db_mode()
 
     if db_mode == 'sqlite':

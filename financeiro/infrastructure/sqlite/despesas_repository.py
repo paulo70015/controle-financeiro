@@ -8,6 +8,7 @@ class SQLiteDespesasRepository:
     def add_despesa(self, despesa: Despesa) -> int:
         """Insere despesa e retorna o ID. Persistência pura."""
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (despesa.ano,))
         cur = conn.execute(
             "INSERT INTO despesas(ano,mes,categoria,valor,nota,ignorar_total,data_alteracao) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)",
             (despesa.ano, despesa.mes, despesa.categoria, despesa.valor, despesa.nota, getattr(despesa, "ignorar_total", False)),
@@ -44,6 +45,9 @@ class SQLiteDespesasRepository:
         conn = self.connection_factory(auto_sync=True)
         
         try:
+            # Garantir que todos os anos existem na tabela `anos`
+            for desp in despesas_data:
+                conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (desp['ano'],))
             # Inserir despesas e coletar IDs
             despesa_ids = []
             for desp in despesas_data:

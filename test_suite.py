@@ -5,9 +5,50 @@ Suite de Testes de Integração - Controle Financeiro v1.2.3
 Valida todas as refatorações DRY/DDD implementadas
 """
 
+import os
+import sys
+
+# ═══════════════════════════════════════════════════════════════════
+# VERIFICAR Supabase — aborta se .env tem DB_MODE=supabase
+# ═══════════════════════════════════════════════════════════════════
+def _recusar_supabase():
+    """Aborta com erro claro se o .env esta configurado para Supabase
+    e DB_MODE=sqlite nao foi definido explicitamente no ambiente."""
+    # Se DB_MODE=sqlite ja esta no ambiente, confia -- o usuario sabe o que faz
+    if os.environ.get("DB_MODE", "").lower() == "sqlite":
+        return
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.exists(env_path):
+        return
+    modo_env = None
+    for linha in open(env_path, encoding="utf-8"):
+        linha = linha.strip()
+        if linha.startswith("DB_MODE="):
+            _, valor = linha.split("=", 1)
+            modo_env = valor.strip().strip('"').strip("'").lower()
+            break
+    if modo_env == "supabase":
+        RED = '\033[91m'
+        RESET = '\033[0m'
+        print(f"\n{RED}{'='*70}{RESET}")
+        print(f"{RED}  TESTES BLOQUEADOS{RESET}")
+        print(f"{RED}{'='*70}{RESET}")
+        print(f"  O arquivo .env esta configurado com DB_MODE=supabase.")
+        print(f"  Os testes NAO podem executar contra o Supabase.")
+        print(f"  Altere o .env para DB_MODE=sqlite ou defina a variavel")
+        print(f"  de ambiente DB_MODE=sqlite antes de rodar os testes.")
+        print(f"{RED}{'='*70}{RESET}\n")
+        sys.exit(1)
+
+_recusar_supabase()
+
+# ═══════════════════════════════════════════════════════════════════
+# FORÇAR SQLite — antes de qualquer import do projeto
+# ═══════════════════════════════════════════════════════════════════
+os.environ["DB_MODE"] = "sqlite"
+
 import requests
 import json
-import sys
 from datetime import datetime
 
 BASE_URL = "http://127.0.0.1:8080"
@@ -348,14 +389,55 @@ def test_ddd_categoria_cartao(r):
 # ============================================================================
 
 if __name__ == "__main__":
-    print(f"\n{Colors.BLUE}Aguardando servidor em {BASE_URL}...{Colors.RESET}")
-    try:
-        resp = requests.get(BASE_URL, timeout=5)
-        print(f"{Colors.GREEN}✓ Servidor respondendo{Colors.RESET}")
-    except:
-        print(f"{Colors.RED}✗ Servidor não está rodando!{Colors.RESET}")
-        print(f"Execute: python app.py --show-console")
+    import subprocess
+    import time
+    import atexit
+
+    # ── Iniciar servidor Flask em modo SQLite (protege contra Supabase) ──
+    env = os.environ.copy()
+    env["DB_MODE"] = "sqlite"
+    env["FLASK_SKIP_BROWSER"] = "1"
+    env["PYTHONPATH"] = os.path.dirname(os.path.abspath(__file__))
+
+    print(f"\n{Colors.BLUE}Iniciando servidor em modo SQLite...{Colors.RESET}")
+    proc = subprocess.Popen(
+        [sys.executable, "app.py", "--show-console"],
+        env=env,
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    atexit.register(lambda: proc.kill() if proc.poll() is None else None)
+
+    # Aguardar servidor ficar pronto
+    timeout = 15
+    ready = False
+    for _ in range(timeout * 4):
+        if proc.poll() is not None:
+            print(f"{Colors.RED}✗ Servidor morreu ao iniciar (processo encerrado){Colors.RESET}")
+            sys.exit(1)
+        try:
+            requests.get(BASE_URL, timeout=2)
+            ready = True
+            break
+        except Exception:
+            time.sleep(0.25)
+
+    if not ready:
+        proc.kill()
+        print(f"{Colors.RED}✗ Servidor não iniciou em {timeout}s{Colors.RESET}")
         sys.exit(1)
-    
+
+    print(f"{Colors.GREEN}✓ Servidor SQLite respondendo em {BASE_URL}{Colors.RESET}")
+
     success = runner.run()
+
+    # Desligar servidor
+    proc.terminate()
+    try:
+        proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+
     sys.exit(0 if success else 1)

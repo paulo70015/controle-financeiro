@@ -21,6 +21,7 @@ class SQLiteRendimentosRepository:
 
     def add_local(self, local: RendimentoLocal) -> int:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (local.ano,))
         prox_ordem = conn.execute(
             "SELECT COALESCE(MAX(ordem), 0) + 1 AS prox FROM rendimentos_locais WHERE ano=?",
             (local.ano,),
@@ -81,6 +82,7 @@ class SQLiteRendimentosRepository:
 
     def add_lancamento(self, lanc: RendimentoLancamento) -> int:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (lanc.ano,))
         cur = conn.execute(
             "INSERT INTO rendimentos_lancamentos(ano,mes,local_id,tipo,valor,nota,data_alteracao) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)",
             (lanc.ano, lanc.mes, lanc.local_id, lanc.tipo, lanc.valor, lanc.nota),

@@ -13,3 +13,10 @@ class HomeUseCases:
             anos.add(ano_atual)
         return sorted(anos, reverse=True)
 
+    def garantir_ano_existe(self, ano: int) -> None:
+        """Persiste o ano na tabela `anos` se ainda não existir (best-effort)."""
+        try:
+            self.repository.ensure_year_exists(ano)
+        except Exception:
+            pass  # Operação não crítica — a aba aparece mesmo sem o registro
+

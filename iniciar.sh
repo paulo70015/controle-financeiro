@@ -12,7 +12,7 @@ for cmd in python3.12 python3.11 python3.10 python3 python; do
 done
 
 if [ -n "$PYTHON_CMD" ]; then
-    $PYTHON_CMD app.py
+    $PYTHON_CMD app.py "$@"
 else
     echo "ERRO: Python 3.10 ou superior nao encontrado no PATH!"
     exit 1

@@ -5,6 +5,11 @@ REM Uso: rodar-testes.bat [opcoes do pytest]
 
 cd /d "%~dp0"
 
+REM ═══════════════════════════════════════════════════════════════════
+REM FORCAR SQLite — os testes NUNCA devem tocar no Supabase
+REM ═══════════════════════════════════════════════════════════════════
+set DB_MODE=sqlite
+
 echo [1/3] Verificando Python...
 where python >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (

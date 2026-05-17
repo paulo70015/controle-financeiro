@@ -44,6 +44,7 @@ class SQLiteContasRepository:
 
     def add_deposito(self, deposito: DepositoConta) -> int:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (deposito.ano,))
         cur = conn.execute(
             "INSERT INTO depositos_conta(ano,mes,conta_id,valor,nota,despesa_id) VALUES(?,?,?,?,?,NULL)",
             (deposito.ano, deposito.mes, deposito.conta_id, deposito.valor, deposito.nota),
@@ -82,6 +83,7 @@ class SQLiteContasRepository:
 
     def upsert_movimentacao(self, movimentacao: MovimentacaoMensal) -> None:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (movimentacao.ano,))
         conn.execute(
             """INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota)
             VALUES(?,?,?,?,?)

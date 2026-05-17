@@ -17,6 +17,43 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 
+# ═══════════════════════════════════════════════════════════════════
+# VERIFICAR Supabase — aborta se .env tem DB_MODE=supabase
+# (protecao extra: o fixture _backup_db ja cuida disso,
+#  mas esta guarda pega o caso de execucao manual sem o fixture)
+# ═══════════════════════════════════════════════════════════════════
+def _recusar_supabase():
+    """Aborta com erro claro se o .env esta configurado para Supabase
+    e DB_MODE=sqlite nao foi definido explicitamente no ambiente."""
+    # Se DB_MODE=sqlite ja esta no ambiente, confia -- o usuario sabe o que faz
+    if os.environ.get("DB_MODE", "").lower() == "sqlite":
+        return
+    env_path = Path(__file__).parent.parent / ".env"
+    if not env_path.exists():
+        return
+    modo_env = None
+    for linha in env_path.read_text(encoding="utf-8").splitlines():
+        linha = linha.strip()
+        if linha.startswith("DB_MODE="):
+            _, valor = linha.split("=", 1)
+            modo_env = valor.strip().strip('"').strip("'").lower()
+            break
+    if modo_env == "supabase":
+        RED = '\033[91m'
+        RESET = '\033[0m'
+        print(f"\n{RED}{'='*70}{RESET}")
+        print(f"{RED}  TESTES BLOQUEADOS{RESET}")
+        print(f"{RED}{'='*70}{RESET}")
+        print(f"  O arquivo .env esta configurado com DB_MODE=supabase.")
+        print(f"  Os testes E2E NAO podem executar contra o Supabase.")
+        print(f"  Altere o .env para DB_MODE=sqlite ou execute:")
+        print(f"    export DB_MODE=sqlite && pytest test_browser/")
+        print(f"{RED}{'='*70}{RESET}\n")
+        sys.exit(1)
+
+_recusar_supabase()
+
+
 # ── Constantes ─────────────────────────────────────────────────
 PROJETO_RAIZ = Path(__file__).parent.parent
 DB_REAL = PROJETO_RAIZ / "financeiro.db"

@@ -37,7 +37,7 @@ def _load_local_env_if_needed():
 def get_db_mode() -> str:
     """Retorna 'sqlite' ou 'supabase'. SQLite e o modo padrao local."""
     _load_local_env_if_needed()
-    return os.getenv("DB_MODE", "sqlite").lower()
+    return os.getenv("DB_MODE", "supabase").lower()
 
 
 def _get_sqlite_connection(**kwargs):
@@ -48,6 +48,7 @@ def _get_sqlite_connection(**kwargs):
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute('PRAGMA busy_timeout = 5000')
     return conn
 
 

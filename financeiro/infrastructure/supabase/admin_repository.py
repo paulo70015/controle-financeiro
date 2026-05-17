@@ -23,7 +23,10 @@ class SupabaseAdminRepository:
     def duplicate_year(self, ano_origem: int, ano_destino: int) -> None:
         """Duplica todos os dados de um ano para outro"""
         client: Client = self.client_factory()
-        
+
+        # Garantir que o ano de destino existe na tabela `anos`
+        client.table("anos").upsert({"ano": ano_destino}).execute()
+
         # Duplicar categorias e mapear IDs
         cat_map = {}
         cats_response = client.table("categorias") \
@@ -153,49 +156,18 @@ class SupabaseAdminRepository:
         if rend_lanc_insert:
             client.table("rendimentos_lancamentos").insert(rend_lanc_insert).execute()
 
-    def year_has_data(self, ano: int) -> bool:
-        """Verifica se um ano tem dados"""
+    def create_year(self, ano: int) -> None:
+        """Registra um ano na tabela `anos` sem duplicar dados."""
         client: Client = self.client_factory()
-        
-        tables_cols = [
-            ("categorias", "ano"),
-            ("despesas", "ano"),
-            ("receitas", "ano"),
-            ("despesas_fixas_cartao", "ano"),
-            ("depositos_conta", "ano"),
-            ("movimentacoes_mensais", "ano"),
-            ("fixas_excecoes", "ano"),
-            ("pagamento_status", "ano"),
-            ("rendimentos_locais", "ano"),
-            ("rendimentos_lancamentos", "ano"),
-            ("metas", "ano_criacao"),
-        ]
-        
-        for table, col in tables_cols:
-            response = client.table(table) \
-                .select("id") \
-                .eq(col, ano) \
-                .limit(1) \
-                .execute()
-            
-            if response.data:
-                return True
-        
-        return False
+        client.table("anos").upsert({"ano": ano}).execute()
+
+    def year_has_data(self, ano: int) -> bool:
+        """Verifica se um ano tem dados — fonte única: tabela `anos`."""
+        client: Client = self.client_factory()
+        response = client.table("anos").select("ano").eq("ano", ano).limit(1).execute()
+        return len(response.data) > 0
 
     def delete_year(self, ano: int) -> None:
-        """Deleta todos os dados de um ano"""
+        """Remove o ano e TODOS os dados vinculados via ON DELETE CASCADE."""
         client: Client = self.client_factory()
-        
-        # Deletar em ordem (respeitar foreign keys)
-        client.table("despesas").delete().eq("ano", ano).execute()
-        client.table("receitas").delete().eq("ano", ano).execute()
-        client.table("depositos_conta").delete().eq("ano", ano).execute()
-        client.table("movimentacoes_mensais").delete().eq("ano", ano).execute()
-        client.table("fixas_excecoes").delete().eq("ano", ano).execute()
-        client.table("categorias").delete().eq("ano", ano).execute()
-        client.table("despesas_fixas_cartao").delete().eq("ano", ano).execute()
-        client.table("pagamento_status").delete().eq("ano", ano).execute()
-        client.table("rendimentos_lancamentos").delete().eq("ano", ano).execute()
-        client.table("rendimentos_locais").delete().eq("ano", ano).execute()
-        client.table("metas").delete().eq("ano_criacao", ano).execute()
+        client.table("anos").delete().eq("ano", ano).execute()

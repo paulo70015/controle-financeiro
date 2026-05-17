@@ -155,6 +155,14 @@ async function confirmarNovoAno() {
     const res = await fetch('/api/duplicar_ano', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ano_origem:ano, ano_destino:novoAno}) });
     const data = await res.json();
     if (!data.ok) return alert('Erro ao duplicar: ' + (data.erro || ''));
+  } else {
+    // Garante que o ano fique registrado na tabela `anos` mesmo sem duplicação
+    const resAno = await fetch('/api/ano', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ano: novoAno}) });
+    if (!resAno.ok) {
+      const errData = await resAno.json().catch(() => ({}));
+      console.error('Falha ao registrar ano:', errData);
+      return alert('Erro ao criar ano: ' + (errData.erro || resAno.statusText));
+    }
   }
   const extras = JSON.parse(sessionStorage.getItem('anosExtras') || '[]');
   if (!extras.includes(novoAno)) extras.push(novoAno);
