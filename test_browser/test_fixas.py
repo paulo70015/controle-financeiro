@@ -39,34 +39,51 @@ class TestCriarFixa:
 
 class TestExcecaoFixa:
     def test_excecao_fixa_na_tabela(self, page: Page):
-        try:
-            page.click('button:has-text("+ Categoria")')
-            page.wait_for_selector("#ovC.show", timeout=3000)
-            fill_input(page, "#cN", "Moradia")
-            page.check("#cFixas")
-            page.click("#ovC .btn.ba")
-            wait_for_load(page)
-        except Exception:
-            pass
+        # Usa nomes únicos para evitar colisão com outros testes
+        import uuid
+        uid = uuid.uuid4().hex[:6]
+        cat_nome = f"Moradia_{uid}"
+        fixa_nome = f"Aluguel_{uid}"
+
+        # Cria categoria manualmente (criar_categoria nao lida com #cFixas visivel condicionalmente)
+        page.click('button:has-text("+ Categoria")')
+        page.wait_for_selector("#ovC.show", timeout=3000)
+        fill_input(page, "#cN", cat_nome)
+        # O checkbox #cFixas some se outra categoria ja tem inclui_fixas ativo
+        fixas_check = page.locator("#cFixas")
+        if fixas_check.is_visible():
+            fixas_check.check()
+        page.click("#ovC .btn.ba")
+        wait_for_load(page)
+
+        # Cria fixa — aparecerá na categoria
+        abrir_drawer(page, "fixas")
+        page.click('button:has-text("+ Nova Despesa Fixa")')
+        page.wait_for_selector(".fx-edit-row", timeout=3000)
+        fill_input(page, "#fxeV", "500,00")
+        fill_input(page, "#fxeDi", "15")
+        fill_input(page, "#fxeD", fixa_nome)
+        page.click('.fx-edit-row button:has-text("+ Lançar")')
+        wait_for_load(page)
+        fechar_drawer(page)
 
         from test_browser.helpers import wait_for_table, get_table_data
         wait_for_table(page)
         dados = get_table_data(page)
         linha_idx = None
         for i, row in enumerate(dados):
-            if row and "Moradia" in (row[0] or ""):
+            if row and cat_nome in (row[0] or ""):
                 linha_idx = i
                 break
-        if linha_idx is None:
-            pytest.skip("Categoria Moradia nao encontrada")
+        assert linha_idx is not None, f"Categoria {cat_nome} nao encontrada"
+
         celula = page.locator(f"#tw table tbody tr:nth-child({linha_idx + 1}) td:nth-child(2)")
-        # Scroll via JS para evitar que .card intercepte o clique
-        page.evaluate("(el) => el.scrollIntoView({block:'center'})", celula.element_handle())
-        page.wait_for_timeout(200)
-        celula.click()
+        celula.scroll_into_view_if_needed()
+        page.wait_for_timeout(300)
+        celula.click(force=True, timeout=5000)
         page.wait_for_selector("#ovDet.show", timeout=5000)
         modal_content = page.locator("#ovDet").inner_text()
-        assert "Aluguel" in modal_content or "500" in modal_content, \
+        assert fixa_nome in modal_content or "500" in modal_content, \
             f"Fixa nao encontrada no modal: {modal_content[:200]}"
         page.click('#ovDet button:has-text("Fechar")')
         wait_for_load(page)

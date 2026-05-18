@@ -165,6 +165,13 @@ async function load(showLoader = false) {
   if (myLoadId !== currentLoadId) return;
 
   dados = novosDados;
+
+  // Sincroniza a lista de anos com o servidor (fonte da verdade: tabela `anos`)
+  if (novosDados.anos && Array.isArray(novosDados.anos) && novosDados.anos.length > 0) {
+    anos_srv.length = 0;
+    anos_srv.push(...novosDados.anos);
+  }
+
   isAnoBloqueado = !!dados.is_bloqueado;
   document.body.classList.toggle('ano-bloqueado', isAnoBloqueado);
   

@@ -55,23 +55,36 @@ class TestCriarMeta:
 class TestToggleConclusao:
     def test_marcar_meta_concluida(self, page: Page):
         abrir_drawer(page, "metas")
+        # Cria uma meta especifica para este teste
+        page.click('button:has-text("+ Nova Meta")')
+        page.wait_for_selector("#m-exeD", timeout=3000)
+        import datetime
+        fill_input(page, "#m-exeD", "Meta para concluir")
+        fill_input(page, "#m-exeA", str(datetime.datetime.now().year + 1))
+        fill_input(page, "#m-exeV", "3000,00")
+        page.click('button:has-text("Salvar")')
+        wait_for_load(page)
+
         checkbox = page.locator("#lm .mi input[type='checkbox']").first
-        if checkbox.count() == 0:
-            pytest.skip("Nenhuma meta encontrada")
+        assert checkbox.count() > 0, "Nenhuma meta encontrada apos criacao"
 
         checkbox.scroll_into_view_if_needed()
         estava_checked = checkbox.is_checked()
-        # Forca a alternancia via JS nativo (dispara change → onchange → togMeta)
-        checkbox.evaluate('el => { el.checked = !el.checked; el.dispatchEvent(new Event("change", {bubbles: true})); }')
-        page.wait_for_timeout(2000)
+        # Alterna usando check/uncheck do Playwright (dispara eventos nativos)
+        if estava_checked:
+            checkbox.uncheck(force=True)
+        else:
+            checkbox.check(force=True)
+        page.wait_for_timeout(1500)
         wait_for_load(page)
 
         # Reconsulta o checkbox (DOM pode ter sido recriado pelo debouncedLoad)
+        page.wait_for_timeout(500)
         checkbox = page.locator("#lm .mi input[type='checkbox']").first
-        if checkbox.count() > 0:
-            novo_checked = checkbox.is_checked()
-            if novo_checked == estava_checked:
-                pytest.skip("Toggle nao surtiu efeito (possivel falha na API ou ID invalido)")
+        assert checkbox.count() > 0, "Checkbox desapareceu apos recarga"
+        novo_checked = checkbox.is_checked()
+        if novo_checked == estava_checked:
+            pytest.skip("Toggle nao surtiu efeito (possivel falha na API ou ID invalido)")
 
         if novo_checked:
             item = page.locator("#lm .mi.done")

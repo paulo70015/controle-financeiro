@@ -116,6 +116,8 @@ class SQLiteCSVRepository:
                 return None
 
         conn = self.connection_factory(auto_sync=True)
+        # Garante que o ano fique registrado na tabela `anos`
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
         conn.execute("DELETE FROM despesas WHERE ano=?", (ano,))
         conn.execute("DELETE FROM receitas WHERE ano=?", (ano,))
         conn.execute("DELETE FROM movimentacoes_mensais WHERE ano=?", (ano,))

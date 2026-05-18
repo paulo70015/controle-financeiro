@@ -111,25 +111,23 @@ class TestEditarExcluirReceita:
 class TestLoteReceitas:
     def test_abrir_lote_receitas(self, page: Page):
         """Abrir modal de lote para receitas via link na tabela."""
+        # Garante que existe receita para a linha tr.tr-rec aparecer
+        criar_receita(page, "LoteRecTest", 3, "500,00")
         wait_for_table(page)
-        # Clica no kebab da linha de receitas para abrir menu
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
-        if linha_rec.count() == 0:
-            pytest.skip("Linha de receitas nao encontrada")
 
-        # Abre o kebab menu
+        # Abre o kebab menu da linha de receitas (tr.tr-rec)
+        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        assert linha_rec.count() > 0, "Linha de receitas nao encontrada"
         kebabs = linha_rec.first.locator(".btn-kebab")
-        if kebabs.count() == 0:
-            pytest.skip("Sem menu kebab na linha de receitas")
+        assert kebabs.count() > 0, "Sem menu kebab na linha de receitas"
         kebabs.first.click(force=True)
-        page.wait_for_timeout(200)
+        # toggleCatMenu move o dropdown para document.body e adiciona .show
+        page.wait_for_selector(".dropdown-content.show", timeout=3000)
 
         link_lote = page.locator(
-            ".dropdown-content a:has-text(' Lancar todos os meses')"
+            ".dropdown-content.show a:has-text('Lançar todos os meses')"
         )
-        if link_lote.count() == 0:
-            page.keyboard.press("Escape")
-            pytest.skip("Opcao de lote nao encontrada no menu")
+        assert link_lote.count() > 0, "Opcao de lote nao encontrada no menu"
         link_lote.first.click(force=True)
         page.wait_for_selector("#ovLote.show", timeout=3000)
         modal_should_be_visible(page, "ovLote")
@@ -138,23 +136,20 @@ class TestLoteReceitas:
 
     def test_salvar_lote_receitas(self, page: Page):
         """Preencher e salvar lote de receitas."""
+        criar_receita(page, "LoteRecTest2", 3, "500,00")
         wait_for_table(page)
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
-        if linha_rec.count() == 0:
-            pytest.skip("Linha de receitas nao encontrada")
 
+        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        assert linha_rec.count() > 0, "Linha de receitas nao encontrada"
         kebabs = linha_rec.first.locator(".btn-kebab")
-        if kebabs.count() == 0:
-            pytest.skip("Sem menu kebab")
+        assert kebabs.count() > 0, "Sem menu kebab"
         kebabs.first.click(force=True)
-        page.wait_for_timeout(200)
+        page.wait_for_selector(".dropdown-content.show", timeout=3000)
 
         link_lote = page.locator(
-            ".dropdown-content a:has-text(' Lancar todos os meses')"
+            ".dropdown-content.show a:has-text('Lançar todos os meses')"
         )
-        if link_lote.count() == 0:
-            page.keyboard.press("Escape")
-            pytest.skip("Opcao de lote nao encontrada")
+        assert link_lote.count() > 0, "Opcao de lote nao encontrada"
         link_lote.first.click(force=True)
         page.wait_for_selector("#ovLote.show", timeout=3000)
 
@@ -165,6 +160,6 @@ class TestLoteReceitas:
             page.wait_for_selector("#ltPreview[style*='block']", timeout=3000)
         except Exception:
             pass
-        page.click("#ovLote .btn.bv")
+        page.click('#ovLote button:has-text("Salvar Lote")')
         wait_for_load(page)
         modal_should_be_hidden(page, "ovLote")

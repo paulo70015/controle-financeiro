@@ -40,13 +40,17 @@ class TestFilaExclusao:
         wait_for_table(page)
         dados = get_table_data(page)
         linha_idx = _encontrar_indice(dados, "LazyTest")
-        assert linha_idx is not None
+        assert linha_idx is not None, "Categoria LazyTest nao encontrada na tabela"
         page.click(f"#tw table tbody tr:nth-child({linha_idx + 1}) td:nth-child(7)")
-        page.wait_for_selector("#ovDet.show", timeout=3000)
+        page.wait_for_selector("#ovDet.show", timeout=5000)
+        # Aguarda os botoes de exclusao aparecerem no modal
+        try:
+            page.wait_for_selector("#ovDet button[onclick^='delD']", timeout=3000)
+        except Exception:
+            pytest.skip("Nenhum botao de exclusao encontrado (celula sem lancamentos?)")
         botoes_del = page.locator("#ovDet button[onclick^='delD']")
         botoes_antes = botoes_del.count()
-        if botoes_antes == 0:
-            pytest.skip("Nenhum botao de exclusao encontrado")
+        assert botoes_antes > 0, "Nenhum botao de exclusao encontrado"
         botoes_del.first.click()
         page.wait_for_timeout(300)
         botoes_depois = page.locator("#ovDet button[onclick^='delD']").count()

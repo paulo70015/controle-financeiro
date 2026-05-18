@@ -7,6 +7,12 @@ from financeiro.infrastructure.supabase.client import Client
 
 TABLES = [
     {
+        "name": "anos",
+        "pk": "ano",
+        "columns": ["ano"],
+        "delete_field": "ano",
+    },
+    {
         "name": "config",
         "pk": "chave",
         "columns": ["chave", "valor"],

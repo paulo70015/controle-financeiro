@@ -150,6 +150,13 @@ class SupabaseDashboardRepository:
                 saldo = round(saldo + mov.get(m, 0), 2)
                 saldos[cid][m] = saldo
         
+        # Anos — fonte da verdade: tabela `anos`
+        anos_resp = client.table("anos").select("ano").execute()
+        anos_list = sorted(
+            {int(r["ano"]) for r in (anos_resp.data or []) if r.get("ano") is not None},
+            reverse=True
+        )
+
         # Config
         cfg_response = client.table("config").select("chave, valor").execute()
         config = {r["chave"]: r["valor"] for r in cfg_response.data}
@@ -227,6 +234,7 @@ class SupabaseDashboardRepository:
                 rendimentos[local_id][mes]["last_modified"] = r["data_alteracao"]
         
         return {
+            "anos": anos_list,
             "categorias": cats,
             "despesas": despesas,
             "receitas": receitas,

@@ -126,8 +126,34 @@ class SQLiteDashboardRepository:
                 "last_modified": r["last_modified"],
             }
 
+        # Descobre todos os anos com dados de todas as tabelas
+        anos_set = set()
+        tabelas = [
+            "anos", "categorias", "despesas", "receitas",
+            "despesas_fixas_cartao", "fixas_excecoes", "fixas_aplicadas_manual",
+            "pagamento_status", "depositos_conta", "movimentacoes_mensais",
+            "rendimentos_locais", "rendimentos_lancamentos",
+        ]
+        for tabela in tabelas:
+            try:
+                for r in conn.execute(f"SELECT DISTINCT ano FROM {tabela}"):
+                    if r[0] is not None:
+                        anos_set.add(int(r[0]))
+            except Exception:
+                pass
+        # Metas: ano_criacao e ano_meta
+        try:
+            for r in conn.execute("SELECT DISTINCT ano_criacao, ano_meta FROM metas"):
+                for val in (r[0], r[1]):
+                    if val is not None:
+                        anos_set.add(int(val))
+        except Exception:
+            pass
+        anos_list = sorted(anos_set, reverse=True)
+
         conn.close()
         return {
+            "anos": anos_list,
             "categorias": cats,
             "despesas": despesas,
             "receitas": receitas,

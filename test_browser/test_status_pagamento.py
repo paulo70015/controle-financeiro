@@ -89,12 +89,15 @@ class TestStatusNoModal:
         """Receitas usam Previsto/Realizado em vez de Aberto/Pago."""
         criar_receita(page, "Teste status rec", 2, "500,00")
         wait_for_table(page)
+        # Aguarda a linha de receitas aparecer (pode levar um ciclo de render)
+        try:
+            page.wait_for_selector("#tw table tbody tr.tr-rec", timeout=3000)
+        except Exception:
+            pytest.skip("Linha de receitas nao encontrada apos espera")
 
         # Abre detalhe da receita
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
-        if linha_rec.count() == 0:
-            pytest.skip("Linha de receitas nao encontrada")
-        linha_rec.first.locator("td").nth(2).click()
+        linha_rec = page.locator("#tw table tbody tr.tr-rec").first
+        linha_rec.locator("td").nth(2).click()
         page.wait_for_selector("#ovDet.show", timeout=3000)
 
         # Para receitas, detStatus fica escondido e detRecStatus visivel
