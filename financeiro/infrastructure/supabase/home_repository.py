@@ -11,10 +11,10 @@ class SupabaseHomeRepository:
         self.client_factory = client_factory
 
     def get_anos(self) -> set:
-        """Retorna conjunto de anos com dados — fonte única: tabela `anos`."""
+        """Retorna conjunto de anos registrados na tabela `anos` (fonte da verdade)."""
         client: Client = self.client_factory()
-        response = client.table("anos").select("ano").order("ano", desc=True).execute()
-        return {r["ano"] for r in response.data}
+        resp = client.table("anos").select("ano").execute()
+        return {int(r["ano"]) for r in (resp.data or []) if r.get("ano") is not None}
 
     def ensure_year_exists(self, ano: int) -> None:
         """Garante que o ano existe na tabela `anos` (idempotente)."""

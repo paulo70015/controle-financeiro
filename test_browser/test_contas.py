@@ -146,23 +146,28 @@ class TestMovimentacaoMensal:
 
 class TestEditarExcluirConta:
     def test_excluir_conta(self, page: Page):
+        # Garante que existe uma conta para excluir
+        page.click('button:has-text("+ Conta")')
+        page.wait_for_selector("#ovConta.show", timeout=3000)
+        fill_input(page, "#ctN", "ContaParaExcluir")
+        fill_input(page, "#ctSI", "100,00")
+        page.click("#ovConta button:has-text('Salvar')")
+        wait_for_load(page)
         wait_for_table(page)
+
         linha_conta = page.locator("#tw table tbody tr.tr-conta").first
-        if linha_conta.count() == 0:
-            pytest.skip("Linha de conta nao encontrada")
+        assert linha_conta.count() > 0, "Linha de conta nao encontrada"
 
         kebabs = linha_conta.locator(".btn-kebab")
-        if kebabs.count() == 0:
-            pytest.skip("Sem menu kebab na conta")
+        assert kebabs.count() > 0, "Sem menu kebab na conta"
         kebabs.first.click(force=True)
-        page.wait_for_timeout(200)
+        # toggleCatMenu move o dropdown para document.body com classe .show
+        page.wait_for_selector(".dropdown-content.show", timeout=3000)
 
-        link_excluir = linha_conta.locator(
-            ".dropdown-content a:has-text('Excluir')"
+        link_excluir = page.locator(
+            ".dropdown-content.show a:has-text('Excluir')"
         )
-        if link_excluir.count() == 0:
-            page.keyboard.press("Escape")
-            pytest.skip("Opcao Excluir nao encontrada")
+        assert link_excluir.count() > 0, "Opcao Excluir nao encontrada"
 
         dialog_msg = [None]
         def handle_dialog(dialog):

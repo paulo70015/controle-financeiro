@@ -21,14 +21,18 @@ from test_browser.helpers import (
 
 @pytest.fixture(autouse=True)
 def setup_fixa(page: Page):
-    """Garante que existe uma fixa 'Aluguel' para os testes."""
+    """Garante que existe uma fixa 'Aluguel' para os testes.
+
+    Usa dia=28 para evitar que a fixa apareca como expirada
+    (isFixaExpirada) e oculte o botao de aplicar manual.
+    """
     abrir_drawer(page, "fixas")
     # Verifica se ja existe
     if page.locator("#lf:has-text('Aluguel')").count() == 0:
         page.click('button:has-text("+ Nova Despesa Fixa")')
         page.wait_for_selector(".fx-edit-row", timeout=3000)
         fill_input(page, "#fxeV", "800,00")
-        fill_input(page, "#fxeDi", "10")
+        fill_input(page, "#fxeDi", "28")
         fill_input(page, "#fxeD", "Aluguel")
         page.click('.fx-edit-row button:has-text("+ Lançar")')
         wait_for_load(page)

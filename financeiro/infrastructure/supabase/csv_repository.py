@@ -53,6 +53,9 @@ class SupabaseCSVRepository:
         except (ValueError, IndexError):
             return ({"erro": "Primeira linha (ou cabecalho) deve conter o ano correspondente"}, 400)
 
+        # Garante que o ano fique registrado na tabela `anos`
+        client.table("anos").upsert({"ano": ano}).execute()
+
         nomes_m = [
             "janeiro", "fevereiro", "marco", "abril", "maio", "junho",
             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",

@@ -195,20 +195,35 @@ def test_deletar_receita(r):
     assert data.get("ok"), f"Resposta: {data}"
 
 # ============================================================================
+# BACKEND - CONTAS (pré-requisito para depósitos)
+# ============================================================================
+
+@runner.test("Backend: Criar conta via API")
+def test_criar_conta(r):
+    resp = requests.post(f"{BASE_URL}/api/conta", json={
+        "nome": "Conta Teste",
+        "saldo_inicial": 0
+    })
+    assert resp.status_code == 200, f"Status {resp.status_code}"
+    data = resp.json()
+    assert data.get("ok"), f"Resposta: {data}"
+
+    # Obter o ID da conta criada
+    resp = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}")
+    dados = resp.json()
+    contas = dados.get("contas", [])
+    assert contas, "Conta não apareceu em /api/dados"
+    r.conta_id = contas[0]["id"]
+    print(f"    Conta criada, ID: {r.conta_id}")
+
+# ============================================================================
 # BACKEND - DEPÓSITOS (Contas Correntes)
 # ============================================================================
 
 @runner.test("Backend: Criar depósito via API")
 def test_criar_deposito(r):
-    # Obter uma conta existente via /api/dados
-    resp = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}")
-    assert resp.status_code == 200
-    dados = resp.json()
-    contas = dados.get("contas", [])
-    if not contas:
-        raise AssertionError("Nenhuma conta cadastrada")
-    
-    r.conta_id = contas[0]["id"]
+    if not hasattr(r, 'conta_id'):
+        raise AssertionError("Teste anterior falhou (conta não criada)")
     
     resp = requests.post(f"{BASE_URL}/api/deposito", json={
         "ano": ANO_TESTE,
@@ -289,9 +304,12 @@ def test_endpoint_dados(r):
     resp = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}")
     assert resp.status_code == 200, f"Status {resp.status_code}"
     data = resp.json()
-    assert "categorias" in data, "Estrutura inválida"
-    assert "receitas" in data, "Estrutura inválida"
-    print(f"    {len(data['categorias'])} categorias carregadas")
+    assert "categorias" in data, "Estrutura inválida: falta 'categorias'"
+    assert "receitas" in data, "Estrutura inválida: falta 'receitas'"
+    assert "anos" in data, "Estrutura inválida: falta 'anos' (correção v1.3.0)"
+    assert isinstance(data["anos"], list), "'anos' deve ser uma lista"
+    assert ANO_TESTE in data["anos"], f"Ano {ANO_TESTE} deve constar em 'anos'"
+    print(f"    {len(data['categorias'])} categorias, {len(data['anos'])} anos carregados")
 
 @runner.test("Frontend: Tooltip de despesas responde")
 def test_tooltip_despesas(r):

@@ -122,25 +122,39 @@ class TestExcluirDespesa:
 
 class TestLoteLancamentos:
     def test_abrir_modal_lote(self, page: Page):
+        # Garante que existe categoria para o kebab aparecer
+        criar_categoria(page, "LoteTestCat")
         wait_for_table(page)
-        link_lote = page.locator("#tw a:has-text('Lancar todos os meses')")
-        if link_lote.count() == 0:
-            pytest.skip("Link de lote nao disponivel")
-        link_lote.first.click()
+
+        # Abre o kebab menu da categoria (o link fica dentro do dropdown)
+        kebabs = page.locator("#tw .btn-kebab")
+        assert kebabs.count() > 0, "Nenhum menu kebab encontrado"
+        kebabs.first.click(force=True)
+        page.wait_for_selector(".dropdown-content.show", timeout=3000)
+
+        link_lote = page.locator(".dropdown-content.show a:has-text('Lançar todos os meses')")
+        assert link_lote.count() > 0, "Link de lote nao disponivel"
+        link_lote.first.click(force=True)
         page.wait_for_selector("#ovLote.show", timeout=3000)
         modal_should_be_visible(page, "ovLote")
 
     def test_criar_lote_despesas(self, page: Page):
+        criar_categoria(page, "LoteTestCat2")
         wait_for_table(page)
-        link_lote = page.locator("#tw a:has-text('Lancar todos os meses')")
-        if link_lote.count() == 0:
-            pytest.skip("Link de lote nao disponivel")
-        link_lote.first.click()
+
+        kebabs = page.locator("#tw .btn-kebab")
+        assert kebabs.count() > 0, "Nenhum menu kebab encontrado"
+        kebabs.first.click(force=True)
+        page.wait_for_selector(".dropdown-content.show", timeout=3000)
+
+        link_lote = page.locator(".dropdown-content.show a:has-text('Lançar todos os meses')")
+        assert link_lote.count() > 0, "Link de lote nao disponivel"
+        link_lote.first.click(force=True)
         page.wait_for_selector("#ovLote.show", timeout=3000)
         fill_input(page, "#ltV", "100,00")
         fill_input(page, "#ltN", "Lote teste")
         page.wait_for_selector("#ltPreview[style*='block']", timeout=3000)
-        page.click("#ovLote .btn.bv")
+        page.click('#ovLote button:has-text("Salvar Lote")')
         wait_for_load(page)
         modal_should_be_hidden(page, "ovLote")
 
