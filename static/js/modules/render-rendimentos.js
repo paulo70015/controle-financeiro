@@ -187,7 +187,8 @@ function renderRendimentos() {
       <a href="#" onclick="event.preventDefault(); abrirRendimentoProjecao(${local.id},'${nomeSafe}')">&#10532; Projetar rendimentos</a>
       <a href="#" onclick="event.preventDefault(); abrirRendimentoLoteLocal(${local.id})">&#8862; Lançar em todos os meses</a>
       <a href="#" onclick="event.preventDefault(); editarRendimentoLocal(${local.id},'${nomeSafe}')">&#9998; Editar local</a>
-      <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLancamentosRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Apagar lançamentos</a>`;
+      <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLancamentosRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Apagar lançamentos</a>
+      <a href="#" class="text-danger" onclick="event.preventDefault(); excluirRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Excluir local</a>`;
     h += `<tr draggable="true" data-local-id="${local.id}" class="cat-row" ondragstart="dragLocalStart(event,${local.id})" ondragover="dragLocalOver(event)" ondragleave="dragLocalLeave(event)" ondrop="dropLocal(event,${local.id})"><td class="cat-nome"><div class="cc"><span title="${local.nome}">${nomeFormatado}</span>${window.buildKebabMenuHtml(linksLocal, true)}</div></td>`;
 
     for (let m = 1; m <= 12; m++) {
@@ -570,14 +571,15 @@ async function salvarRendimentoLocal() {
   }
 }
 
-async function excluirRendimentoLocal() {
-  const id = parseInt(document.getElementById('rendLocalId').value || '0');
-  const nome = (document.getElementById('rendLocalNome').value || '').trim() || 'este local';
-  if (!id) return;
-  if (!confirm('Excluir "' + nome + '" e todos os seus lançamentos deste ano?')) return;
+async function excluirRendimentoLocal(id, nome) {
+  const localId = id !== undefined ? parseInt(id) : parseInt(document.getElementById('rendLocalId').value || '0');
+  const localNome = nome || (document.getElementById('rendLocalNome').value || '').trim() || 'este local';
+  if (!localId) return;
+  if (!confirm('Excluir "' + localNome + '" e todos os seus lançamentos deste ano?')) return;
   try {
-    await safeApiCall('/api/rendimento/local/' + id, {method:'DELETE'}, 'Falha ao excluir local');
-    fecharModal('ovRendLocal');
+    await safeApiCall('/api/rendimento/local/' + localId, {method:'DELETE'}, 'Falha ao excluir local');
+    const modalOpen = document.getElementById('ovRendLocal')?.classList.contains('ov-aberta');
+    if (modalOpen) fecharModal('ovRendLocal');
     await debouncedLoad();
     setView('rendimentos', false);
   } catch (error) {

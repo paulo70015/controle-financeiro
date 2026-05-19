@@ -18,7 +18,7 @@ BUILD_MODE=""
 
 for arg in "$@"; do
     if [ "$arg" == "--com-sqlite" ]; then
-        INCLUIR_ENV=".env.sqlite"
+        INCLUIR_ENV=""
         BUILD_MODE="standalone-sqlite"
     elif [ "$arg" == "--com-env-vazio" ]; then
         INCLUIR_ENV=".env.example"
@@ -32,8 +32,13 @@ done
 cd "$(dirname "$0")"
 PYTHON_CMD="python3"
 
-echo "Preparando ambiente embutido..."
-cp "$INCLUIR_ENV" ".env_embutido"
+# Monta flags de dados opcionais
+ADD_DATA_ENV=""
+if [ -n "$INCLUIR_ENV" ]; then
+    echo "Preparando ambiente embutido..."
+    cp "$INCLUIR_ENV" ".env_embutido"
+    ADD_DATA_ENV="--add-data \"$INCLUIR_ENV:.\" --add-data \".env_embutido:\""
+fi
 
 echo "[1/3] Limpando build anterior..."
 rm -rf build/ dist/ ControleFinanceiro.spec
@@ -46,8 +51,7 @@ $PYTHON_CMD -m PyInstaller \
     --add-data "index.html:." \
     --add-data "partials:partials" \
     --add-data "static:static" \
-    --add-data "$INCLUIR_ENV:." \
-    --add-data ".env_embutido:." \
+    ${ADD_DATA_ENV:+--add-data "$INCLUIR_ENV:." --add-data ".env_embutido:."} \
     --hidden-import flask \
     --hidden-import pystray \
     --hidden-import PIL \
@@ -59,7 +63,7 @@ $PYTHON_CMD -m PyInstaller \
     --collect-submodules financeiro \
     app.py
 
-rm -f ".env_embutido"
+[ -n "$INCLUIR_ENV" ] && rm -f ".env_embutido"
 
 echo "[3/3] Configurando Info.plist para App de Bandeja (Tray)..."
 PLIST_PATH="dist/ControleFinanceiro.app/Contents/Info.plist"
