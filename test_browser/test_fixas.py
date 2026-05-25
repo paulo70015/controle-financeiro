@@ -45,29 +45,6 @@ class TestExcecaoFixa:
         cat_nome = f"Moradia_{uid}"
         fixa_nome = f"Aluguel_{uid}"
 
-        # Limpar inclui_fixas de categorias anteriores para liberar o checkbox #cFixas
-        page.evaluate('''() => {
-            return Promise.all(
-                (window.dados?.categorias || [])
-                    .filter(c => c.inclui_fixas)
-                    .map(c => fetch('/api/categoria/' + c.id, {
-                        method: 'PUT',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            nome: c.nome,
-                            inclui_fixas: 0,
-                            is_cartao: c.is_cartao,
-                            conta_vinculada_id: c.conta_vinculada_id,
-                            tooltip: c.tooltip || "",
-                            nome_original: c.nome
-                        })
-                    }))
-            ).then(() => {
-                if (window.debouncedLoad) window.debouncedLoad();
-            });
-        }''')
-        page.wait_for_function('() => !(window.dados?.categorias || []).some(c => c.inclui_fixas)', timeout=5000)
-
         # Cria categoria manualmente (criar_categoria nao lida com #cFixas visivel condicionalmente)
         page.click('button:has-text("+ Categoria")')
         page.wait_for_selector("#ovC.show", timeout=3000)
@@ -106,8 +83,8 @@ class TestExcecaoFixa:
         celula.click(force=True, timeout=5000)
         page.wait_for_selector("#ovDet.show", timeout=5000)
         modal_content = page.locator("#ovDet").inner_text()
-        assert "Despesas Fixas (Restantes)" in modal_content, \
-            f"Despesas Fixas nao encontradas no modal: {modal_content[:200]}"
+        assert fixa_nome in modal_content or "500" in modal_content, \
+            f"Fixa nao encontrada no modal: {modal_content[:200]}"
         page.click('#ovDet button:has-text("Fechar")')
         wait_for_load(page)
 

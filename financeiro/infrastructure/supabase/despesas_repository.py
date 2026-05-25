@@ -70,18 +70,14 @@ class SupabaseDespesasRepository:
         
         # Inserir depósitos vinculados
         if depositos_data:
-            depositos_insert = []
-            for dep in depositos_data:
-                idx = dep.get('despesa_idx')
-                desp_id = despesa_ids[idx] if idx is not None else None
-                depositos_insert.append({
-                    "ano": dep['ano'],
-                    "mes": dep['mes'],
-                    "conta_id": dep['conta_id'],
-                    "valor": dep['valor'],
-                    "nota": dep['nota'],
-                    "despesa_id": desp_id
-                })
+            depositos_insert = [{
+                "ano": dep['ano'],
+                "mes": dep['mes'],
+                "conta_id": dep['conta_id'],
+                "valor": dep['valor'],
+                "nota": dep['nota'],
+                "despesa_id": despesa_ids[i]
+            } for i, dep in enumerate(depositos_data)]
             
             client.table("depositos_conta").insert(depositos_insert).execute()
         

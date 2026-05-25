@@ -7,18 +7,43 @@ import os
 import sys
 from pathlib import Path
 
-if sys.platform.startswith('win'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
-
 
 # ═══════════════════════════════════════════════════════════════════
-# FORÇAR SQLite — hardcoded, NUNCA lê .env nem usa Supabase
+# VERIFICAR Supabase — aborta se .env tem DB_MODE=supabase
 # ═══════════════════════════════════════════════════════════════════
-os.environ["DB_MODE"] = "sqlite"
+def _recusar_supabase():
+    """Aborta com erro claro se o .env esta configurado para Supabase
+    e DB_MODE=sqlite nao foi definido explicitamente no ambiente."""
+    # Se DB_MODE=sqlite ja esta no ambiente, confia -- o usuario sabe o que faz
+    if os.environ.get("DB_MODE", "").lower() == "sqlite":
+        return
+    env_path = Path(__file__).parent / ".env"
+    if not env_path.exists():
+        return
+    modo_env = None
+    for linha in env_path.read_text(encoding="utf-8").splitlines():
+        linha = linha.strip()
+        if linha.startswith("DB_MODE="):
+            _, valor = linha.split("=", 1)
+            modo_env = valor.strip().strip('"').strip("'").lower()
+            break
+    if modo_env == "supabase":
+        RED = '\033[91m'
+        RESET = '\033[0m'
+        print(f"\n{RED}{'='*70}{RESET}")
+        print(f"{RED}  TESTES BLOQUEADOS{RESET}")
+        print(f"{RED}{'='*70}{RESET}")
+        print(f"  O arquivo .env esta configurado com DB_MODE=supabase.")
+        print(f"  Os testes NAO podem executar contra o Supabase.")
+        print(f"  Altere o .env para DB_MODE=sqlite ou defina a variavel")
+        print(f"  de ambiente DB_MODE=sqlite antes de rodar os testes.")
+        print(f"{RED}{'='*70}{RESET}\n")
+        sys.exit(1)
+
+_recusar_supabase()
+
+# Forçar modo SQLite
+os.environ['DB_MODE'] = 'sqlite'
 
 def test_sqlite_repositories():
     """Testa se todos os repositórios SQLite podem ser criados"""
