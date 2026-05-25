@@ -293,9 +293,6 @@ window.carregarTooltipDet = debounce(async function(el, mes, cat, lastMod) {
         let txt = cat === '__rec__' ? (r.descricao + (r.nota ? ` (${r.nota})` : '')) : r.nota;
         if (r.ignorar_total) txt = '&#9645; ' + (txt || 'Cartão');
         
-        if (dt) {
-          txt = txt ? `${txt} [${formatarDataHoraBR(dt)}]` : `[${formatarDataHoraBR(dt)}]`;
-        }
         return { valor: r.valor || 0, texto: txt };
       });
       

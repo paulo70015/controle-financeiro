@@ -285,7 +285,54 @@ class SupabasePlanejamentoRepository:
                     fixas = fixas_response.data
                     
                     if fixas:
-                        total_fixas = sum(f["valor"] for f in fixas)
+                        # Ler dia_inicio_mes_fiscal da config
+                        cfg_response = client.table("config") \
+                            .select("valor") \
+                            .eq("chave", "dia_inicio_mes_fiscal") \
+                            .execute()
+                        dia_inicio = int(cfg_response.data[0]["valor"]) if cfg_response.data else 25
+
+                        total_fixas = 0
+                        from datetime import datetime
+                        hoje = datetime.now()
+                        dia_atual = hoje.day
+                        mes_atual = hoje.month
+                        ano_atual = hoje.year
+
+                        mes_fiscal = mes_atual + 1
+                        ano_fiscal = ano_atual
+                        if dia_atual >= dia_inicio:
+                            mes_fiscal = mes_atual + 2
+                        if mes_fiscal > 12:
+                            mes_fiscal -= 12
+                            ano_fiscal += 1
+
+                        for f in fixas:
+                            # Mesma lógica de _is_fixa_expirada do SQLite
+                            if ano_fiscal < status.ano:
+                                continue
+                            if ano_fiscal > status.ano:
+                                total_fixas += f["valor"]
+                                continue
+                            if mes_fiscal < status.mes:
+                                continue
+                            if mes_fiscal > status.mes:
+                                total_fixas += f["valor"]
+                                continue
+                            # Mesmo mês fiscal — verificar dia
+                            try:
+                                dia = int(f.get("dia") or 0)
+                                if dia <= 0:
+                                    total_fixas += f["valor"]
+                                elif dia_atual < dia_inicio:
+                                    if not (dia >= dia_inicio or dia <= dia_atual):
+                                        total_fixas += f["valor"]
+                                else:
+                                    if not (dia >= dia_inicio and dia <= dia_atual):
+                                        total_fixas += f["valor"]
+                            except Exception:
+                                total_fixas += f["valor"]
+
                         total_fixas = round(total_fixas, 2)
                         
                         if total_fixas != 0:

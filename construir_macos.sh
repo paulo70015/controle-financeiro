@@ -8,36 +8,45 @@ if [ -z "$1" ]; then
     echo "ERRO: Parametro obrigatorio nao fornecido!"
     echo "Escolha um modo de build:"
     echo "  ./construir_macos.sh --com-sqlite"
-    echo "  ./construir_macos.sh --com-env-vazio"
     echo "  ./construir_macos.sh --com-env"
     exit 1
 fi
 
-INCLUIR_ENV=""
 BUILD_MODE=""
+SQLITE_MODE=false
 
 for arg in "$@"; do
     if [ "$arg" == "--com-sqlite" ]; then
-        INCLUIR_ENV=""
         BUILD_MODE="standalone-sqlite"
-    elif [ "$arg" == "--com-env-vazio" ]; then
-        INCLUIR_ENV=".env.example"
-        BUILD_MODE="compartilhar-supabase"
+        SQLITE_MODE=true
     elif [ "$arg" == "--com-env" ]; then
-        INCLUIR_ENV=".env"
         BUILD_MODE="pessoal-supabase"
+        # Aceita .env ou ".env (1)" (nome gerado pelo Google Drive)
+        if [ ! -f ".env" ] && [ ! -f ".env (1)" ]; then
+            echo "ERRO: Nenhum arquivo .env encontrado!"
+            echo "Crie um arquivo .env com SUPABASE_URL e SUPABASE_KEY."
+            exit 1
+        fi
     fi
 done
 
 cd "$(dirname "$0")"
 PYTHON_CMD="python3"
 
-# Monta flags de dados opcionais
-ADD_DATA_ENV=""
-if [ -n "$INCLUIR_ENV" ]; then
-    echo "Preparando ambiente embutido..."
-    cp "$INCLUIR_ENV" ".env_embutido"
-    ADD_DATA_ENV="--add-data \"$INCLUIR_ENV:.\" --add-data \".env_embutido:\""
+# ═══════════════════════════════════════════════════════════════════
+# Sempre gerar .env_embutido — sem condicionais, sem expansão bash
+# que pode falhar com paths contendo espaços ou caracteres especiais
+# ═══════════════════════════════════════════════════════════════════
+echo "Preparando ambiente embutido..."
+if [ "$SQLITE_MODE" = true ]; then
+    echo "DB_MODE=sqlite" > ".env_embutido"
+else
+    # --com-env: copia o .env real (ou .env (1) do Google Drive)
+    if [ -f ".env" ]; then
+        cp ".env" ".env_embutido"
+    elif [ -f ".env (1)" ]; then
+        cp ".env (1)" ".env_embutido"
+    fi
 fi
 
 echo "[1/3] Limpando build anterior..."
@@ -51,7 +60,7 @@ $PYTHON_CMD -m PyInstaller \
     --add-data "index.html:." \
     --add-data "partials:partials" \
     --add-data "static:static" \
-    ${ADD_DATA_ENV:+--add-data "$INCLUIR_ENV:." --add-data ".env_embutido:."} \
+    --add-data ".env_embutido:." \
     --hidden-import flask \
     --hidden-import pystray \
     --hidden-import PIL \
@@ -63,7 +72,7 @@ $PYTHON_CMD -m PyInstaller \
     --collect-submodules financeiro \
     app.py
 
-[ -n "$INCLUIR_ENV" ] && rm -f ".env_embutido"
+rm -f ".env_embutido"
 
 echo "[3/3] Configurando Info.plist para App de Bandeja (Tray)..."
 PLIST_PATH="dist/ControleFinanceiro.app/Contents/Info.plist"
