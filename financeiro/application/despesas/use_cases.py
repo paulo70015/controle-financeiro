@@ -83,6 +83,7 @@ class DespesasUseCases:
                     'conta_id': conta_id,
                     'valor': -valor,  # Débito
                     'nota': lote.nota or lote.categoria,
+                    'despesa_idx': len(despesas_data) - 1,
                 })
         
         # Delegar ao repositório (transação atômica)

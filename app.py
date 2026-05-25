@@ -19,13 +19,33 @@ else:
 # Carregar variáveis de ambiente ANTES de importar os módulos da aplicação
 from dotenv import load_dotenv
 
-env_path = os.path.join(DATA_DIR, ".env")
-if not os.path.exists(env_path) and getattr(sys, 'frozen', False):
-    env_path = os.path.join(BASE_DIR, ".env_embutido")
-
 # Proteger DB_MODE definido externamente (ex: testes forcam sqlite)
 _db_mode_before_dotenv = os.environ.get("DB_MODE")
-load_dotenv(env_path, override=True)
+
+# Tenta carregar .env do diretório de dados; se não existir e for
+# PyInstaller bundle, procura .env_embutido nos locais conhecidos
+env_path = os.path.join(DATA_DIR, ".env")
+if os.path.exists(env_path):
+    load_dotenv(env_path, override=True)
+elif getattr(sys, 'frozen', False):
+    _app_contents = os.path.dirname(os.path.dirname(sys.executable))  # Contents/
+    _loaded = False
+    for _c in [
+        os.path.join(BASE_DIR, ".env_embutido"),
+        os.path.join(_app_contents, "Resources", ".env_embutido"),
+        os.path.join(_app_contents, "Frameworks", ".env_embutido"),
+    ]:
+        if os.path.exists(_c):
+            load_dotenv(_c, override=True)
+            _loaded = True
+            break
+    # Fallback: tenta _MEIPASS mesmo sem verificar existencia (load_dotenv é no-op se não existir)
+    if not _loaded:
+        load_dotenv(os.path.join(BASE_DIR, ".env_embutido"), override=True)
+else:
+    # Desenvolvimento sem .env: tenta carregar (no-op se não existir)
+    load_dotenv(env_path, override=True)
+
 if _db_mode_before_dotenv:
     os.environ["DB_MODE"] = _db_mode_before_dotenv
 

@@ -58,10 +58,12 @@ class SQLiteDespesasRepository:
                 despesa_ids.append(cur.lastrowid)
             
             # Inserir depósitos vinculados
-            for i, dep in enumerate(depositos_data):
+            for dep in depositos_data:
+                idx = dep.get('despesa_idx')
+                desp_id = despesa_ids[idx] if idx is not None else None
                 conn.execute(
                     "INSERT INTO depositos_conta(ano,mes,conta_id,valor,nota,despesa_id) VALUES(?,?,?,?,?,?)",
-                    (dep['ano'], dep['mes'], dep['conta_id'], dep['valor'], dep['nota'], despesa_ids[i]),
+                    (dep['ano'], dep['mes'], dep['conta_id'], dep['valor'], dep['nota'], desp_id),
                 )
             
             conn.commit()

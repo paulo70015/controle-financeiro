@@ -5,28 +5,55 @@ class SQLitePlanejamentoRepository:
     def __init__(self, connection_factory):
         self.connection_factory = connection_factory
 
-    def _is_fixa_expirada(self, dia_fixa, ano_status, mes_status) -> bool:
+    def _is_fixa_expirada(self, dia_fixa, ano_status, mes_status, dia_inicio=25) -> bool:
+        """
+        Mesma lógica do JS isFixaExpirada:
+        - O mês fiscal (competência) começa no dia dia_inicio
+        - Antes do fechamento: mesFiscal = mesAtual + 1
+        - Depois do fechamento: mesFiscal = mesAtual + 2
+        """
         from datetime import datetime
         hoje = datetime.now()
-        ano_atual = hoje.year
-        mes_atual = hoje.month + 1
-        if mes_atual > 12:
-            mes_atual = 1
-            ano_atual += 1
         dia_atual = hoje.day
+        mes_atual = hoje.month
+        ano_atual = hoje.year
 
-        if ano_status < ano_atual:
+        mes_fiscal = mes_atual + 1
+        ano_fiscal = ano_atual
+
+        if dia_atual >= dia_inicio:
+            mes_fiscal = mes_atual + 2
+
+        if mes_fiscal > 12:
+            mes_fiscal -= 12
+            ano_fiscal += 1
+
+        if ano_status < ano_fiscal:
             return True
-        if ano_status == ano_atual:
-            if mes_status < mes_atual:
-                return True
-            if mes_status == mes_atual:
-                try:
-                    dia = int(dia_fixa) if dia_fixa else 0
-                    if 0 < dia < dia_atual:
-                        return True
-                except Exception:
-                    pass
+        if ano_status > ano_fiscal:
+            return False
+        if mes_status < mes_fiscal:
+            return True
+        if mes_status > mes_fiscal:
+            return False
+
+        # Estamos no mês fiscal atual — verificar dia da fixa
+        try:
+            dia = int(dia_fixa) if dia_fixa else 0
+            if dia <= 0:
+                return False
+
+            if dia_atual < dia_inicio:
+                if dia >= dia_inicio:
+                    return True  # Aconteceu no mês passado
+                if dia <= dia_atual:
+                    return True  # Aconteceu neste mês até hoje
+            else:
+                if dia >= dia_inicio and dia <= dia_atual:
+                    return True  # Aconteceu neste ciclo fiscal
+        except Exception:
+            pass
+
         return False
 
     def _normalizar_cat_id(self, conn, cat_id, ano):
@@ -204,9 +231,15 @@ class SQLitePlanejamentoRepository:
                             (status.ano, cat_id),
                         ).fetchall()
                     if fixas:
+                        # Ler dia_inicio_mes_fiscal da config
+                        cfg_row = conn.execute(
+                            "SELECT valor FROM config WHERE chave='dia_inicio_mes_fiscal'"
+                        ).fetchone()
+                        dia_inicio = int(cfg_row["valor"]) if cfg_row else 25
+
                         total_fixas = 0
                         for f in fixas:
-                            if not self._is_fixa_expirada(f["dia"], status.ano, status.mes):
+                            if not self._is_fixa_expirada(f["dia"], status.ano, status.mes, dia_inicio):
                                 total_fixas += f["valor"]
                                 
                         total_fixas = round(total_fixas, 2)
