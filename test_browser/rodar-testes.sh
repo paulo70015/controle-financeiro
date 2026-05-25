@@ -3,17 +3,12 @@
 # Uso: bash rodar-testes.sh [opcoes do pytest]
 cd "$(dirname "$0")"
 
-# ═══════════════════════════════════════════════════════════════════
-# FORÇAR SQLite — os testes NUNCA devem tocar no Supabase
-# ═══════════════════════════════════════════════════════════════════
-export DB_MODE=sqlite
-
 VERMELHO='\033[0;31m'
 VERDE='\033[0;32m'
 AZUL='\033[0;34m'
 SEM_COR='\033[0m'
 
-# Detectar Python 3.10+
+# Detectar Python 3.10+ (precisa ser antes da verificacao)
 PYTHON_CMD=""
 for cmd in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
     if command -v "$cmd" &>/dev/null; then
@@ -28,6 +23,18 @@ if [ -z "$PYTHON_CMD" ]; then
     echo -e "${VERMELHO}Python 3.10+ nao encontrado. Instale e tente novamente.${SEM_COR}"
     exit 1
 fi
+
+# ═══════════════════════════════════════════════════════════════════
+# VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
+# ═══════════════════════════════════════════════════════════════════
+cd ..
+$PYTHON_CMD test_browser/verificar_ambiente.py || exit 1
+cd "$(dirname "$0")"
+
+# ═══════════════════════════════════════════════════════════════════
+# FORÇAR SQLite — os testes NUNCA devem tocar no Supabase
+# ═══════════════════════════════════════════════════════════════════
+export DB_MODE=sqlite
 
 echo -e "${AZUL}Python detectado:${SEM_COR} $($PYTHON_CMD --version)"
 

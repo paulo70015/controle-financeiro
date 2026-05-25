@@ -24,8 +24,8 @@ class TestCriarMeta:
         page.click('button:has-text("+ Nova Meta")')
         page.wait_for_selector("#m-exeD", timeout=3000)
 
-        import datetime
-        ano_alvo = str(datetime.datetime.now().year + 1)
+        from test_browser.helpers import ANO_TESTE
+        ano_alvo = str(ANO_TESTE + 1)
 
         fill_input(page, "#m-exeD", "Reserva de emergencia")
         fill_input(page, "#m-exeA", ano_alvo)
@@ -58,9 +58,9 @@ class TestToggleConclusao:
         # Cria uma meta especifica para este teste
         page.click('button:has-text("+ Nova Meta")')
         page.wait_for_selector("#m-exeD", timeout=3000)
-        import datetime
+        from test_browser.helpers import ANO_TESTE
         fill_input(page, "#m-exeD", "Meta para concluir")
-        fill_input(page, "#m-exeA", str(datetime.datetime.now().year + 1))
+        fill_input(page, "#m-exeA", str(ANO_TESTE + 1))
         fill_input(page, "#m-exeV", "3000,00")
         page.click('button:has-text("Salvar")')
         wait_for_load(page)

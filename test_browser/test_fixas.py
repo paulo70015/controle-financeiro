@@ -91,9 +91,10 @@ class TestExcecaoFixa:
 
 class TestDuplicarFixaAno:
     def test_criar_ano_com_duplicacao(self, page: Page):
-        import datetime, random
+        import random
+        from test_browser.helpers import ANO_TESTE
         # Ano futuro com offset aleatório para evitar colisão entre execuções
-        ano_futuro = str(datetime.datetime.now().year + 5 + random.randint(0, 4))
+        ano_futuro = str(ANO_TESTE + 5 + random.randint(0, 4))
 
         page.click('button:has-text("+ Ano")')
         page.wait_for_selector("#ovAno.show")

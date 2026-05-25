@@ -5,6 +5,8 @@ import atexit
 import threading
 import json
 
+from version import get_version_full
+
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -135,7 +137,7 @@ if __name__ == "__main__":
         sys.stdout = log_file
         sys.stderr = log_file
     else:
-        print(f"\n Controle de Financas v1.3.0 ({db_mode.upper()}) em: http://localhost:8080\n")
+        print(f"\n Controle de Financas {get_version_full()} ({db_mode.upper()}) em: http://localhost:8080\n")
     threading.Thread(target=lambda:app.run(debug=False,port=8080,use_reloader=False),daemon=True).start()
     if not os.getenv("FLASK_SKIP_BROWSER"):
         threading.Timer(1.2,lambda:webbrowser.open("http://localhost:8080")).start()

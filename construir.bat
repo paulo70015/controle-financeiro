@@ -91,6 +91,12 @@ echo [2/3] Gerando executavel com PyInstaller...
 echo Preparando ambiente embutido...
 copy /Y "%INCLUIR_ENV%" ".env_embutido" >nul
 
+:: Gerar BUILD_NUMBER se nao existir (para que a versao exiba o build)
+if not exist "BUILD_NUMBER" (
+    echo [INFO] BUILD_NUMBER nao encontrado, gerando...
+    call "%PYTHON_CMD%" gerar_build.py
+)
+
 call "%PYTHON_CMD%" -m PyInstaller ^
     --onefile ^
     --noconsole ^
@@ -99,6 +105,7 @@ call "%PYTHON_CMD%" -m PyInstaller ^
     --add-data "partials;partials" ^
     --add-data "static;static" ^
     --add-data ".env_embutido;." ^
+    --add-data "BUILD_NUMBER;." ^
     --hidden-import flask ^
     --hidden-import PIL ^
     --hidden-import pystray ^
@@ -154,6 +161,12 @@ if exist "dist\ControleFinanceiro.exe" (
 ) else (
     echo AVISO: Executavel nao encontrado em dist\
 )
+
+echo.
+echo [LIMPEZA] Removendo arquivos temporarios...
+if exist "build" rmdir /S /Q "build"
+if exist "ControleFinanceiro.spec" del /Q "ControleFinanceiro.spec"
+echo [OK] Apenas o executavel em dist\ foi mantido.
 
 echo.
 echo ============================================

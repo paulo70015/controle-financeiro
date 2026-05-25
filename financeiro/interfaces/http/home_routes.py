@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, request
 
+from version import get_version_full
 from financeiro.application.home.use_cases import HomeUseCases
 from financeiro.infrastructure.repository_factory import get_db_mode, get_home_repository
 
@@ -24,7 +25,8 @@ def create_home_blueprint(client_factory=None, meses=None):
         use_cases.garantir_ano_existe(ano)
         anos = use_cases.listar_anos(ano)
         return render_template("index.html", ano=ano, anos=anos, 
-                             meses=MESES, meses_abrev=MESES_ABREV, db_mode=get_db_mode())
+                             meses=MESES, meses_abrev=MESES_ABREV, db_mode=get_db_mode(),
+                             versao=get_version_full())
 
     return bp
 

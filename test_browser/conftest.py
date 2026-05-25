@@ -18,40 +18,10 @@ from playwright.sync_api import sync_playwright
 
 
 # ═══════════════════════════════════════════════════════════════════
-# VERIFICAR Supabase — aborta se .env tem DB_MODE=supabase
-# (protecao extra: o fixture _backup_db ja cuida disso,
-#  mas esta guarda pega o caso de execucao manual sem o fixture)
+# VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
 # ═══════════════════════════════════════════════════════════════════
-def _recusar_supabase():
-    """Aborta com erro claro se o .env esta configurado para Supabase
-    e DB_MODE=sqlite nao foi definido explicitamente no ambiente."""
-    # Se DB_MODE=sqlite ja esta no ambiente, confia -- o usuario sabe o que faz
-    if os.environ.get("DB_MODE", "").lower() == "sqlite":
-        return
-    env_path = Path(__file__).parent.parent / ".env"
-    if not env_path.exists():
-        return
-    modo_env = None
-    for linha in env_path.read_text(encoding="utf-8").splitlines():
-        linha = linha.strip()
-        if linha.startswith("DB_MODE="):
-            _, valor = linha.split("=", 1)
-            modo_env = valor.strip().strip('"').strip("'").lower()
-            break
-    if modo_env == "supabase":
-        RED = '\033[91m'
-        RESET = '\033[0m'
-        print(f"\n{RED}{'='*70}{RESET}")
-        print(f"{RED}  TESTES BLOQUEADOS{RESET}")
-        print(f"{RED}{'='*70}{RESET}")
-        print(f"  O arquivo .env esta configurado com DB_MODE=supabase.")
-        print(f"  Os testes E2E NAO podem executar contra o Supabase.")
-        print(f"  Altere o .env para DB_MODE=sqlite ou execute:")
-        print(f"    export DB_MODE=sqlite && pytest test_browser/")
-        print(f"{RED}{'='*70}{RESET}\n")
-        sys.exit(1)
-
-_recusar_supabase()
+from test_browser.verificar_ambiente import verificar as _verificar_supabase
+_verificar_supabase()
 
 
 # ── Constantes ─────────────────────────────────────────────────
@@ -59,11 +29,6 @@ PROJETO_RAIZ = Path(__file__).parent.parent
 DB_REAL = PROJETO_RAIZ / "financeiro.db"
 DB_BACKUP = PROJETO_RAIZ / "financeiro.db.bak_tests"
 DB_TESTE = PROJETO_RAIZ / "test_financeiro.db"
-DB_WAL = PROJETO_RAIZ / "financeiro.db-wal"
-DB_SHM = PROJETO_RAIZ / "financeiro.db-shm"
-ENV_REAL = PROJETO_RAIZ / ".env"
-ENV_BACKUP = PROJETO_RAIZ / ".env.bak_tests"
-ENV_TESTE = PROJETO_RAIZ / ".env.sqlite"
 PORTA = 8080
 BASE_URL = f"http://127.0.0.1:{PORTA}"
 
@@ -77,43 +42,31 @@ def _limpar_wal_shm(db_path: Path):
 
 
 def _backup_db():
-    """Renomeia o DB real e .env para backup, configura ambiente SQLite."""
+    """Faz backup do banco real e prepara ambiente limpo para testes.
+
+    O .env NAO e manipulado — o DB_MODE=sqlite e forçado
+    exclusivamente via variavel de ambiente no subprocesso Flask.
+    """
     # Remove DB de teste residual de execucoes anteriores
     if DB_TESTE.exists():
         DB_TESTE.unlink()
         _limpar_wal_shm(DB_TESTE)
 
-    # Se ja existe backup do .env, restaura primeiro (caso de crash anterior)
-    if ENV_BACKUP.exists():
-        if ENV_REAL.exists():
-            ENV_REAL.unlink()
-        shutil.move(str(ENV_BACKUP), str(ENV_REAL))
-
-    # Backup do .env real
-    if ENV_REAL.exists():
-        shutil.copy2(str(ENV_REAL), str(ENV_BACKUP))
-
-    # Cria .env de teste com SQLite
-    ENV_TESTE.write_text("DB_MODE=sqlite\n", encoding="utf-8")
-    if ENV_REAL.exists():
-        ENV_REAL.unlink()
-    shutil.copy2(str(ENV_TESTE), str(ENV_REAL))
-
-    # Se ja existe backup do DB, restaura primeiro (caso de crash anterior)
+    # Se ja existe backup do DB de crash anterior, restaura primeiro
     if DB_BACKUP.exists():
         _limpar_wal_shm(DB_REAL)
         if DB_REAL.exists():
             DB_REAL.unlink()
         shutil.move(str(DB_BACKUP), str(DB_REAL))
 
-    # Agora faz backup do DB real
+    # Faz backup do DB real (se existir)
     if DB_REAL.exists():
         _limpar_wal_shm(DB_REAL)
         shutil.move(str(DB_REAL), str(DB_BACKUP))
 
 
 def _restore_db():
-    """Restaura o DB real e .env, limpa arquivos de teste."""
+    """Restaura o banco real e limpa arquivos de teste."""
     # Remove o DB de teste criado pelo servidor
     _limpar_wal_shm(DB_REAL)
     if DB_REAL.exists():
@@ -127,16 +80,6 @@ def _restore_db():
     if DB_TESTE.exists():
         _limpar_wal_shm(DB_TESTE)
         DB_TESTE.unlink()
-
-    # Restaura .env original
-    if ENV_REAL.exists():
-        ENV_REAL.unlink()
-    if ENV_BACKUP.exists():
-        shutil.move(str(ENV_BACKUP), str(ENV_REAL))
-
-    # Limpa .env de teste
-    if ENV_TESTE.exists():
-        ENV_TESTE.unlink()
 
 
 @pytest.fixture(scope="session")
@@ -225,9 +168,14 @@ def context(browser):
 
 @pytest.fixture(scope="function")
 def page(context, flask_server):
-    """Nova aba no navegador compartilhado, com contexto limpo a cada teste."""
+    """Nova aba no navegador compartilhado, com contexto limpo a cada teste.
+
+    Navega para ANO_TESTE (ano atual + 5) para isolar dos dados reais.
+    """
+    from test_browser.helpers import ANO_TESTE
+
     page_obj = context.new_page()
-    page_obj.goto(flask_server)
+    page_obj.goto(f"{flask_server}/?ano={ANO_TESTE}")
 
     # Aguardar a SPA carregar completamente
     page_obj.wait_for_function(
