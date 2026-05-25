@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""
+Git pre-commit hook: gera o build number e adiciona BUILD_NUMBER ao stage.
+
+O build é gerado como timestamp DDMMAAHHMMSS do momento do commit,
+garantindo que cada commit carregue seu próprio número de build.
+"""
+
+import subprocess
+import sys
+import os
+
+
+def main():
+    # Caminho do projeto (raiz do repo)
+    repo_root = subprocess.check_output(
+        ["git", "rev-parse", "--show-toplevel"],
+        text=True
+    ).strip()
+
+    gerar_build = os.path.join(repo_root, "gerar_build.py")
+    build_file = os.path.join(repo_root, "BUILD_NUMBER")
+
+    # 1. Executa gerar_build.py
+    result = subprocess.run(
+        [sys.executable, gerar_build],
+        capture_output=True,
+        text=True,
+        cwd=repo_root
+    )
+
+    if result.returncode != 0:
+        print(f"[BUILD] ERRO ao gerar build: {result.stderr}", file=sys.stderr)
+        return 1
+
+    print(f"[BUILD] {result.stdout.strip()}")
+
+    # 2. Adiciona BUILD_NUMBER ao stage
+    subprocess.run(
+        ["git", "add", build_file],
+        capture_output=True,
+        cwd=repo_root
+    )
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -40,6 +40,12 @@ if [ -n "$INCLUIR_ENV" ]; then
     ADD_DATA_ENV="--add-data \"$INCLUIR_ENV:.\" --add-data \".env_embutido:\""
 fi
 
+# Gerar BUILD_NUMBER se nao existir (para que a versao exiba o build)
+if [ ! -f "BUILD_NUMBER" ]; then
+    echo "[INFO] BUILD_NUMBER nao encontrado, gerando..."
+    $PYTHON_CMD gerar_build.py
+fi
+
 echo "[1/3] Limpando build anterior..."
 rm -rf build/ dist/ ControleFinanceiro.spec
 
@@ -52,6 +58,7 @@ $PYTHON_CMD -m PyInstaller \
     --add-data "partials:partials" \
     --add-data "static:static" \
     ${ADD_DATA_ENV:+--add-data "$INCLUIR_ENV:." --add-data ".env_embutido:."} \
+    --add-data "BUILD_NUMBER:." \
     --hidden-import flask \
     --hidden-import pystray \
     --hidden-import PIL \
@@ -74,6 +81,11 @@ if [ -f "$PLIST_PATH" ]; then
     plutil -insert NSHighResolutionCapable -bool true "$PLIST_PATH"
     echo "[OK] Info.plist ajustado com sucesso."
 fi
+
+echo ""
+echo "[LIMPEZA] Removendo arquivos temporarios..."
+rm -rf build/ ControleFinanceiro.spec
+echo "[OK] Apenas o .app em dist/ foi mantido."
 
 echo ""
 echo "================================================================"

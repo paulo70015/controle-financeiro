@@ -6,6 +6,17 @@ REM Uso: rodar-testes.bat [opcoes do pytest]
 cd /d "%~dp0"
 
 REM ═══════════════════════════════════════════════════════════════════
+REM VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
+REM ═══════════════════════════════════════════════════════════════════
+cd /d "%~dp0.."
+python test_browser/verificar_ambiente.py
+if %ERRORLEVEL% NEQ 0 (
+    pause
+    exit /b 1
+)
+cd /d "%~dp0"
+
+REM ═══════════════════════════════════════════════════════════════════
 REM FORCAR SQLite — os testes NUNCA devem tocar no Supabase
 REM ═══════════════════════════════════════════════════════════════════
 set DB_MODE=sqlite

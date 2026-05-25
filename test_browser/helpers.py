@@ -5,8 +5,16 @@ Seletores, preenchimento de formularios, verificacao de modais,
 extracao de dados da tabela e helpers de sincronizacao.
 """
 
+import datetime
+
 from playwright.sync_api import Page, expect
 
+# ═══════════════════════════════════════════════════════════════
+#  Constantes de isolamento — testes operam no futuro para
+#  nunca colidirem com dados reais do usuario.
+# ═══════════════════════════════════════════════════════════════
+ANO_TESTE = datetime.datetime.now().year + 5
+MES_TESTE = 12  # Dezembro (evita conflitos com dados existentes)
 
 DEBOUNCE_WAIT_MS = 200
 
