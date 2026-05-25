@@ -46,10 +46,9 @@ def modal_should_be_hidden(page: Page, modal_id: str):
 def fill_input(page: Page, selector: str, value: str):
     """Limpa e preenche um campo de input/textarea."""
     el = page.locator(selector)
+    el.clear()
     if value:
         el.fill(value)
-    else:
-        el.clear()
 
 
 def select_option(page: Page, selector: str, value: str):

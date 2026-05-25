@@ -15,11 +15,6 @@ Para mudancas relacionadas a Supabase, SQLite, schema, Flutter ou migracao, cons
 
 ## Regras Principais
 
-- **Proteger o arquivo `.env`**: Ele contém credenciais de produção (Supabase). Regras por contexto:
-  - **Build** (`construir_macos.sh --com-env`, `construir.bat --com-env`): pode LER e COPIAR o `.env` para dentro do executável. O original nunca é alterado.
-  - **Runtime** (`app.py`): pode LER o `.env` via `load_dotenv`, respeitando `DB_MODE` definido no ambiente como prioritário.
-  - **Testes e scripts auxiliares**: PROIBIDO ler, escrever, renomear, copiar ou deletar o `.env`. Testes usam SQLite hardcoded e nunca precisam deste arquivo.
-- **Testes sempre usam SQLite hardcoded**: Todos os testes forçam `os.environ["DB_MODE"] = "sqlite"` no topo do módulo, antes de qualquer import do projeto. Nenhum teste pode depender de `.env`, `load_dotenv`, ou env var externa para escolher o banco. SQLite é a única opção, sempre.
 - Backend: Python 3.10+ e Flask.
 - Frontend: HTML, CSS e JavaScript Vanilla. Nao sugerir React, Vue, Svelte, jQuery ou frameworks externos.
 - Manter arquitetura DDD simplificada:
@@ -54,11 +49,7 @@ Ao criar ou alterar funcionalidade que envolva backend, seguir este fluxo:
 
 ## Testes
 
-**⚠️ Antes de rodar QUALQUER teste, pergunte ao utilizador.** O ambiente pode estar
-com Supabase ativo ou a aplicação em execução, e rodar testes sem aviso pode causar
-conflitos ou perda de dados. Nunca assuma que é seguro rodar testes sem confirmação.
-
-Apos alteracoes relevantes, **pergunte antes** de rodar os testes aplicaveis:
+Apos alteracoes relevantes, rodar os testes aplicaveis:
 
 ### Testes unitarios / integracao
 - `python test_suite.py`

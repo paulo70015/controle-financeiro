@@ -34,7 +34,6 @@ function toggleEditUiDet(isEdit, isDep = false) {
 }
 
 window.editarDet = function(id, tipo, valor, nota, ignorar = false, notaOriginal = '') {
-  const notaCombinada = tipo === 'receita' && notaOriginal ? nota + ' (' + notaOriginal + ')' : nota;
   window.iniciarEdicaoInline({
     checkLock: true,
     onInit: () => {
@@ -46,7 +45,7 @@ window.editarDet = function(id, tipo, valor, nota, ignorar = false, notaOriginal
     },
     campos: [
       { id: 'aV', valor: valor, formatar: v => (v !== undefined && v !== null && v !== '') ? parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '' },
-      { id: 'aN', valor: notaCombinada },
+      { id: 'aN', valor: nota },
       { id: 'detIgnorar', valor: ignorar, type: 'checkbox' },
       { id: 'detMesEditar', valor: detCtx.mes }
     ],
@@ -87,17 +86,9 @@ async function executarLancamentoDet() {
     const isEdit = editandoId && editandoTipo === 'receita';
     const url = isEdit ? '/api/receita/' + editandoId : '/api/receita';
     const method = isEdit ? 'PUT' : 'POST';
-    // Parse "Descrição (Nota)" combinado no campo aN
-    let descricao = n || 'Receita';
-    let notaVal = '';
-    const matchNota = n.match(/^(.*)\s*\(([^)]*)\)$/);
-    if (matchNota) {
-      descricao = matchNota[1].trim() || 'Receita';
-      notaVal = matchNota[2].trim();
-    }
     const body = isEdit 
-        ? {descricao, valor: v||0, nota: notaVal, mes: mesDestino}
-        : {ano, mes: detCtx.mes, descricao, valor: v||0, nota: notaVal};
+        ? {descricao: n || 'Receita', valor: v||0, nota: detOriginalData.nota || '', mes: mesDestino}
+        : {ano, mes: detCtx.mes, descricao: n || 'Receita', valor: v||0, nota: ''};
     
     await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
     if (isEdit) {
