@@ -84,7 +84,7 @@ fi
 
 echo ""
 echo "[LIMPEZA] Removendo arquivos temporarios..."
-rm -rf build/ ControleFinanceiro.spec
+rm -rf build/ ControleFinanceiro.spec controlefinanceiro.log dist/controlefinanceiro.log
 echo "[OK] Apenas o .app em dist/ foi mantido."
 
 echo ""

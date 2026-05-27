@@ -166,6 +166,8 @@ echo.
 echo [LIMPEZA] Removendo arquivos temporarios...
 if exist "build" rmdir /S /Q "build"
 if exist "ControleFinanceiro.spec" del /Q "ControleFinanceiro.spec"
+if exist "controlefinanceiro.log" del /Q "controlefinanceiro.log"
+if exist "dist\controlefinanceiro.log" del /Q "dist\controlefinanceiro.log"
 echo [OK] Apenas o executavel em dist\ foi mantido.
 
 echo.
