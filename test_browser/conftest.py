@@ -175,6 +175,7 @@ def page(context, flask_server):
     from test_browser.helpers import ANO_TESTE
 
     page_obj = context.new_page()
+    page_obj.add_init_script("sessionStorage.removeItem('cfViewAtiva');")
     page_obj.goto(f"{flask_server}/?ano={ANO_TESTE}")
 
     # Aguardar a SPA carregar completamente

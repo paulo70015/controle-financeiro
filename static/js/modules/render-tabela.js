@@ -98,8 +98,7 @@ function renderTabela(){
       const vTotalDisplay=vTotal+vIgnorado;
       tot+=vTotal;
       
-      let tit = cat.nome + ': ' + MESES[m-1];
-      if (notas) tit += '\n' + notas.split('\n').map(n => '... - ' + n).join('\n'); // Fallback visual rápido
+      const tit = cat.nome + ': ' + MESES[m-1];
       const tit_modal = cat.nome + ' - ' + MESES[m-1];
       const tit_onclick = tit_modal.replace(/'/g, "\\'");
       if(vTotalDisplay!==0||fixaFlag||notas||totalFixasCatOriginal>0){
@@ -256,17 +255,9 @@ window.formatarLinhasTooltip = function(linhas) {
   }).join('\n');
 };
 
-window.carregarTooltipDet = debounce(async function(el, mes, cat, lastMod) {
-  if (el.dataset.tooltipLoaded) return;
-  el.dataset.tooltipLoaded = 'true';
-  
+window.carregarTooltipDet = function(el, mes, cat, lastMod) {
   const cacheKey = `${cat}_${mes}_${lastMod}`;
-  if (tooltipCache.has(cacheKey)) {
-    el.setAttribute('title', tooltipCache.get(cacheKey));
-    return;
-  }
-  
-  try {
+  return carregarTooltipCompleto(el, cacheKey, async function() {
     const url = cat === '__rec__' ? `/api/receitas/${ano}/${mes}?_=${Date.now()}` : `/api/despesas_detalhe/${ano}/${mes}/${encodeURIComponent(cat)}?_=${Date.now()}`;
     const r = await fetch(url, {
       cache: 'no-store',
@@ -277,6 +268,8 @@ window.carregarTooltipDet = debounce(async function(el, mes, cat, lastMod) {
       }
     });
     const rows = await r.json();
+    const nomeTitulo = cat === '__rec__' ? 'Receitas' : cat;
+    let novoTit = `${nomeTitulo}: ${MESES[mes-1]}`;
     
     if (rows && rows.length > 0) {
       let maxMod = null;
@@ -301,15 +294,12 @@ window.carregarTooltipDet = debounce(async function(el, mes, cat, lastMod) {
       
       const linhas = window.formatarLinhasTooltip(linhasDados);
       
-      const nomeTitulo = cat === '__rec__' ? 'Receitas' : cat;
-      let novoTit = `${nomeTitulo}: ${MESES[mes-1]}`;
       if (linhas) novoTit += `\n${linhas}`;
       
       if (maxMod) {
         novoTit += `\n\nÚltima alteração: ${formatarDataHoraBR(maxMod)}`;
       }
-      tooltipCache.set(cacheKey, novoTit);
-      el.setAttribute('title', novoTit);
     }
-  } catch(e) { console.error('Erro ao carregar tooltip', e); }
-}, 300);
+    return novoTit;
+  }, 'Erro ao carregar tooltip');
+};

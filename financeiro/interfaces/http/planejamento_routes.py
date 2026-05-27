@@ -51,13 +51,7 @@ def create_planejamento_blueprint(client_factory=None):
 
     @bp.route("/api/pagamento_status/lote", methods=["POST"])
     def salvar_pagamento_status_lote():
-        payload = request.get_json() or {}
-        ano = payload.get("ano")
-        mes = payload.get("mes")
-        status = payload.get("status")
-        categorias = payload.get("categorias", [])
-        for cat in categorias:
-            use_cases.salvar_pagamento_status({"ano": ano, "mes": mes, "categoria": cat, "status": status})
+        use_cases.salvar_pagamento_status_lote(request.get_json() or {})
         return jsonify({"ok": True})
 
     return bp
