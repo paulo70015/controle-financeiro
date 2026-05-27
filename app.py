@@ -122,20 +122,9 @@ if __name__ == "__main__":
     if not args.show_console:
         import logging; logging.getLogger("werkzeug").setLevel(logging.ERROR)
         
-        # Determinar a pasta correta para o log (junto ao executavel ou fora do .app no macOS)
-        if getattr(sys, 'frozen', False):
-            exec_dir = os.path.dirname(sys.executable)
-            if ".app/Contents/MacOS" in sys.executable:
-                log_dir = os.path.abspath(os.path.join(exec_dir, "../../.."))
-            else:
-                log_dir = exec_dir
-        else:
-            log_dir = BASE_DIR
-            
-        log_path = os.path.join(log_dir, "controlefinanceiro.log")
-        log_file = open(log_path, "a", encoding="utf-8", buffering=1) # buffering=1 força a gravação imediata
-        sys.stdout = log_file
-        sys.stderr = log_file
+        null_file = open(os.devnull, "w", encoding="utf-8")
+        sys.stdout = null_file
+        sys.stderr = null_file
     else:
         print(f"\n Controle de Financas {get_version_full()} ({db_mode.upper()}) em: http://localhost:8080\n")
     threading.Thread(target=lambda:app.run(debug=False,port=8080,use_reloader=False),daemon=True).start()
