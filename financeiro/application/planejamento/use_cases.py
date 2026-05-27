@@ -49,3 +49,18 @@ class PlanejamentoUseCases:
         )
         self.repository.save_pagamento_status(status)
 
+    def salvar_pagamento_status_lote(self, payload: dict) -> None:
+        ano = int(payload["ano"])
+        mes = int(payload["mes"])
+        status_valor = int(payload["status"])
+        categorias = payload.get("categorias") or []
+        statuses = [
+            PagamentoStatus(
+                ano=ano,
+                mes=mes,
+                categoria=categoria,
+                status=status_valor,
+            )
+            for categoria in categorias
+        ]
+        self.repository.save_pagamento_status_lote(statuses)

@@ -4,6 +4,27 @@ window.BANK_ICONS_CFG = {
   '[NU]': { label: 'NU', bg: '#8A05BE', color: '#FFF', title: 'Nubank' }
 };
 
+window.escapeHtml = function(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+window.escapeAttr = window.escapeHtml;
+
+window.escapeJsSingleQuoted = function(text) {
+  return String(text ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+};
+
 window.formatBankIcons = function(text) {
   if (typeof text !== 'string' || !text.includes('[')) return text;
   
@@ -16,6 +37,11 @@ window.formatBankIcons = function(text) {
     }
   }
   return newText;
+};
+
+window.formatBankIconsSafe = function(text) {
+  const escaped = window.escapeHtml ? window.escapeHtml(text) : String(text ?? '');
+  return window.formatBankIcons ? window.formatBankIcons(escaped) : escaped;
 };
 
 window.injectBankSelector = function(inputId) {
@@ -165,9 +191,51 @@ function debounce(func, wait) {
 }
 
 const tooltipCache = new Map();
+const tooltipInflight = new Map();
+let tooltipRequestSeq = 0;
 
 function limparCacheTooltip() {
   tooltipCache.clear();
+  tooltipInflight.clear();
+}
+
+async function carregarTooltipCompleto(el, cacheKey, buildTooltip, errorMessage = 'Erro ao carregar tooltip') {
+  if (!el || !cacheKey || typeof buildTooltip !== 'function') return;
+
+  if (el.dataset.tooltipLoadedKey === cacheKey) return;
+
+  const cached = tooltipCache.get(cacheKey);
+  if (cached) {
+    el.setAttribute('title', cached);
+    el.dataset.tooltipLoadedKey = cacheKey;
+    return cached;
+  }
+
+  const requestId = String(++tooltipRequestSeq);
+  el.dataset.tooltipRequestId = requestId;
+
+  try {
+    let promise = tooltipInflight.get(cacheKey);
+    if (!promise) {
+      promise = Promise.resolve()
+        .then(buildTooltip)
+        .then(tooltip => {
+          if (tooltip) tooltipCache.set(cacheKey, tooltip);
+          return tooltip;
+        })
+        .finally(() => tooltipInflight.delete(cacheKey));
+      tooltipInflight.set(cacheKey, promise);
+    }
+
+    const tooltip = await promise;
+    if (el.dataset.tooltipRequestId !== requestId || !tooltip) return tooltip;
+
+    el.setAttribute('title', tooltip);
+    el.dataset.tooltipLoadedKey = cacheKey;
+    return tooltip;
+  } catch(e) {
+    console.error(errorMessage, e);
+  }
 }
 
 window.iniciarEdicaoInline = function(config) {

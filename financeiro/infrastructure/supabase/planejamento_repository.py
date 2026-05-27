@@ -11,7 +11,29 @@ class SupabasePlanejamentoRepository:
     def __init__(self, client_factory):
         self.client_factory = client_factory
 
+    def _is_fixa_expirada(self, dia_fixa, ano_status, mes_status) -> bool:
+        from datetime import datetime
+        hoje = datetime.now()
+        ano_atual = hoje.year
+        mes_atual = hoje.month + 1
+        if mes_atual > 12:
+            mes_atual = 1
+            ano_atual += 1
+        dia_atual = hoje.day
 
+        if ano_status < ano_atual:
+            return True
+        if ano_status == ano_atual:
+            if mes_status < mes_atual:
+                return True
+            if mes_status == mes_atual:
+                try:
+                    dia = int(dia_fixa) if dia_fixa else 0
+                    if 0 < dia < dia_atual:
+                        return True
+                except Exception:
+                    pass
+        return False
 
     def _normalizar_cat_id(self, client: Client, cat_id, ano):
         """Normaliza cat_id para o ano correto (remapeia se necessário)"""
@@ -285,7 +307,11 @@ class SupabasePlanejamentoRepository:
                     fixas = fixas_response.data
                     
                     if fixas:
-                        total_fixas = sum(f["valor"] for f in fixas)
+                        total_fixas = sum(
+                            f["valor"]
+                            for f in fixas
+                            if not self._is_fixa_expirada(f.get("dia"), status.ano, status.mes)
+                        )
                         total_fixas = round(total_fixas, 2)
                         
                         if total_fixas != 0:
@@ -322,6 +348,15 @@ class SupabasePlanejamentoRepository:
                             }).execute()
                         except Exception:
                             pass  # Ignorar se já existe
+
+    def save_pagamento_status_lote(self, statuses: list[PagamentoStatus]) -> None:
+        """Salva status em lote.
+
+        Supabase REST não fornece transação multi-request aqui; as exceções são
+        propagadas para a rota sinalizar falha ao usuário.
+        """
+        for status in statuses:
+            self.save_pagamento_status(status)
 
     def toggle_fixa_aplicada_manual(self, payload: dict, method: str) -> None:
         """Marca/desmarca uma fixa como aplicada manualmente"""

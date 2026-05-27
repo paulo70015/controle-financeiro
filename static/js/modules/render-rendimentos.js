@@ -177,9 +177,11 @@ function renderRendimentos() {
 
   locais.forEach(local => {
     const localLancs = lancs[String(local.id)] || {};
-    const nomeSafe = (local.nome || '').replace(/'/g, "\\'");
+    const nomeSafe = window.escapeAttr
+      ? window.escapeAttr(window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(local.nome || '') : (local.nome || '').replace(/'/g, "\\'"))
+      : (local.nome || '').replace(/'/g, "\\'");
     const percStr = local.projecao_taxa ? String(local.projecao_taxa).replace('.', ',') + '%' : '';
-    const nomeFormatado = window.formatBankIcons ? window.formatBankIcons(local.nome) : local.nome;
+    const nomeFormatado = window.formatBankIconsSafe ? window.formatBankIconsSafe(local.nome) : (window.escapeHtml ? window.escapeHtml(local.nome) : local.nome);
     
     const { historico } = calcularSaldoAcumuladoLocal(local.id, 12);
 
@@ -189,7 +191,8 @@ function renderRendimentos() {
       <a href="#" onclick="event.preventDefault(); editarRendimentoLocal(${local.id},'${nomeSafe}')">&#9998; Editar local</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLancamentosRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Apagar lançamentos</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); excluirRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Excluir local</a>`;
-    h += `<tr draggable="true" data-local-id="${local.id}" class="cat-row" ondragstart="dragLocalStart(event,${local.id})" ondragover="dragLocalOver(event)" ondragleave="dragLocalLeave(event)" ondrop="dropLocal(event,${local.id})"><td class="cat-nome"><div class="cc"><span title="${local.nome}">${nomeFormatado}</span>${window.buildKebabMenuHtml(linksLocal, true)}</div></td>`;
+    const localNomeAttr = window.escapeAttr ? window.escapeAttr(local.nome || '') : (local.nome || '');
+    h += `<tr draggable="true" data-local-id="${local.id}" class="cat-row" ondragstart="dragLocalStart(event,${local.id})" ondragover="dragLocalOver(event)" ondragleave="dragLocalLeave(event)" ondrop="dropLocal(event,${local.id})"><td class="cat-nome"><div class="cc"><span title="${localNomeAttr}">${nomeFormatado}</span>${window.buildKebabMenuHtml(linksLocal, true)}</div></td>`;
 
     for (let m = 1; m <= 12; m++) {
       const h_mes = historico[m - 1];
@@ -216,7 +219,7 @@ function renderRendimentos() {
         linhasRend.push({ valor: rendimentoDoMes, texto: txtRend });
         linhasRend.push({ valor: saldoLocal, texto: 'Saldo acumulado' });
 
-        let tit = `${local.nome} - ${MESES[m - 1]}`;
+        let tit = `${local.nome || ''} - ${MESES[m - 1]}`;
         if (window.formatarLinhasTooltip) {
           const txtFormatado = window.formatarLinhasTooltip(linhasRend);
           if (txtFormatado) tit += '\n' + txtFormatado;
@@ -225,7 +228,8 @@ function renderRendimentos() {
         }
 
         const cellClass = isProjecao ? 'rend-projecao' : '';
-        h += `<td class="rend-cell ${cellClass}" title="${tit}" onmouseenter="carregarTooltipRendimentos(this, ${local.id}, ${m})" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})">${BRL(saldoLocal)}</td>`;
+        const titAttr = window.escapeAttr ? window.escapeAttr(tit) : tit;
+        h += `<td class="rend-cell ${cellClass}" title="${titAttr}" onmouseenter="carregarTooltipRendimentos(this, ${local.id}, ${m})" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})">${BRL(saldoLocal)}</td>`;
       } else {
         h += `<td class="rend-cell" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})"><div class="rend-vazio">+</div></td>`;
       }
@@ -442,23 +446,10 @@ window.dropLocal = async function(e, targetId) {
   }
 };
 
-window.carregarTooltipRendimentos = debounce(async function(el, localId, mes) {
-  if (el.dataset.tooltipLoaded) return;
-  
+window.carregarTooltipRendimentos = function(el, localId, mes) {
   const cacheKey = `rend_${localId}_${mes}`;
-  if (tooltipCache.has(cacheKey)) {
-    const cachedTit = tooltipCache.get(cacheKey);
-    const currentTit = el.getAttribute('title') || '';
-    if (!currentTit.includes('Última alteração')) {
-      el.setAttribute('title', currentTit + cachedTit);
-    }
-    el.dataset.tooltipLoaded = 'true';
-    return;
-  }
-  
-  el.dataset.tooltipLoaded = 'true';
-  
-  try {
+  const baseTit = el.getAttribute('title') || '';
+  return carregarTooltipCompleto(el, cacheKey, async function() {
     const r = await fetch(`/api/rendimentos_detalhe/${ano}/${mes}/${localId}?_=${Date.now()}`, {
       cache: 'no-store',
       headers: {
@@ -468,6 +459,7 @@ window.carregarTooltipRendimentos = debounce(async function(el, localId, mes) {
       }
     });
     const rows = await r.json();
+    let novoTit = baseTit;
     if (rows && rows.length > 0) {
       let maxMod = null;
       let maxTime = 0;
@@ -481,16 +473,15 @@ window.carregarTooltipRendimentos = debounce(async function(el, localId, mes) {
         }
       });
       if (maxMod) {
-        const currentTit = el.getAttribute('title') || '';
         const tooltipSuffix = `\n\nÚltima alteração: ${formatarDataHoraBR(maxMod)}`;
-        if (!currentTit.includes('Última alteração')) {
-          tooltipCache.set(cacheKey, tooltipSuffix);
-          el.setAttribute('title', currentTit + tooltipSuffix);
+        if (!novoTit.includes('Última alteração')) {
+          novoTit += tooltipSuffix;
         }
       }
     }
-  } catch(e) { console.error('Erro ao carregar tooltip rendimento', e); }
-}, 300);
+    return novoTit;
+  }, 'Erro ao carregar tooltip rendimento');
+};
 
 async function salvarRendimentoProjecao() {
   const local_id = parseInt(document.getElementById('rendProjLocalId').value || '0');

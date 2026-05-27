@@ -44,6 +44,13 @@ class TestExcecaoFixa:
         uid = uuid.uuid4().hex[:6]
         cat_nome = f"Moradia_{uid}"
         fixa_nome = f"Aluguel_{uid}"
+        from test_browser.helpers import ANO_TESTE, wait_for_table, get_table_data
+
+        # Isola o teste em um ano próprio para não depender de outra categoria
+        # com "inclui fixas" criada por testes anteriores.
+        ano_isolado = ANO_TESTE + 20 + int(uid[:2], 16)
+        page.goto(page.url.split("?")[0] + f"?ano={ano_isolado}")
+        wait_for_table(page)
 
         # Cria categoria manualmente (criar_categoria nao lida com #cFixas visivel condicionalmente)
         page.click('button:has-text("+ Categoria")')
@@ -67,7 +74,6 @@ class TestExcecaoFixa:
         wait_for_load(page)
         fechar_drawer(page)
 
-        from test_browser.helpers import wait_for_table, get_table_data
         wait_for_table(page)
         dados = get_table_data(page)
         linha_idx = None

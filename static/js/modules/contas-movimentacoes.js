@@ -111,11 +111,19 @@ function abrirDep(contaId, contaNome, mes) {
     fnSaveClose: 'salvarDepositoEFechar()'
   });
 
-  document.getElementById('depBtnUndo').style.display = 'none';
-  const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(tit) : tit;
-  document.getElementById('depContaNome').innerHTML = tituloFormatado;
-  document.getElementById('depV').value = '';
-  document.getElementById('depN').value = '';
+  const depBtnUndo = document.getElementById('depBtnUndo');
+  if (depBtnUndo) depBtnUndo.style.display = 'none';
+  const tituloFormatado = window.formatBankIconsSafe ? window.formatBankIconsSafe(tit) : tit;
+  const depContaNome = document.getElementById('depContaNome');
+  const depV = document.getElementById('depV');
+  const depN = document.getElementById('depN');
+  if (!depContaNome || !depV || !depN) {
+    alert('Não foi possível abrir o modal de movimentações.');
+    return;
+  }
+  depContaNome.innerHTML = tituloFormatado;
+  depV.value = '';
+  depN.value = '';
   const saldoAtual = (dados.saldos && dados.saldos[String(contaId)]) ?
     (dados.saldos[String(contaId)][mes] || 0) : 0;
   const elS = document.getElementById('depSaldoAtual');
@@ -126,10 +134,8 @@ function abrirDep(contaId, contaNome, mes) {
     if (labelAno) labelAno.remove();
   }
   const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
-  document.getElementById('depV').disabled = locked;
-  document.getElementById('depN').disabled = locked;
-  if (document.getElementById('depV')) document.getElementById('depV').disabled = locked;
-  if (document.getElementById('depN')) document.getElementById('depN').disabled = locked;
+  depV.disabled = locked;
+  depN.disabled = locked;
   const b1 = document.querySelector('button[onclick="salvarDeposito()"]');
   const b2 = document.querySelector('button[onclick="salvarDepositoEFechar()"]');
   if (b1) b1.style.display = locked ? 'none' : 'inline-block';
@@ -137,12 +143,12 @@ function abrirDep(contaId, contaNome, mes) {
   
   carregarDep(contaId, mes);
   abrirModal('ovDep');
-  setTimeout(() => document.getElementById('depV').focus(), 200);
-  setTimeout(() => { if (document.getElementById('depV')) document.getElementById('depV').focus(); }, 200);
+  setTimeout(() => { if (depV) depV.focus(); }, 200);
 }
 
 async function carregarDep(contaId, mes) {
   const el = document.getElementById('depL');
+  if (!el) return;
   try {
     const response = await safeApiCall(`/api/depositos_detalhe/${ano}/${mes}/${contaId}?_=${Date.now()}`, {}, 'Falha ao carregar movimentações.');
     const rows = await response.json();
@@ -174,8 +180,11 @@ async function carregarDep(contaId, mes) {
 
     const corTxt = total < 0 ? 'var(--vermelho)' : 'var(--verde)';
     const corFundo = total < 0 ? 'var(--cor-fundo-travado)' : 'var(--bg-st2)';
-    const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(depCtx.tit || '') : (depCtx.tit || '');
-    document.getElementById('depContaNome').innerHTML = `${tituloFormatado} <span class="modal-badge" style="color:${corTxt}; background:${corFundo};" title="Variação líquida no mês">${BRL(total)}</span>`;
+    const tituloFormatado = window.formatBankIconsSafe ? window.formatBankIconsSafe(depCtx.tit || '') : (depCtx.tit || '');
+    const depContaNome = document.getElementById('depContaNome');
+    if (depContaNome) {
+      depContaNome.innerHTML = `${tituloFormatado} <span class="modal-badge" style="color:${corTxt}; background:${corFundo};" title="Variação líquida no mês">${BRL(total)}</span>`;
+    }
 
     const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
     let htmlMovs = visiveis.map(r => {
@@ -232,9 +241,12 @@ async function carregarDep(contaId, mes) {
 
 async function salvarDeposito() {
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado. Desbloqueie para alterar.');
-  const v = parseVal(document.getElementById('depV').value);
+  const depV = document.getElementById('depV');
+  const depN = document.getElementById('depN');
+  if (!depV || !depN) return alert('Não foi possível salvar a movimentação.');
+  const v = parseVal(depV.value);
   if (v === null || v === 0) return alert('Informe o valor (positivo para depósito, negativo para saque)');
-  const n = document.getElementById('depN').value;
+  const n = depN.value;
   try {
         const isEdit = typeof depEditandoId !== 'undefined' && depEditandoId !== null;
         const url = isEdit ? '/api/deposito/' + depEditandoId : '/api/deposito';
@@ -251,8 +263,8 @@ async function salvarDeposito() {
         }
         if (typeof depEditandoId !== 'undefined') depEditandoId = null;
         if (typeof toggleEditUiDet !== 'undefined') toggleEditUiDet(false, true);
-    document.getElementById('depV').value = '';
-    document.getElementById('depN').value = '';
+    depV.value = '';
+    depN.value = '';
     await debouncedLoad();
     const saldoAtual = (dados.saldos && dados.saldos[String(depCtx.contaId)]) ?
       (dados.saldos[String(depCtx.contaId)][depCtx.mes] || 0) : 0;
@@ -298,7 +310,9 @@ async function fecharEefetivarDep() {
 }
 
 async function salvarDepositoEFechar() {
-  const v = parseVal(document.getElementById('depV').value);
+  const depV = document.getElementById('depV');
+  if (!depV) return fecharEefetivarDep();
+  const v = parseVal(depV.value);
   if (v !== null && v !== 0) {
     await salvarDeposito();
   }

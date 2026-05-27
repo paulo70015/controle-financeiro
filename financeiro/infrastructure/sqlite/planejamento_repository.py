@@ -144,6 +144,28 @@ class SQLitePlanejamentoRepository:
 
     def save_pagamento_status(self, status: PagamentoStatus) -> None:
         conn = self.connection_factory(auto_sync=True)
+        try:
+            self._save_pagamento_status_conn(conn, status)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def save_pagamento_status_lote(self, statuses: list[PagamentoStatus]) -> None:
+        conn = self.connection_factory(auto_sync=True)
+        try:
+            for status in statuses:
+                self._save_pagamento_status_conn(conn, status)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def _save_pagamento_status_conn(self, conn, status: PagamentoStatus) -> None:
         row_status = conn.execute(
             "SELECT status FROM pagamento_status WHERE ano=? AND mes=? AND categoria=?",
             (status.ano, status.mes, status.categoria),
@@ -232,9 +254,6 @@ class SQLitePlanejamentoRepository:
                             "INSERT INTO fixas_excecoes(ano,mes,cat_id) VALUES(?,?,?)",
                             (status.ano, status.mes, cat_id),
                         )
-
-        conn.commit()
-        conn.close()
 
     def toggle_fixa_aplicada_manual(self, payload: dict, method: str) -> None:
         conn = self.connection_factory(auto_sync=True)

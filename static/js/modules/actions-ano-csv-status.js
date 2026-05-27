@@ -371,21 +371,25 @@ async function marcarMesComoPago(mes, event) {
   try {
     let erros = [];
     const targetCats = todasPagas ? categoriasParaAlterar : categoriasParaAlterar.filter(c => c.atual !== 2);
+    const gruposPorStatus = new Map();
 
     for (let i = 0; i < targetCats.length; i++) {
       const item = targetCats[i];
       const statusAlvo = todasPagas ? (item.cat === '__rec__' ? 1 : 0) : 2;
-      
+      if (!gruposPorStatus.has(statusAlvo)) gruposPorStatus.set(statusAlvo, []);
+      gruposPorStatus.get(statusAlvo).push(item.cat);
+    }
+
+    for (const [statusAlvo, categorias] of gruposPorStatus.entries()) {
       try {
-        await safeApiCall('/api/pagamento_status', {
+        await safeApiCall('/api/pagamento_status/lote', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ano, mes, categoria: item.cat, status: statusAlvo})
+          body: JSON.stringify({ano, mes, categorias, status: statusAlvo})
         });
       } catch (err) {
-        erros.push(item.cat);
+        erros.push(...categorias);
       }
-      if (i < targetCats.length - 1) await new Promise(r => setTimeout(r, 150));
     }
     await debouncedLoad();
 
