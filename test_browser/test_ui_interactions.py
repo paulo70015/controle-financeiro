@@ -165,7 +165,7 @@ class TestTooltips:
             pytest.skip("Categoria UITest nao encontrada")
 
         celula = page.locator(
-            f"#tw table tbody tr:nth-child({linha_idx + 1}) td:nth-child(2)"
+            f"#tw table tbody tr:nth-child({linha_idx + 1}) td:nth-child(2) span.vc"
         )
         # Hover
         celula.hover()
@@ -173,9 +173,9 @@ class TestTooltips:
 
         # O atributo title deve ter sido preenchido (tooltip nativo)
         title = celula.get_attribute("title")
-        # Pode ser None se o tooltip ainda nao carregou (debounce)
-        # Ao menos nao deve quebrar
-        assert True  # So verificamos que nao lanca erro
+        assert title, "Tooltip da celula deveria ser carregado"
+        assert "Última alteração:" in title
+        assert "UI test item [" not in title
 
 
 def _encontrar_linha(dados, nome):
