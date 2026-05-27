@@ -9,15 +9,16 @@ Fluxo interativo para criar commits com mensagem padronizada.
 
 ## Fluxo
 
-1. **Verificar estado** — `git status --short`. Se não houver nada para commitar, informe e pare.
-2. **Stage** — `git add -A` (ou arquivos específicos se o usuário os passar nos `arguments`).
-3. **Mostrar diff** — `git diff --staged --stat` para o usuário revisar o que vai entrar.
-4. **Classificar versão** — Analise o diff e defina o impacto sobre `VERSION_BASE`:
+1. **Verificar hook** — Rode `git config core.hooksPath .githooks` para garantir que o pre-commit gere `BUILD_NUMBER`.
+2. **Verificar estado** — `git status --short`. Se não houver nada para commitar, informe e pare.
+3. **Stage** — `git add -A` (ou arquivos específicos se o usuário os passar nos `arguments`).
+4. **Mostrar diff** — `git diff --staged --stat` para o usuário revisar o que vai entrar.
+5. **Classificar versão** — Analise o diff e defina o impacto sobre `VERSION_BASE`:
    - `major` (`X.0.0`): melhorias grandes, mudanças estruturais ou incompatíveis.
    - `minor` (`X.Y.0`): melhorias pequenas/funcionalidades compatíveis.
    - `patch` (`X.Y.Z`): correções, ajustes internos, docs, testes e chores.
-5. **Calcular próxima versão** — Rode `python version.py --next <major|minor|patch>` (ou `python3`, se `python` não existir) para exibir a mudança sem gravar.
-6. **Gerar mensagem** — Analise o diff e proponha uma mensagem no formato **Conventional Commits**:
+6. **Calcular próxima versão** — Rode `python version.py --next <major|minor|patch>` (ou `python3`, se `python` não existir) para exibir a mudança sem gravar.
+7. **Gerar mensagem** — Analise o diff e proponha uma mensagem no formato **Conventional Commits**:
    ```
    <tipo>(<escopo>): <descricao curta em PT-BR>
 
@@ -26,10 +27,10 @@ Fluxo interativo para criar commits com mensagem padronizada.
    Tipos comuns: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `style`, `perf`.
    Escopo é opcional — use o módulo ou área afetada (ex: `despesas`, `receitas`, `e2e`, `db`).
    Descrição em PT-BR, imperativa, ≤ 72 chars.
-7. **Confirmar** — Mostre a mensagem proposta, o bump escolhido e a nova versão. Peça confirmação do usuário. Se recusar, permita editar sem alterar `version.py`.
-8. **Atualizar versão** — Após confirmação, rode `python version.py --bump <major|minor|patch>`, depois `git add version.py` e mostre `git diff --staged --stat` atualizado.
-9. **Commit** — `git commit -m "<mensagem>"`.
-10. **Push (opcional)** — Pergunte se deve fazer `git push`.
+8. **Confirmar** — Mostre a mensagem proposta, o bump escolhido e a nova versão. Peça confirmação do usuário. Se recusar, permita editar sem alterar `version.py`.
+9. **Atualizar versão** — Após confirmação, rode `python version.py --bump <major|minor|patch>`, depois `git add version.py` e mostre `git diff --staged --stat` atualizado.
+10. **Commit** — `git commit -m "<mensagem>"`.
+11. **Push (opcional)** — Pergunte se deve fazer `git push`.
 
 ## Regras
 

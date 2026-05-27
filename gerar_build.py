@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Gera o número de build baseado no timestamp atual (DDMMAAHHMMSS)
-e escreve no arquivo BUILD na raiz do projeto.
+e escreve no arquivo BUILD_NUMBER na raiz do projeto.
 
 Uso:
-    python gerar_build.py          # gera BUILD com timestamp agora
+    python gerar_build.py          # gera BUILD_NUMBER com timestamp agora
     python gerar_build.py --print  # apenas exibe, não escreve
 """
 
