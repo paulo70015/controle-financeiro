@@ -6,7 +6,7 @@ import re
 import sys
 
 # Versão base do sistema (alterada pela skill de commit conforme o impacto)
-VERSION_BASE = "1.4.0"
+VERSION_BASE = "1.4.1"
 
 # Caminho do arquivo BUILD_NUMBER (mesmo diretório que este módulo)
 _BUILD_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -58,12 +58,12 @@ def get_build() -> str:
 def get_version_full() -> str:
     """
     Retorna a versão completa para exibição.
-    Com build: 'v1.3.0-b120126143052'
+    Com build: 'v1.3.0-120126143052'
     Sem build: 'v1.3.0'
     """
     build = get_build()
     if build:
-        return f"v{VERSION_BASE}-b{build}"
+        return f"v{VERSION_BASE}-{build}"
     return f"v{VERSION_BASE}"
 
 
