@@ -296,10 +296,7 @@ async function desfazerDep() {
 }
 
 async function fecharEefetivarDep() {
-  if (depDeleteQueue.length > 0) {
-    for (const id of depDeleteQueue) {
-      await fetch('/api/deposito/' + id, {method: 'DELETE'});
-    }
+  if (await flushDeleteQueue(depDeleteQueue, id => '/api/deposito/' + id)) {
     depDeleteQueue = [];
     depUndoManager.clear();
     await debouncedLoad();

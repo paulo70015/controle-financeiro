@@ -37,7 +37,7 @@ def _load_local_env_if_needed():
 def get_db_mode() -> str:
     """Retorna 'sqlite' ou 'supabase'. SQLite e o modo padrao local."""
     _load_local_env_if_needed()
-    return os.getenv("DB_MODE", "supabase").lower()
+    return os.getenv("DB_MODE", "sqlite").lower()
 
 
 def _get_sqlite_connection(**kwargs):

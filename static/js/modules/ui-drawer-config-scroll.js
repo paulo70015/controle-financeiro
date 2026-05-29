@@ -9,18 +9,28 @@ function toggleDrawer(nome) {
 function abrirDrawer(nome) {
   fecharDrawer(false);
   drawerAtivo = nome;
-  document.getElementById('drawerFixas').classList.toggle('open', nome === 'fixas');
-  document.getElementById('drawerMetas').classList.toggle('open', nome === 'metas');
-  document.getElementById('drawerOverlay').classList.add('show');
-  document.getElementById('tabFixas').classList.toggle('ativo', nome === 'fixas');
-  document.getElementById('tabMetas').classList.toggle('ativo', nome === 'metas');
+  const drawerFixas = document.getElementById('drawerFixas');
+  const drawerMetas = document.getElementById('drawerMetas');
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  const tabFixas = document.getElementById('tabFixas');
+  const tabMetas = document.getElementById('tabMetas');
+  if (drawerFixas) drawerFixas.classList.toggle('open', nome === 'fixas');
+  if (drawerMetas) drawerMetas.classList.toggle('open', nome === 'metas');
+  if (drawerOverlay) drawerOverlay.classList.add('show');
+  if (tabFixas) tabFixas.classList.toggle('ativo', nome === 'fixas');
+  if (tabMetas) tabMetas.classList.toggle('ativo', nome === 'metas');
 }
 function fecharDrawer(resetAtivo = true) {
-  document.getElementById('drawerFixas').classList.remove('open');
-  document.getElementById('drawerMetas').classList.remove('open');
-  document.getElementById('drawerOverlay').classList.remove('show');
-  document.getElementById('tabFixas').classList.remove('ativo');
-  document.getElementById('tabMetas').classList.remove('ativo');
+  const drawerFixas = document.getElementById('drawerFixas');
+  const drawerMetas = document.getElementById('drawerMetas');
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  const tabFixas = document.getElementById('tabFixas');
+  const tabMetas = document.getElementById('tabMetas');
+  if (drawerFixas) drawerFixas.classList.remove('open');
+  if (drawerMetas) drawerMetas.classList.remove('open');
+  if (drawerOverlay) drawerOverlay.classList.remove('show');
+  if (tabFixas) tabFixas.classList.remove('ativo');
+  if (tabMetas) tabMetas.classList.remove('ativo');
   if (resetAtivo) drawerAtivo = null;
 }
 
@@ -32,20 +42,25 @@ var _cfgDiaInicioMesFiscal = parseInt(localStorage.getItem('cfgDiaInicioMesFisca
 if (_cfgTemaEscuro) document.documentElement.classList.add('dark-mode');
 
 function abrirCfgApp() {
-  document.getElementById('cfgLinhas').value = _cfgLinhas;
-  document.getElementById('cfgDiaInicioMesFiscal').value = _cfgDiaInicioMesFiscal;
+  const elLinhas = document.getElementById('cfgLinhas');
+  const elDia = document.getElementById('cfgDiaInicioMesFiscal');
+  if (elLinhas) elLinhas.value = _cfgLinhas;
+  if (elDia) elDia.value = _cfgDiaInicioMesFiscal;
   const elTema = document.getElementById('cfgTema');
   if (elTema) elTema.checked = _cfgTemaEscuro;
   abrirModal('ovCfgApp');
 }
 
 function salvarCfgApp() {
-  const v = parseInt(document.getElementById('cfgLinhas').value);
+  const elLinhas = document.getElementById('cfgLinhas');
+  const elDia = document.getElementById('cfgDiaInicioMesFiscal');
+  if (!elLinhas || !elDia) return alert('Formulário de configuração indisponível');
+  const v = parseInt(elLinhas.value);
   if (!v || v < 1) return alert('Informe um número válido');
   _cfgLinhas = v;
   localStorage.setItem('cfgLinhas', v);
-  
-  const diaInicio = parseInt(document.getElementById('cfgDiaInicioMesFiscal').value);
+
+  const diaInicio = parseInt(elDia.value);
   if (!diaInicio || diaInicio < 1 || diaInicio > 31) return alert('Dia de início do mês fiscal deve estar entre 1 e 31');
   _cfgDiaInicioMesFiscal = diaInicio;
   localStorage.setItem('cfgDiaInicioMesFiscal', diaInicio);

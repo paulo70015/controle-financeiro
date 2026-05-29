@@ -133,24 +133,34 @@ async function removerAno(e, anoRemover) {
 }
 
 function adicionarAno() {
-  document.getElementById('anoNovoVal').value = ano + 1;
-  document.getElementById('anoNovoDuplicar').checked = false;
-  document.getElementById('anoNovoDuplicarInfo').style.display = 'none';
+  const elVal = document.getElementById('anoNovoVal');
+  const elDup = document.getElementById('anoNovoDuplicar');
+  const elInfo = document.getElementById('anoNovoDuplicarInfo');
+  if (elVal) elVal.value = ano + 1;
+  if (elDup) elDup.checked = false;
+  if (elInfo) elInfo.style.display = 'none';
   abrirModal('ovAno');
-  setTimeout(() => document.getElementById('anoNovoVal').focus(), 100);
+  setTimeout(() => {
+    const elFocus = document.getElementById('anoNovoVal');
+    if (elFocus) elFocus.focus();
+  }, 100);
 }
 
 document.addEventListener('change', function(e) {
   if (e.target.id === 'anoNovoDuplicar') {
-    document.getElementById('anoNovoDuplicarInfo').style.display = e.target.checked ? 'block' : 'none';
+    const elInfo = document.getElementById('anoNovoDuplicarInfo');
+    if (elInfo) elInfo.style.display = e.target.checked ? 'block' : 'none';
   }
 });
 
 async function confirmarNovoAno() {
   if (typeof hideUndoCsvButton === 'function') hideUndoCsvButton();
-  const novoAno = parseInt(document.getElementById('anoNovoVal').value);
+  const elVal = document.getElementById('anoNovoVal');
+  const elDup = document.getElementById('anoNovoDuplicar');
+  if (!elVal || !elDup) return alert('Formulário de novo ano indisponível');
+  const novoAno = parseInt(elVal.value);
   if (!novoAno || isNaN(novoAno)) return alert('Informe um ano válido');
-  const duplicar = document.getElementById('anoNovoDuplicar').checked;
+  const duplicar = elDup.checked;
   if (duplicar) {
     const res = await fetch('/api/duplicar_ano', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ano_origem:ano, ano_destino:novoAno}) });
     const data = await res.json();
@@ -204,7 +214,7 @@ async function importarDB(input) {
   if (!file) return;
   input.value = '';
 
-  if (!confirm('Importar este TXT substituirá todos os dados atuais do banco Supabase. Deseja continuar?')) {
+  if (!confirm('Importar este TXT substituirá todos os dados atuais do banco de dados. Deseja continuar?')) {
     return;
   }
 

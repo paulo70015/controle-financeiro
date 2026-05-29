@@ -89,3 +89,19 @@ class UndoManager {
     return this.stack.length;
   }
 }
+
+/**
+ * Helper DRY: executa o flush de uma fila de exclusoes pendentes (Lazy Commit).
+ * Envia DELETE para cada item usando a URL retornada por urlBuilder.
+ * @param {Array} items Lista de itens enfileirados.
+ * @param {Function} urlBuilder (item) => string com a URL DELETE.
+ * @returns {Promise<boolean>} true se executou pelo menos uma exclusao.
+ */
+async function flushDeleteQueue(items, urlBuilder) {
+  if (!items || !items.length) return false;
+  for (const item of items) {
+    await fetch(urlBuilder(item), { method: 'DELETE' });
+  }
+  return true;
+}
+window.flushDeleteQueue = flushDeleteQueue;

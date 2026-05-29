@@ -33,7 +33,7 @@ def main():
     with open(build_path, "w", encoding="utf-8") as f:
         f.write(build + "\n")
 
-    print(f"[OK] Build gerado: {build} → {build_path}")
+    print(f"[OK] Build gerado: {build} -> {build_path}")
 
 
 if __name__ == "__main__":

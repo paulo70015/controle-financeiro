@@ -166,6 +166,20 @@ class SQLitePlanejamentoRepository:
             conn.close()
 
     def _save_pagamento_status_conn(self, conn, status: PagamentoStatus) -> None:
+        """Operacao atomica de dominio (planejamento).
+
+        Persiste o status de pagamento de uma celula (ano, mes, categoria) e
+        aplica em cascata, dentro da MESMA transacao SQLite, os efeitos
+        derivados sobre `despesas`, `depositos_conta` e `fixas_excecoes`.
+
+        Justificativa para manter a orquestracao no repositorio (e nao em
+        `application/use_cases.py`): o conjunto de operacoes precisa ser
+        atomico — qualquer falha intermediaria deve reverter tudo. O projeto
+        ainda nao possui Unit-of-Work compartilhada entre repositorios,
+        portanto extrair a orquestracao para o use case quebraria a
+        atomicidade transacional. Quando uma UoW for introduzida, esta logica
+        deve migrar para o use case correspondente.
+        """
         row_status = conn.execute(
             "SELECT status FROM pagamento_status WHERE ano=? AND mes=? AND categoria=?",
             (status.ano, status.mes, status.categoria),
