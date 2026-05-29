@@ -116,10 +116,7 @@ async function executarLancamentoDet() {
 
 async function addLancEFechar() {
   await executarLancamentoDet();
-  for (const item of detDeleteQueue) {
-    const url = item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id;
-    await fetch(url, {method: 'DELETE'});
-  }
+  await flushDeleteQueue(detDeleteQueue, item => item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id);
   detDeleteQueue = [];
   detUndoManager.clear();
   fecharModal('ovDet');
@@ -237,11 +234,7 @@ async function desfazerDet() {
 }
 
 async function fecharEefetivarDet() {
-  if (detDeleteQueue.length > 0) {
-    for (const item of detDeleteQueue) {
-      const url = item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id;
-      await fetch(url, {method: 'DELETE'});
-    }
+  if (await flushDeleteQueue(detDeleteQueue, item => item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id)) {
     detDeleteQueue = [];
     detUndoManager.clear();
     await debouncedLoad();
