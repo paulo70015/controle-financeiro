@@ -3,7 +3,14 @@ Repositório de Dashboard - Supabase
 Migrado de SQLite para PostgreSQL via Supabase
 """
 
+import logging
+from datetime import datetime
+
+from postgrest.exceptions import APIError
+
 from financeiro.infrastructure.supabase.client import Client
+
+logger = logging.getLogger(__name__)
 
 
 class SupabaseDashboardRepository:
@@ -14,6 +21,7 @@ class SupabaseDashboardRepository:
     def get_dados_ano(self, ano: int) -> dict:
         """Retorna todos os dados necessários para renderizar o dashboard de um ano"""
         client: Client = self.client_factory()
+        rendimentos_realizados_sincronizados = self._sync_rendimentos_realizados(client, ano)
         
         # Categorias
         cats_response = client.table("categorias") \
@@ -189,6 +197,14 @@ class SupabaseDashboardRepository:
             if r["categoria"] not in pagamentos:
                 pagamentos[r["categoria"]] = {}
             pagamentos[r["categoria"]][r["mes"]] = r["status"]
+
+        rend_realizados_response = client.table("rendimentos_realizados") \
+            .select("mes, status") \
+            .eq("ano", ano) \
+            .execute()
+        rendimentos_realizados = {r["mes"]: int(r["status"] or 0) for r in rend_realizados_response.data}
+        if not rendimentos_realizados_sincronizados:
+            rendimentos_realizados = self._rendimentos_realizados_calendario(ano)
         
         # Rendimentos - locais
         rend_locais_response = client.table("rendimentos_locais") \
@@ -252,9 +268,68 @@ class SupabaseDashboardRepository:
             "fixas_excecoes": fixas_excecoes,
             "fixas_aplicadas_manual": fixas_aplicadas_manual,
             "pagamentos": pagamentos,
+            "rendimentos_realizados": rendimentos_realizados,
             "rendimentos_locais": rend_locais,
             "rendimentos": rendimentos,
         }
+
+    def _meses_rendimentos_realizados(self, ano: int) -> list[int]:
+        hoje = datetime.now()
+        if ano < hoje.year:
+            return list(range(1, 13))
+        if ano > hoje.year:
+            return []
+        return list(range(1, hoje.month))
+
+    def _rendimentos_realizados_calendario(self, ano: int) -> dict[int, int]:
+        return {mes: 1 for mes in self._meses_rendimentos_realizados(ano)}
+
+    def _sync_rendimentos_realizados(self, client: Client, ano: int) -> bool:
+        meses_realizados = self._meses_rendimentos_realizados(ano)
+        data_alteracao = datetime.now().isoformat()
+        try:
+            client.table("anos").upsert({"ano": ano}).execute()
+            existentes_response = client.table("rendimentos_realizados") \
+                .select("mes") \
+                .eq("ano", ano) \
+                .execute()
+            meses_existentes = {int(r["mes"]) for r in (existentes_response.data or []) if r.get("mes") is not None}
+
+            if meses_realizados:
+                client.table("rendimentos_realizados").upsert(
+                    [
+                        {
+                            "ano": ano,
+                            "mes": mes,
+                            "status": 1,
+                            "data_alteracao": data_alteracao,
+                        }
+                        for mes in meses_realizados
+                    ],
+                    on_conflict="ano,mes",
+                ).execute()
+                meses_para_remover = sorted(meses_existentes - set(meses_realizados))
+                if meses_para_remover:
+                    client.table("rendimentos_realizados") \
+                        .delete() \
+                        .eq("ano", ano) \
+                        .in_("mes", meses_para_remover) \
+                        .execute()
+            else:
+                client.table("rendimentos_realizados") \
+                    .delete() \
+                    .eq("ano", ano) \
+                    .execute()
+        except APIError as exc:
+            if getattr(exc, "code", None) != "42501":
+                raise
+            logger.warning(
+                "Sem permissao RLS para sincronizar rendimentos_realizados no Supabase; "
+                "usando calendario calculado em memoria. Detalhe: %s",
+                exc,
+            )
+            return False
+        return True
 
     def _saldo_inicial_conta(self, client: Client, conta_id: int, saldo_inicial_config: float, ano_alvo: int) -> float:
         """Calcula saldo inicial da conta considerando anos anteriores"""

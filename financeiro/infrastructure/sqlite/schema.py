@@ -185,6 +185,18 @@ def _create_schema(cur):
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
     )
 
+    # --- rendimentos_realizados ---
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS rendimentos_realizados(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ano INTEGER NOT NULL,
+        mes INTEGER NOT NULL,
+        status INTEGER DEFAULT 0,
+        data_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ano, mes),
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
+    )
+
     # --- rendimentos_locais ---
     cur.execute(
         """CREATE TABLE IF NOT EXISTS rendimentos_locais(
@@ -263,6 +275,7 @@ def _upgrade_to_anos(cur):
         UNION SELECT DISTINCT ano FROM despesas_fixas_cartao
         UNION SELECT DISTINCT ano FROM fixas_excecoes
         UNION SELECT DISTINCT ano FROM pagamento_status
+        UNION SELECT DISTINCT ano FROM rendimentos_realizados
         UNION SELECT DISTINCT ano_meta FROM metas
         UNION SELECT DISTINCT ano_criacao FROM metas
         UNION SELECT DISTINCT ano FROM depositos_conta
@@ -389,6 +402,18 @@ def _upgrade_to_anos(cur):
         categoria TEXT NOT NULL,
         status INTEGER DEFAULT 0,
         UNIQUE(ano, mes, categoria),
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)""",
+    )
+
+    _recreate_with_fk(
+        cur, "rendimentos_realizados",
+        """CREATE TABLE rendimentos_realizados(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ano INTEGER NOT NULL,
+        mes INTEGER NOT NULL,
+        status INTEGER DEFAULT 0,
+        data_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ano, mes),
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)""",
     )
 

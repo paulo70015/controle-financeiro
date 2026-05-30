@@ -63,6 +63,11 @@ TABLES = [
         "columns": ["id", "ano", "mes", "categoria", "status"],
     },
     {
+        "name": "rendimentos_realizados",
+        "pk": "id",
+        "columns": ["id", "ano", "mes", "status", "data_alteracao"],
+    },
+    {
         "name": "metas",
         "pk": "id",
         "columns": ["id", "descricao", "valor", "ano_meta", "concluida", "ano_criacao"],

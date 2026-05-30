@@ -156,6 +156,22 @@ CREATE TABLE IF NOT EXISTS pagamento_status (
 CREATE INDEX IF NOT EXISTS idx_pagamento_status_ano_mes ON pagamento_status(ano, mes);
 
 -- ============================================
+-- Tabela: rendimentos_realizados
+-- Status mensal realizado da visão de rendimentos
+-- ============================================
+CREATE TABLE IF NOT EXISTS rendimentos_realizados (
+    id SERIAL PRIMARY KEY,
+    ano INTEGER NOT NULL,
+    mes INTEGER NOT NULL,
+    status INTEGER DEFAULT 0,
+    data_alteracao TIMESTAMP DEFAULT NOW(),
+    UNIQUE(ano, mes),
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_rendimentos_realizados_ano_mes ON rendimentos_realizados(ano, mes);
+
+-- ============================================
 -- Tabela: metas
 -- Metas financeiras
 -- ============================================
@@ -273,6 +289,7 @@ COMMENT ON TABLE receitas IS 'Lançamentos de receitas';
 COMMENT ON TABLE despesas_fixas_cartao IS 'Despesas fixas recorrentes';
 COMMENT ON TABLE fixas_excecoes IS 'Exceções de fixas por mês (ocultar sem deletar)';
 COMMENT ON TABLE pagamento_status IS 'Status de pagamento por célula (ano × mes × categoria)';
+COMMENT ON TABLE rendimentos_realizados IS 'Status mensal de realizado da visão de rendimentos, baseado no calendário real';
 COMMENT ON TABLE metas IS 'Metas financeiras';
 COMMENT ON TABLE contas_correntes IS 'Contas bancárias';
 COMMENT ON TABLE depositos_conta IS 'Depósitos e saques em contas correntes';

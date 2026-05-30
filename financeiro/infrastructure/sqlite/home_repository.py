@@ -8,7 +8,7 @@ class SQLiteHomeRepository:
         tabelas = [
             "anos", "categorias", "despesas", "receitas",
             "despesas_fixas_cartao", "fixas_excecoes", "fixas_aplicadas_manual",
-            "pagamento_status", "depositos_conta", "movimentacoes_mensais",
+            "pagamento_status", "rendimentos_realizados", "depositos_conta", "movimentacoes_mensais",
             "rendimentos_locais", "rendimentos_lancamentos",
         ]
         for tabela in tabelas:
@@ -34,4 +34,3 @@ class SQLiteHomeRepository:
         conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
         conn.commit()
         conn.close()
-

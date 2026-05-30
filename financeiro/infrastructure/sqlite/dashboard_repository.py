@@ -1,10 +1,14 @@
+from datetime import datetime
+
+
 class SQLiteDashboardRepository:
     def __init__(self, connection_factory, meses):
         self.connection_factory = connection_factory
         self.meses = meses
 
     def get_dados_ano(self, ano: int) -> dict:
-        conn = self.connection_factory()
+        conn = self.connection_factory(auto_sync=True)
+        self._sync_rendimentos_realizados(conn, ano)
         cats = [
             dict(r)
             for r in conn.execute(
@@ -95,6 +99,11 @@ class SQLiteDashboardRepository:
         pagamentos = {}
         for r in pg_rows:
             pagamentos.setdefault(r["categoria"], {})[r["mes"]] = r["status"]
+        rend_realizados_rows = conn.execute(
+            "SELECT mes, status FROM rendimentos_realizados WHERE ano=?",
+            (ano,),
+        ).fetchall()
+        rendimentos_realizados = {r["mes"]: int(r["status"] or 0) for r in rend_realizados_rows}
         rend_locais = [
             dict(r)
             for r in conn.execute(
@@ -131,7 +140,7 @@ class SQLiteDashboardRepository:
         tabelas = [
             "anos", "categorias", "despesas", "receitas",
             "despesas_fixas_cartao", "fixas_excecoes", "fixas_aplicadas_manual",
-            "pagamento_status", "depositos_conta", "movimentacoes_mensais",
+            "pagamento_status", "rendimentos_realizados", "depositos_conta", "movimentacoes_mensais",
             "rendimentos_locais", "rendimentos_lancamentos",
         ]
         for tabela in tabelas:
@@ -171,9 +180,38 @@ class SQLiteDashboardRepository:
             "fixas_excecoes": fixas_excecoes,
             "fixas_aplicadas_manual": fixas_aplicadas_manual,
             "pagamentos": pagamentos,
+            "rendimentos_realizados": rendimentos_realizados,
             "rendimentos_locais": rend_locais,
             "rendimentos": rendimentos,
         }
+
+    def _meses_rendimentos_realizados(self, ano: int) -> list[int]:
+        hoje = datetime.now()
+        if ano < hoje.year:
+            return list(range(1, 13))
+        if ano > hoje.year:
+            return []
+        return list(range(1, hoje.month))
+
+    def _sync_rendimentos_realizados(self, conn, ano: int) -> None:
+        meses_realizados = self._meses_rendimentos_realizados(ano)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
+
+        if meses_realizados:
+            conn.executemany(
+                "INSERT INTO rendimentos_realizados(ano,mes,status,data_alteracao) VALUES(?,?,1,CURRENT_TIMESTAMP) "
+                "ON CONFLICT(ano,mes) DO UPDATE SET status=excluded.status, data_alteracao=CURRENT_TIMESTAMP",
+                [(ano, mes) for mes in meses_realizados],
+            )
+            placeholders = ",".join("?" for _ in meses_realizados)
+            conn.execute(
+                f"DELETE FROM rendimentos_realizados WHERE ano=? AND mes NOT IN ({placeholders})",
+                (ano, *meses_realizados),
+            )
+        else:
+            conn.execute("DELETE FROM rendimentos_realizados WHERE ano=?", (ano,))
+
+        conn.commit()
 
     def _saldo_inicial_conta(self, conn, conta_id, saldo_inicial_config, ano_alvo):
         primeiro = conn.execute(
@@ -203,4 +241,3 @@ class SQLiteDashboardRepository:
         ).fetchone()
         conn.close()
         return row is not None and row["valor"] == "1"
-

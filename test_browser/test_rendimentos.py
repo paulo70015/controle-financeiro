@@ -2,6 +2,8 @@
 Testes de Rendimentos: locais, aportes, projecao de taxa.
 """
 
+import datetime
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -115,3 +117,41 @@ class TestProjecaoTaxa:
         preview = page.locator("#rendProjPreview")
         expect(preview).to_be_visible()
         assert len(preview.inner_text()) > 10, "Preview vazio ou muito curto"
+
+
+class TestStatusRealizado:
+    def test_ano_passado_marca_coluna_como_realizada(self, page: Page, server_url: str):
+        ano_passado = datetime.datetime.now().year - 1
+
+        page.goto(f"{server_url}/?ano={ano_passado}")
+        page.wait_for_function(
+            "() => window.CF_BOOT && (document.querySelector('#tw table') || document.querySelector('.view-tab'))"
+        )
+        page.wait_for_timeout(100)
+
+        alternar_visao(page, "rendimentos")
+        page.click('button:has-text("+ Local")')
+        page.wait_for_selector("#ovRendLocal.show", timeout=3000)
+        fill_input(page, "#rendLocalNome", "Conta Historica")
+        page.click("#ovRendLocal .btn.ba")
+        wait_for_load(page)
+        wait_for_table(page)
+
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", "Conta Historica")
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "1000,00")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        wait_for_table(page)
+
+        linha_local = page.locator("#tw tbody tr").filter(has_text="Conta Historica").first
+        classes_jan_local = linha_local.locator("td").nth(1).get_attribute("class") or ""
+        classes_jan_aportes = page.locator("#tw .tr-rend-aportes td").nth(1).get_attribute("class") or ""
+        classes_jan_total = page.locator("#tw .tr-rend-total td").nth(1).get_attribute("class") or ""
+
+        assert "pg-2" in classes_jan_local
+        assert "pg-2" in classes_jan_aportes
+        assert "pg-2" in classes_jan_total
