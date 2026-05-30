@@ -166,6 +166,7 @@ function renderRendimentos() {
 
   const locais = dados.rendimentos_locais || [];
   const lancs = dados.rendimentos || {};
+  const rendimentosRealizados = dados.rendimentos_realizados || {};
 
   const th = (txt, cls='') => `<th${cls?' class="'+cls+'"':''}>${txt}</th>`;
   let h = '<table><thead><tr>' + th('Local', 'cat');
@@ -201,6 +202,7 @@ function renderRendimentos() {
       const rendimentoDoMes = h_mes.rendimento;
       const isProjecao = h_mes.isProjecao;
       const saldoMesAnterior = h_mes.saldoMesAnterior;
+      const mesRealizado = (rendimentosRealizados[m] || 0) > 0;
 
       totaisAporteMes[m] += aporte;
       totaisRendimentoMes[m] += rendimentoDoMes;
@@ -227,11 +229,11 @@ function renderRendimentos() {
           tit += `\nAportes do mês: ${BRL(aporte)}\nRendimentos do mês: ${BRL(rendimentoDoMes)}\nSaldo acumulado: ${BRL(saldoLocal)}`;
         }
 
-        const cellClass = isProjecao ? 'rend-projecao' : '';
+        const cellClass = `${isProjecao ? 'rend-projecao ' : ''}${mesRealizado ? 'pg-2' : ''}`.trim();
         const titAttr = window.escapeAttr ? window.escapeAttr(tit) : tit;
         h += `<td class="rend-cell ${cellClass}" title="${titAttr}" onmouseenter="carregarTooltipRendimentos(this, ${local.id}, ${m})" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})">${BRL(saldoLocal)}</td>`;
       } else {
-        h += `<td class="rend-cell" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})"><div class="rend-vazio">+</div></td>`;
+        h += `<td class="rend-cell ${mesRealizado ? 'pg-2' : ''}" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})"><div class="rend-vazio">+</div></td>`;
       }
     }
 
@@ -251,7 +253,7 @@ function renderRendimentos() {
     } else {
       tit = `Total aportado no mês: ${BRL(totaisAporteMes[m])}\nTotal acumulado de aportes: ${BRL(saldoAcumuladoAportes)}`;
     }
-    h += `<td class="td-num" title="${tit}">${totaisAporteMes[m] ? BRL(totaisAporteMes[m]) : ''}</td>`;
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2' : ''}" title="${tit}">${totaisAporteMes[m] ? BRL(totaisAporteMes[m]) : ''}</td>`;
   }
   h += '</tr>';
 
@@ -268,7 +270,7 @@ function renderRendimentos() {
     } else {
       tit = `Total de rendimentos no mês: ${BRL(totaisRendimentoMes[m])}\nTotal acumulado de rendimentos: ${BRL(saldoAcumuladoRendimentos)}`;
     }
-    h += `<td class="td-num" title="${tit}">${totaisRendimentoMes[m] ? BRL(totaisRendimentoMes[m]) : ''}</td>`;
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2' : ''}" title="${tit}">${totaisRendimentoMes[m] ? BRL(totaisRendimentoMes[m]) : ''}</td>`;
   }
   h += '</tr>';
 
@@ -284,7 +286,7 @@ function renderRendimentos() {
     } else {
       tit = `Saldo total no fim do mês: ${BRL(saldoAcumuladoTotal)}`;
     }
-    h += `<td class="td-num" title="${tit}">${saldoAcumuladoTotal ? BRL(saldoAcumuladoTotal) : ''}</td>`;
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2' : ''}" title="${tit}">${saldoAcumuladoTotal ? BRL(saldoAcumuladoTotal) : ''}</td>`;
   }
   h += '</tr>';
 
