@@ -81,6 +81,22 @@ class TestAdicionarAporte:
         modal_should_be_hidden(page, "ovRendAdd")
         wait_for_table(page)
 
+    def test_adicionar_rendimento_negativo_fica_vermelho(self, page: Page):
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", "Conta XPTO")
+        select_option(page, "#rendAddTipo", "rendimento")
+        select_option(page, "#rendAddMes", "3")
+        fill_input(page, "#rendAddValor", "-25,00")
+        fill_input(page, "#rendAddNota", "Rendimento negativo")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        classes_rendimentos_mar = page.locator("#tw .tr-rend-rendimentos td").nth(3).get_attribute("class") or ""
+        assert "neg" in classes_rendimentos_mar
+
 
 class TestProjecaoTaxa:
     def test_abrir_projecao(self, page: Page):
