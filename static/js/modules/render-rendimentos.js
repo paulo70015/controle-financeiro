@@ -79,6 +79,16 @@ function arred2(v) {
   return Math.round((parseFloat(v) || 0) * 100) / 100;
 }
 
+function classeValorRendimento(valor) {
+  if (valor < 0) return 'neg';
+  if (valor > 0) return 'pos';
+  return '';
+}
+
+function corValorRendimento(valor, corPositiva = 'var(--verde)') {
+  return valor < 0 ? 'var(--vermelho)' : corPositiva;
+}
+
 function obterLancamentosLocalRendimento(localId) {
   return (dados.rendimentos || {})[String(localId)] || {};
 }
@@ -229,7 +239,7 @@ function renderRendimentos() {
           tit += `\nAportes do mês: ${BRL(aporte)}\nRendimentos do mês: ${BRL(rendimentoDoMes)}\nSaldo acumulado: ${BRL(saldoLocal)}`;
         }
 
-        const cellClass = `${isProjecao ? 'rend-projecao ' : ''}${mesRealizado ? 'pg-2' : ''}`.trim();
+        const cellClass = `${isProjecao ? 'rend-projecao ' : ''}${mesRealizado ? 'pg-2 ' : ''}${classeValorRendimento(saldoLocal)}`.trim();
         const titAttr = window.escapeAttr ? window.escapeAttr(tit) : tit;
         h += `<td class="rend-cell ${cellClass}" title="${titAttr}" onmouseenter="carregarTooltipRendimentos(this, ${local.id}, ${m})" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})">${BRL(saldoLocal)}</td>`;
       } else {
@@ -253,7 +263,7 @@ function renderRendimentos() {
     } else {
       tit = `Total aportado no mês: ${BRL(totaisAporteMes[m])}\nTotal acumulado de aportes: ${BRL(saldoAcumuladoAportes)}`;
     }
-    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2' : ''}" title="${tit}">${totaisAporteMes[m] ? BRL(totaisAporteMes[m]) : ''}</td>`;
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2 ' : ''}${classeValorRendimento(totaisAporteMes[m])}" title="${tit}">${totaisAporteMes[m] ? BRL(totaisAporteMes[m]) : ''}</td>`;
   }
   h += '</tr>';
 
@@ -270,7 +280,7 @@ function renderRendimentos() {
     } else {
       tit = `Total de rendimentos no mês: ${BRL(totaisRendimentoMes[m])}\nTotal acumulado de rendimentos: ${BRL(saldoAcumuladoRendimentos)}`;
     }
-    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2' : ''}" title="${tit}">${totaisRendimentoMes[m] ? BRL(totaisRendimentoMes[m]) : ''}</td>`;
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2 ' : ''}${classeValorRendimento(totaisRendimentoMes[m])}" title="${tit}">${totaisRendimentoMes[m] ? BRL(totaisRendimentoMes[m]) : ''}</td>`;
   }
   h += '</tr>';
 
@@ -286,7 +296,7 @@ function renderRendimentos() {
     } else {
       tit = `Saldo total no fim do mês: ${BRL(saldoAcumuladoTotal)}`;
     }
-    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2' : ''}" title="${tit}">${saldoAcumuladoTotal ? BRL(saldoAcumuladoTotal) : ''}</td>`;
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2 ' : ''}${classeValorRendimento(saldoAcumuladoTotal)}" title="${tit}">${saldoAcumuladoTotal ? BRL(saldoAcumuladoTotal) : ''}</td>`;
   }
   h += '</tr>';
 
@@ -691,9 +701,8 @@ async function carregarRendimentoDetalhe() {
     recalcularProjecaoModal(visiveis);
 
     const total = visiveis.reduce((s, r) => s + (r.valor || 0), 0);
-    document.getElementById('rendLancTit').innerHTML = `${rendCtx.tit || ''} <span style="font-size:13px; font-weight:bold; color:var(--azul); background:var(--bg-linha-total-contas); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
     const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(rendCtx.tit || '') : (rendCtx.tit || '');
-    document.getElementById('rendLancTit').innerHTML = `${tituloFormatado} <span style="font-size:13px; font-weight:bold; color:var(--azul); background:var(--bg-linha-total-contas); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
+    document.getElementById('rendLancTit').innerHTML = `${tituloFormatado} <span style="font-size:13px; font-weight:bold; color:${corValorRendimento(total, 'var(--azul)')}; background:var(--bg-linha-total-contas); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
 
     if (!visiveis.length) {
       el.innerHTML = '<p class="empty-state">Nenhum lançamento.</p>';
@@ -703,9 +712,10 @@ async function carregarRendimentoDetalhe() {
     el.innerHTML = visiveis.map(row => {
       const tipoTxt = row.tipo === 'aporte' ? 'Aporte' : 'Rendimento';
       const tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : 'var(--verde)';
+      const valor = row.valor || 0;
       const notaEscaped = (row.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
-      return buildRowDetalheHtml(`${tipoTxt}: ${BRL(row.valor || 0)}`, tipoColor, row.nota, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${row.valor}, '${notaEscaped}')`);
+      return buildRowDetalheHtml(`${tipoTxt}: ${BRL(valor)}`, corValorRendimento(valor, tipoColor), row.nota, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);
     }).join('');
   } catch (error) {
     el.innerHTML = `<p style="color:var(--vermelho);font-size:12px;padding:6px 0">Erro: ${error.message}</p>`;
