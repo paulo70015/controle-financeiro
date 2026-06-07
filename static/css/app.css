@@ -455,7 +455,6 @@ tr.tr-saldo td { background: var(--bg-linha-saldo); }
 tr.tr-total-contas td { background: var(--bg-linha-total-contas); font-weight: 700; }
 tr.tr-total-desp td { background: var(--bg-linha-total-desp); }
 
-tr.tr-rend-aportes td { background: var(--bg-linha-rend-aportes); font-weight: 600; }
 tr.tr-rend-rendimentos td { background: var(--bg-linha-rend-rend); font-weight: 600; }
 tr.tr-rend-total td { background: var(--bg-linha-rend-total); font-weight: 700; }
 

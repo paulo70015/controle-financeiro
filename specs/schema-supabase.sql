@@ -229,12 +229,11 @@ CREATE TABLE IF NOT EXISTS movimentacoes_mensais (
     conta_id INTEGER NOT NULL,
     valor NUMERIC(10,2) NOT NULL DEFAULT 0,
     nota TEXT DEFAULT '',
-    UNIQUE(ano, mes),
     FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
     FOREIGN KEY (conta_id) REFERENCES contas_correntes(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes ON movimentacoes_mensais(ano, mes);
+CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id);
 
 -- ============================================
 -- Tabela: rendimentos_locais
@@ -253,7 +252,7 @@ CREATE INDEX IF NOT EXISTS idx_rendimentos_locais_ano ON rendimentos_locais(ano)
 
 -- ============================================
 -- Tabela: rendimentos_lancamentos
--- Aportes e rendimentos por local
+-- Aportes, rendimentos e saques por local
 -- ============================================
 CREATE TABLE IF NOT EXISTS rendimentos_lancamentos (
     id SERIAL PRIMARY KEY,
@@ -295,7 +294,7 @@ COMMENT ON TABLE contas_correntes IS 'Contas bancárias';
 COMMENT ON TABLE depositos_conta IS 'Depósitos e saques em contas correntes';
 COMMENT ON TABLE movimentacoes_mensais IS 'Movimentações mensais consolidadas';
 COMMENT ON TABLE rendimentos_locais IS 'Locais de investimento/rendimento por ano';
-COMMENT ON TABLE rendimentos_lancamentos IS 'Aportes e rendimentos por local';
+COMMENT ON TABLE rendimentos_lancamentos IS 'Aportes, rendimentos e saques por local';
 
 -- ============================================
 -- Funções auxiliares (opcional)

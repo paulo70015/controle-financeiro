@@ -1,10 +1,25 @@
 ﻿﻿﻿﻿﻿﻿var depCtx = {};
 var editContaCtx = {};
 var movCtx = {};
-var movDeleteQueue = false;
+var movDeleteQueue = [];
 var movUndoStack = [];
 var movEditando = false;
 var movOriginalData = null;
+
+function getMovimentacoesMes(mes) {
+  const mv = dados.movimentacoes ? dados.movimentacoes[mes] : null;
+  if (!mv) return [];
+  if (Array.isArray(mv)) return mv;
+  if (Array.isArray(mv.items)) return mv.items;
+  return mv.valor !== undefined ? [mv] : [];
+}
+
+function totalMovimentacoesMes(mes) {
+  const mv = dados.movimentacoes ? dados.movimentacoes[mes] : null;
+  if (!mv) return 0;
+  if (typeof mv.valor === 'number') return mv.valor;
+  return getMovimentacoesMes(mes).reduce((s, r) => s + (r.valor || 0), 0);
+}
 
 function injetarLayoutModalDRY(modalId, cfg) {
   const ov = document.getElementById(modalId);
@@ -154,8 +169,8 @@ async function carregarDep(contaId, mes) {
     const rows = await response.json();
     const visiveis = rows.filter(r => !depDeleteQueue.includes(r.id));
 
-    const mov = (dados.movimentacoes && dados.movimentacoes[mes]) ? dados.movimentacoes[mes] : null;
-    const movValor = (mov && String(mov.conta_id) === String(contaId)) ? (mov.valor || 0) : 0;
+    const movsConta = getMovimentacoesMes(mes).filter(mov => String(mov.conta_id) === String(contaId));
+    const movValor = movsConta.reduce((s, mov) => s + (mov.valor || 0), 0);
 
     let despesasVincMes = 0;
     (dados.categorias || []).filter(c => String(c.conta_vinculada_id) === String(contaId)).forEach(cat => {
@@ -196,11 +211,11 @@ async function carregarDep(contaId, mes) {
       htmlMovs = buildRowDetalheHtml(BRL(-despesasVincMes), 'var(--vermelho)', 'Despesas Vinculadas (Mês)') + htmlMovs;
     }
 
-    if (movValor !== 0) {
+    movsConta.slice().reverse().forEach(mov => {
       const movNota = mov.nota ? `Movimentação Geral: ${mov.nota}` : 'Movimentação Geral';
-      const movColor = movValor < 0 ? 'var(--vermelho)' : 'var(--verde)';
-      htmlMovs = buildRowDetalheHtml(BRL(movValor), movColor, movNota) + htmlMovs;
-    }
+      const movColor = (mov.valor || 0) < 0 ? 'var(--vermelho)' : 'var(--verde)';
+      htmlMovs = buildRowDetalheHtml(BRL(mov.valor || 0), movColor, movNota) + htmlMovs;
+    });
 
     if (mes === 1) {
       const conta = (dados.contas || []).find(c => String(c.id) === String(contaId));
@@ -318,7 +333,7 @@ async function salvarDepositoEFechar() {
 
 function abrirMov(mes) {
   movCtx = {mes};
-  movDeleteQueue = false;
+  movDeleteQueue = [];
   movUndoStack = [];
   movEditando = false;
   movOriginalData = null;
@@ -375,9 +390,9 @@ function abrirMov(mes) {
   setTimeout(() => document.getElementById('movValor').focus(), 200);
 }
 
-window.editarMov = function(conta_id, valor, nota) {
+window.editarMov = function(id, conta_id, valor, nota) {
   movEditando = true;
-  movOriginalData = { conta_id, valor, nota };
+  movOriginalData = { id, conta_id, valor, nota };
   document.getElementById('movConta').value = conta_id;
   document.getElementById('movValor').value = (valor !== undefined && valor !== null && valor !== '') ? parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '';
   document.getElementById('movNota').value = nota || '';
@@ -396,32 +411,27 @@ function carregarMovLocal() {
   const el = document.getElementById('movL');
   const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
   
-  if (movDeleteQueue) {
+  if (!el) return;
+
+  const rows = getMovimentacoesMes(movCtx.mes).filter(mv => !movDeleteQueue.includes(mv.id));
+  if (!rows.length) {
     if (el) el.innerHTML = '<p class="empty-state">Nenhuma movimentação neste mês.</p>';
     return;
   }
 
-  const mv = dados.movimentacoes ? dados.movimentacoes[movCtx.mes] : null;
-
-  if (!mv || mv.valor === undefined) {
-    if (el) el.innerHTML = '<p style="color:var(--text-muted);font-size:12px;padding:4px 0">Nenhuma movimentação neste mês.</p>';
-    return;
-  }
-
-  const conta = (dados.contas || []).find(c => String(c.id) === String(mv.conta_id));
-  const nomeConta = conta ? conta.nome : '';
-  const texto = nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || '');
-  const notaEscaped = (mv.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
-  
-  if (el) {
-    el.innerHTML = buildRowDetalheHtml(
-      BRL(mv.valor), 
-      mv.valor < 0 ? 'var(--vermelho)' : 'var(--verde)', 
-      texto, 
-      locked ? '' : `delMov()`,
-      locked ? '' : `editarMov(${mv.conta_id}, ${mv.valor}, '${notaEscaped}')`
+  el.innerHTML = rows.map(mv => {
+    const conta = (dados.contas || []).find(c => String(c.id) === String(mv.conta_id));
+    const nomeConta = conta ? conta.nome : '';
+    const texto = nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || '');
+    const notaEscaped = (mv.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    return buildRowDetalheHtml(
+      BRL(mv.valor),
+      mv.valor < 0 ? 'var(--vermelho)' : 'var(--verde)',
+      texto,
+      locked ? '' : `delMov(${mv.id})`,
+      locked ? '' : `editarMov(${mv.id}, ${mv.conta_id}, ${mv.valor}, '${notaEscaped}')`
     );
-  }
+  }).join('');
 }
 
 async function salvarMov() {
@@ -433,10 +443,12 @@ async function salvarMov() {
 
   try {
     const isEdit = movEditando;
+    const body = {ano, mes: movCtx.mes, conta_id, valor: v, nota};
+    if (isEdit && movOriginalData?.id) body.id = movOriginalData.id;
     await safeApiCall('/api/movimentacao', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ano, mes: movCtx.mes, conta_id, valor: v, nota})
+      body: JSON.stringify(body)
     }, 'Falha ao salvar movimentação.');
 
     if (isEdit) {
@@ -456,9 +468,9 @@ async function salvarMov() {
   }
 }
 
-function delMov() {
+function delMov(id) {
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado. Desbloqueie para alterar.');
-  const mv = dados.movimentacoes ? dados.movimentacoes[movCtx.mes] : null;
+  const mv = getMovimentacoesMes(movCtx.mes).find(item => item.id === id);
   if (!mv) return;
 
   movUndoStack.push({
@@ -468,7 +480,7 @@ function delMov() {
   const btnUndo = document.getElementById('movBtnUndo');
   if (btnUndo) btnUndo.style.display = 'inline-block';
   
-  movDeleteQueue = true;
+  movDeleteQueue.push(id);
   carregarMovLocal();
 }
 
@@ -477,7 +489,7 @@ async function desfazerMov() {
   const action = movUndoStack.pop();
   
   if (action.type === 'delete') {
-    movDeleteQueue = false;
+    movDeleteQueue = movDeleteQueue.filter(id => id !== action.oldData.id);
   } else if (action.type === 'edit') {
     await safeApiCall('/api/movimentacao', {
       method: 'POST',
@@ -494,15 +506,17 @@ async function desfazerMov() {
 
 async function fecharEefetivarMov() {
   try {
-    if (movDeleteQueue) {
-      await safeApiCall(`/api/movimentacao/${ano}/${movCtx.mes}`, {method:'DELETE'}, 'Falha ao excluir movimentação.');
+    if (movDeleteQueue.length > 0) {
+      for (const id of movDeleteQueue) {
+        await safeApiCall(`/api/movimentacao/${id}`, {method:'DELETE'}, 'Falha ao excluir movimentação.');
+      }
       await debouncedLoad();
     }
   } catch (err) {
     alert('Erro ao processar movimentação: ' + err.message);
   }
   
-  movDeleteQueue = false;
+  movDeleteQueue = [];
   movUndoStack = [];
   movEditando = false;
   toggleEditUiMov(false);

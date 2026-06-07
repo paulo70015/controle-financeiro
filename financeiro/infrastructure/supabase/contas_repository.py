@@ -127,23 +127,40 @@ class SupabaseContasRepository:
         
         return response.data
 
-    def upsert_movimentacao(self, movimentacao: MovimentacaoMensal) -> None:
-        """Insere ou atualiza movimentação mensal"""
+    def save_movimentacao(self, movimentacao: MovimentacaoMensal, movimentacao_id: int | None = None) -> int:
+        """Insere ou atualiza uma movimentação mensal"""
         client: Client = self.client_factory()
-        
-        # Supabase upsert via .upsert()
-        client.table("movimentacoes_mensais").upsert({
+
+        payload = {
             "ano": movimentacao.ano,
             "mes": movimentacao.mes,
             "conta_id": movimentacao.conta_id,
             "valor": movimentacao.valor,
             "nota": movimentacao.nota
-        }, on_conflict="ano,mes").execute()
+        }
+        if movimentacao_id:
+            client.table("movimentacoes_mensais") \
+                .update(payload) \
+                .eq("id", movimentacao_id) \
+                .execute()
+            return movimentacao_id
 
-    def delete_movimentacao(self, ano: int, mes: int) -> None:
-        """Deleta movimentação mensal"""
+        response = client.table("movimentacoes_mensais").insert(payload).execute()
+        return response.data[0]["id"]
+
+    def delete_movimentacao(self, movimentacao_id: int) -> None:
+        """Deleta uma movimentação mensal"""
         client: Client = self.client_factory()
-        
+
+        client.table("movimentacoes_mensais") \
+            .delete() \
+            .eq("id", movimentacao_id) \
+            .execute()
+
+    def delete_movimentacoes_mes(self, ano: int, mes: int) -> None:
+        """Deleta todas as movimentações de um mês"""
+        client: Client = self.client_factory()
+
         client.table("movimentacoes_mensais") \
             .delete() \
             .eq("ano", ano) \

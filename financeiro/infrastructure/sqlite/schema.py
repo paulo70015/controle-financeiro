@@ -36,7 +36,10 @@ def init_db(connection_factory):
         _upgrade_to_anos(cur)
         logging.info("Upgrade para FKs `anos` concluído.")
 
-    # 5. Atualizar schema_version para a versão corrente (1 = schema unificado)
+    # 5. Remover unique legada de movimentações para permitir múltiplos lançamentos por mês.
+    _migrate_movimentacoes_multiplas(cur)
+
+    # 6. Atualizar schema_version para a versão corrente (1 = schema unificado)
     _update_schema_version(cur, 1)
 
     conn.commit()
@@ -158,8 +161,10 @@ def _create_schema(cur):
         conta_id INTEGER NOT NULL,
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
-        UNIQUE(ano, mes, conta_id),
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id)"
     )
 
     # --- fixas_excecoes ---
@@ -378,8 +383,10 @@ def _upgrade_to_anos(cur):
         conta_id INTEGER NOT NULL,
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
-        UNIQUE(ano, mes, conta_id),
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)""",
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id)"
     )
 
     _recreate_with_fk(
@@ -468,6 +475,53 @@ def _recreate_with_fk(cur, table: str, create_sql: str):
     cur.execute(f"INSERT INTO {table} SELECT * FROM {old}")
     cur.execute(f"DROP TABLE {old}")
     logging.info("Tabela %s recriada com FK para `anos`.", table)
+
+
+def _migrate_movimentacoes_multiplas(cur):
+    """
+    Remove constraints UNIQUE legadas de movimentacoes_mensais.
+    A regra atual permite vários lançamentos no mesmo ano/mês/conta.
+    """
+    unique_cols = []
+    for idx in cur.execute("PRAGMA index_list('movimentacoes_mensais')").fetchall():
+        is_unique = idx[2]
+        if not is_unique:
+            continue
+        idx_name = idx[1]
+        cols = [
+            row[2]
+            for row in cur.execute(f"PRAGMA index_info('{idx_name}')").fetchall()
+        ]
+        unique_cols.append(tuple(cols))
+
+    if ("ano", "mes") not in unique_cols and ("ano", "mes", "conta_id") not in unique_cols:
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id)"
+        )
+        return
+
+    old = "movimentacoes_mensais_old_multi"
+    cur.execute(f"DROP TABLE IF EXISTS {old}")
+    cur.execute(f"ALTER TABLE movimentacoes_mensais RENAME TO {old}")
+    cur.execute(
+        """CREATE TABLE movimentacoes_mensais(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ano INTEGER NOT NULL,
+        mes INTEGER NOT NULL,
+        conta_id INTEGER NOT NULL,
+        valor REAL NOT NULL DEFAULT 0,
+        nota TEXT DEFAULT '',
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
+    )
+    cur.execute(
+        f"""INSERT INTO movimentacoes_mensais(id,ano,mes,conta_id,valor,nota)
+        SELECT id,ano,mes,conta_id,valor,nota FROM {old}"""
+    )
+    cur.execute(f"DROP TABLE {old}")
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id)"
+    )
+    logging.info("Tabela movimentacoes_mensais migrada para múltiplos lançamentos.")
 
 
 # ---------------------------------------------------------------------------

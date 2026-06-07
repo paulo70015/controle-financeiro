@@ -42,14 +42,19 @@ def create_contas_blueprint(client_factory=None):
 
     @bp.route("/api/movimentacao", methods=["POST"])
     def salvar_movimentacao():
-        ok, erro = use_cases.salvar_movimentacao(request.get_json() or {})
+        ok, erro, movimentacao_id = use_cases.salvar_movimentacao(request.get_json() or {})
         if not ok:
             return jsonify({"ok": False, "erro": erro}), 400
+        return jsonify({"ok": True, "id": movimentacao_id})
+
+    @bp.route("/api/movimentacao/<int:movimentacao_id>", methods=["DELETE"])
+    def del_movimentacao(movimentacao_id):
+        use_cases.excluir_movimentacao(movimentacao_id)
         return jsonify({"ok": True})
 
     @bp.route("/api/movimentacao/<int:ano>/<int:mes>", methods=["DELETE"])
-    def del_movimentacao(ano, mes):
-        use_cases.excluir_movimentacao(ano=ano, mes=mes)
+    def del_movimentacoes_mes(ano, mes):
+        use_cases.excluir_movimentacoes_mes(ano=ano, mes=mes)
         return jsonify({"ok": True})
 
     return bp

@@ -34,10 +34,12 @@ class RendimentosUseCases:
 
     def _validar_payload_lancamento(self, payload: dict) -> tuple[str, float, str]:
         tipo = (payload.get("tipo") or "").strip().lower()
-        if tipo not in ("aporte", "rendimento"):
-            raise ValueError("Tipo inválido. Use 'aporte' ou 'rendimento'")
+        if tipo not in ("aporte", "rendimento", "saque"):
+            raise ValueError("Tipo inválido. Use 'aporte', 'rendimento' ou 'saque'")
         valor = float(payload.get("valor") or 0)
         nota = (payload.get("nota") or "").strip()
+        if tipo == "saque" and valor <= 0:
+            raise ValueError("Saque deve ter valor maior que zero")
         if valor == 0 and not nota:
             raise ValueError("Informe um valor ou nota")
         return tipo, valor, nota

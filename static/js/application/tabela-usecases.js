@@ -76,7 +76,12 @@
   function saldoMes(dados, categorias, receitas, mes, funcTotalFixas) {
     const receita = receitas[mes] || 0;
     const despesas = totalDespesasMes(dados, categorias, mes, funcTotalFixas);
-    const mv = dados.movimentacoes && dados.movimentacoes[mes] ? dados.movimentacoes[mes].valor : 0;
+    const movMes = dados.movimentacoes && dados.movimentacoes[mes] ? dados.movimentacoes[mes] : null;
+    const mv = movMes
+      ? (typeof movMes.valor === 'number'
+        ? movMes.valor
+        : ((movMes.items || []).reduce((s, item) => s + (item.valor || 0), 0)))
+      : 0;
     return receita - despesas - mv; // Movimentaçoes subtraídas (saque vira positivo no saldo)
   }
 

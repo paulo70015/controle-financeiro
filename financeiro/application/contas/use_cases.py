@@ -39,9 +39,9 @@ class ContasUseCases:
     def listar_depositos(self, ano: int, mes: int, conta_id: int) -> list[dict]:
         return self.repository.get_depositos_detalhe(ano=ano, mes=mes, conta_id=conta_id)
 
-    def salvar_movimentacao(self, payload: dict) -> tuple[bool, str]:
+    def salvar_movimentacao(self, payload: dict) -> tuple[bool, str, int | None]:
         if payload.get("valor") is None or payload.get("conta_id") is None:
-            return (False, "valor e conta_id obrigatorios")
+            return (False, "valor e conta_id obrigatorios", None)
         movimentacao = MovimentacaoMensal(
             ano=int(payload["ano"]),
             mes=int(payload["mes"]),
@@ -49,9 +49,15 @@ class ContasUseCases:
             valor=float(payload["valor"]),
             nota=payload.get("nota", ""),
         )
-        self.repository.upsert_movimentacao(movimentacao)
-        return (True, "")
+        movimentacao_id = payload.get("id")
+        saved_id = self.repository.save_movimentacao(
+            movimentacao,
+            int(movimentacao_id) if movimentacao_id else None,
+        )
+        return (True, "", saved_id)
 
-    def excluir_movimentacao(self, ano: int, mes: int) -> None:
-        self.repository.delete_movimentacao(ano=ano, mes=mes)
+    def excluir_movimentacao(self, movimentacao_id: int) -> None:
+        self.repository.delete_movimentacao(movimentacao_id)
 
+    def excluir_movimentacoes_mes(self, ano: int, mes: int) -> None:
+        self.repository.delete_movimentacoes_mes(ano=ano, mes=mes)

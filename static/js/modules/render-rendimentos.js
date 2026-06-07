@@ -46,7 +46,7 @@ function obterValorRendimentoPorDiferenca(localId, mes, valorFinalInformado) {
   const rendimentoOriginal = rendEditandoId && rendOriginalData?.tipo === 'rendimento'
     ? parseFloat(rendOriginalData.valor || 0)
     : 0;
-  const saldoAntesDoRendimento = arred2(mesInfo.saldoMesAnterior + mesInfo.aporte);
+  const saldoAntesDoRendimento = arred2(mesInfo.saldoMesAnterior + mesInfo.aporte - mesInfo.saque);
   const outrosRendimentos = arred2((mesInfo.qtdRend > 0 ? mesInfo.rendimento : 0) - rendimentoOriginal);
   return arred2(valorFinalInformado - saldoAntesDoRendimento - outrosRendimentos);
 }
@@ -104,19 +104,21 @@ function calcularSaldoAcumuladoLocal(localId, ateOMes = 12, lancamentosAdicionai
   for (let m = 1; m <= ateOMes; m++) {
     const info = localLancs[m] || {};
     let aporte = parseFloat(info.aporte || 0);
+    let saque = parseFloat(info.saque || 0);
     let rendimentoReal = parseFloat(info.rendimento || 0);
     let qtdRend = info.qtd_rendimentos || 0;
     
     // Correção: Substituir (em vez de somar) os dados cacheados pelos dados da fila local
     if (m === ateOMes && lancamentosAdicionais !== null) {
       aporte = lancamentosAdicionais.reduce((s, r) => s + (r.tipo === 'aporte' ? r.valor : 0), 0);
+      saque = lancamentosAdicionais.reduce((s, r) => s + (r.tipo === 'saque' ? r.valor : 0), 0);
       const rendAdicionais = lancamentosAdicionais.filter(r => r.tipo === 'rendimento');
       qtdRend = rendAdicionais.length;
       rendimentoReal = rendAdicionais.reduce((s, r) => s + r.valor, 0);
     }
     
     const saldoMesAnterior = saldo;
-    saldo = arred2(saldo + aporte);
+    saldo = arred2(saldo + aporte - saque);
     
     let rendimentoDoMes = rendimentoReal;
     let isProjecao = false;
@@ -133,6 +135,7 @@ function calcularSaldoAcumuladoLocal(localId, ateOMes = 12, lancamentosAdicionai
       saldo, 
       saldoMesAnterior,
       aporte, 
+      saque,
       rendimento: rendimentoDoMes, 
       isProjecao,
       qtdRend
@@ -152,7 +155,7 @@ function calcularProjecoesRendimento(localId, percentual) {
       projecoes.push({ 
         mes: h.mes, 
         valor: h.rendimento, 
-        saldo_base: h.saldoMesAnterior + h.aporte 
+        saldo_base: h.saldoMesAnterior + h.aporte - h.saque
       });
     }
   });
@@ -184,6 +187,7 @@ function renderRendimentos() {
   h += '</tr></thead><tbody>';
 
   const totaisAporteMes = Array(13).fill(0);
+  const totaisSaqueMes = Array(13).fill(0);
   const totaisRendimentoMes = Array(13).fill(0);
 
   locais.forEach(local => {
@@ -209,17 +213,20 @@ function renderRendimentos() {
       const h_mes = historico[m - 1];
       const saldoLocal = h_mes.saldo;
       const aporte = h_mes.aporte;
+      const saque = h_mes.saque;
       const rendimentoDoMes = h_mes.rendimento;
       const isProjecao = h_mes.isProjecao;
       const saldoMesAnterior = h_mes.saldoMesAnterior;
       const mesRealizado = (rendimentosRealizados[m] || 0) > 0;
 
       totaisAporteMes[m] += aporte;
+      totaisSaqueMes[m] += saque;
       totaisRendimentoMes[m] += rendimentoDoMes;
 
-      if (saldoLocal !== 0 || aporte !== 0 || rendimentoDoMes !== 0) {
+      if (saldoLocal !== 0 || aporte !== 0 || saque !== 0 || rendimentoDoMes !== 0) {
         const linhasRend = [
-          { valor: aporte, texto: 'Aportes do mês' }
+          { valor: aporte, texto: 'Aportes do mês' },
+          { valor: -saque, texto: 'Saques do mês' }
         ];
         let txtRend = 'Rendimentos do mês';
         if (isProjecao) {
@@ -236,7 +243,7 @@ function renderRendimentos() {
           const txtFormatado = window.formatarLinhasTooltip(linhasRend);
           if (txtFormatado) tit += '\n' + txtFormatado;
         } else {
-          tit += `\nAportes do mês: ${BRL(aporte)}\nRendimentos do mês: ${BRL(rendimentoDoMes)}\nSaldo acumulado: ${BRL(saldoLocal)}`;
+          tit += `\nAportes do mês: ${BRL(aporte)}\nSaques do mês: ${BRL(saque)}\nRendimentos do mês: ${BRL(rendimentoDoMes)}\nSaldo acumulado: ${BRL(saldoLocal)}`;
         }
 
         const cellClass = `${isProjecao ? 'rend-projecao ' : ''}${mesRealizado ? 'pg-2 ' : ''}${classeValorRendimento(saldoLocal)}`.trim();
@@ -249,23 +256,6 @@ function renderRendimentos() {
 
     h += '</tr>';
   });
-
-  h += '<tr class="tr-rend-aportes"><td class="cat-nome"><div class="cc"><span>Aportes</span></div></td>';
-  let saldoAcumuladoAportes = 0;
-  for (let m = 1; m <= 12; m++) {
-    saldoAcumuladoAportes += totaisAporteMes[m];
-    let tit = '';
-    if (window.formatarLinhasTooltip) {
-      tit = window.formatarLinhasTooltip([
-        { valor: totaisAporteMes[m], texto: 'Total aportado no mês' },
-        { valor: saldoAcumuladoAportes, texto: 'Total acumulado de aportes' }
-      ]);
-    } else {
-      tit = `Total aportado no mês: ${BRL(totaisAporteMes[m])}\nTotal acumulado de aportes: ${BRL(saldoAcumuladoAportes)}`;
-    }
-    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2 ' : ''}${classeValorRendimento(totaisAporteMes[m])}" title="${tit}">${totaisAporteMes[m] ? BRL(totaisAporteMes[m]) : ''}</td>`;
-  }
-  h += '</tr>';
 
   h += '<tr class="tr-rend-rendimentos"><td class="cat-nome"><div class="cc"><span>Rendimentos</span></div></td>';
   let saldoAcumuladoRendimentos = 0;
@@ -287,7 +277,7 @@ function renderRendimentos() {
   h += '<tr class="tr-rend-total"><td class="cat-nome"><div class="cc"><span>Saldo acumulado</span></div></td>';
   let saldoAcumuladoTotal = 0;
   for (let m = 1; m <= 12; m++) {
-    saldoAcumuladoTotal += totaisAporteMes[m] + totaisRendimentoMes[m];
+    saldoAcumuladoTotal += totaisAporteMes[m] + totaisRendimentoMes[m] - totaisSaqueMes[m];
     let tit = '';
     if (window.formatarLinhasTooltip) {
       tit = window.formatarLinhasTooltip([
@@ -389,6 +379,7 @@ async function salvarRendimentoAdd() {
 
   if (!local_id) return alert('Selecione o local');
   if (valor === null && !nota) return alert('Informe valor ou nota');
+  if (tipo === 'saque' && (valor === null || valor <= 0)) return alert('Informe um valor de saque maior que zero');
 
   try {
     if (mes === 0) {
@@ -700,7 +691,7 @@ async function carregarRendimentoDetalhe() {
     const visiveis = rows.filter(r => !rendDeleteQueue.includes(r.id));
     recalcularProjecaoModal(visiveis);
 
-    const total = visiveis.reduce((s, r) => s + (r.valor || 0), 0);
+    const total = visiveis.reduce((s, r) => s + (r.tipo === 'saque' ? -(r.valor || 0) : (r.valor || 0)), 0);
     const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(rendCtx.tit || '') : (rendCtx.tit || '');
     document.getElementById('rendLancTit').innerHTML = `${tituloFormatado} <span style="font-size:13px; font-weight:bold; color:${corValorRendimento(total, 'var(--azul)')}; background:var(--bg-linha-total-contas); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
 
@@ -710,12 +701,13 @@ async function carregarRendimentoDetalhe() {
     }
 
     el.innerHTML = visiveis.map(row => {
-      const tipoTxt = row.tipo === 'aporte' ? 'Aporte' : 'Rendimento';
-      const tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : 'var(--verde)';
+      const tipoTxt = row.tipo === 'aporte' ? 'Aporte' : (row.tipo === 'saque' ? 'Saque' : 'Rendimento');
+      const tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : (row.tipo === 'saque' ? 'var(--vermelho)' : 'var(--verde)');
       const valor = row.valor || 0;
+      const valorTxt = row.tipo === 'saque' ? `-${BRL(valor)}` : BRL(valor);
       const notaEscaped = (row.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
-      return buildRowDetalheHtml(`${tipoTxt}: ${BRL(valor)}`, corValorRendimento(valor, tipoColor), row.nota, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);
+      return buildRowDetalheHtml(`${tipoTxt}: ${valorTxt}`, tipoColor, row.nota, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);
     }).join('');
   } catch (error) {
     el.innerHTML = `<p style="color:var(--vermelho);font-size:12px;padding:6px 0">Erro: ${error.message}</p>`;
@@ -736,6 +728,10 @@ async function salvarRendimentoLancamento() {
   }
   if (valor === null && !nota && rendDeleteQueue.length === 0) {
       alert('Informe valor ou nota');
+      return false;
+  }
+  if (tipo === 'saque' && (valor === null || valor <= 0)) {
+      alert('Informe um valor de saque maior que zero');
       return false;
   }
 
