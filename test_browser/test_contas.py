@@ -143,6 +143,50 @@ class TestMovimentacaoMensal:
         page.keyboard.press("Escape")
         wait_for_load(page)
 
+    def test_multiplas_movimentacoes_no_mes(self, page: Page):
+        """Permite mais de uma movimentação no mesmo mês, sem sobrescrever."""
+        wait_for_table(page)
+        for nome in ("Conta Mov A", "Conta Mov B"):
+            if page.locator(f"#tw:has-text('{nome}')").count() == 0:
+                page.click('button:has-text("+ Conta")')
+                page.wait_for_selector("#ovConta.show", timeout=3000)
+                fill_input(page, "#ctN", nome)
+                fill_input(page, "#ctSI", "0")
+                page.click("#ovConta button:has-text('Salvar')")
+                wait_for_load(page)
+                wait_for_table(page)
+
+        mes_teste = 11
+        page.locator("#tw table tbody tr.tr-mov td").nth(mes_teste).click()
+        page.wait_for_selector("#ovMov.show", timeout=3000)
+        modal_should_be_visible(page, "ovMov")
+
+        select_option(page, "#movConta", "❖ Conta Mov A")
+        fill_input(page, "#movValor", "100,00")
+        fill_input(page, "#movNota", "Mov A")
+        page.click("#movBtnSave")
+        wait_for_load(page)
+
+        select_option(page, "#movConta", "❖ Conta Mov B")
+        fill_input(page, "#movValor", "-40,00")
+        fill_input(page, "#movNota", "Mov B")
+        page.click("#movBtnSave")
+        wait_for_load(page)
+
+        lista = page.locator("#movL")
+        expect(lista).to_contain_text("Mov A")
+        expect(lista).to_contain_text("Mov B")
+        expect(lista).to_contain_text("Conta Mov A")
+        expect(lista).to_contain_text("Conta Mov B")
+
+        page.click("#ovMov button:has-text('Salvar e fechar')")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovMov")
+        wait_for_table(page)
+
+        mov_nov = page.locator("#tw table tbody tr.tr-mov td").nth(mes_teste)
+        assert "60" in mov_nov.inner_text()
+
 
 class TestEditarExcluirConta:
     def test_excluir_conta(self, page: Page):

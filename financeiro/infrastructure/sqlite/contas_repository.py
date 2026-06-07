@@ -81,26 +81,47 @@ class SQLiteContasRepository:
         conn.close()
         return rows
 
-    def upsert_movimentacao(self, movimentacao: MovimentacaoMensal) -> None:
+    def save_movimentacao(self, movimentacao: MovimentacaoMensal, movimentacao_id: int | None = None) -> int:
         conn = self.connection_factory(auto_sync=True)
         conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (movimentacao.ano,))
-        conn.execute(
-            """INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota)
-            VALUES(?,?,?,?,?)
-            ON CONFLICT(ano,mes) DO UPDATE SET conta_id=excluded.conta_id,
-            valor=excluded.valor, nota=excluded.nota""",
-            (
-                movimentacao.ano,
-                movimentacao.mes,
-                movimentacao.conta_id,
-                movimentacao.valor,
-                movimentacao.nota,
-            ),
-        )
+        if movimentacao_id:
+            conn.execute(
+                """UPDATE movimentacoes_mensais
+                SET ano=?, mes=?, conta_id=?, valor=?, nota=?
+                WHERE id=?""",
+                (
+                    movimentacao.ano,
+                    movimentacao.mes,
+                    movimentacao.conta_id,
+                    movimentacao.valor,
+                    movimentacao.nota,
+                    movimentacao_id,
+                ),
+            )
+            saved_id = movimentacao_id
+        else:
+            cur = conn.execute(
+                "INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota) VALUES(?,?,?,?,?)",
+                (
+                    movimentacao.ano,
+                    movimentacao.mes,
+                    movimentacao.conta_id,
+                    movimentacao.valor,
+                    movimentacao.nota,
+                ),
+            )
+            saved_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        return saved_id
+
+    def delete_movimentacao(self, movimentacao_id: int) -> None:
+        conn = self.connection_factory(auto_sync=True)
+        conn.execute("DELETE FROM movimentacoes_mensais WHERE id=?", (movimentacao_id,))
         conn.commit()
         conn.close()
 
-    def delete_movimentacao(self, ano: int, mes: int) -> None:
+    def delete_movimentacoes_mes(self, ano: int, mes: int) -> None:
         conn = self.connection_factory(auto_sync=True)
         conn.execute("DELETE FROM movimentacoes_mensais WHERE ano=? AND mes=?", (ano, mes))
         conn.commit()

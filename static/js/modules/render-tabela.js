@@ -175,9 +175,9 @@ function renderTabela(){
   let totMov=0;
   for(let m=1;m<=12;m++){
     const mv=movimentacoes[m];
-    const v=mv?mv.valor:0; totMov+=v;
-    const contaNome=mv?(dados.contas||[]).find(c=>c.id==mv.conta_id)?.nome||'':'';
-    const tit=contaNome?('Mov. '+contaNome+' - '+MESES[m-1]):(MESES[m-1]);
+    const itens = mv ? (Array.isArray(mv.items) ? mv.items : (Array.isArray(mv) ? mv : [mv])) : [];
+    const v=mv?(typeof mv.valor === 'number' ? mv.valor : itens.reduce((s,item)=>s+(item.valor||0),0)):0; totMov+=v;
+    const tit=itens.length ? (`${itens.length} movimentação(ões) - ${MESES[m-1]}`) : MESES[m-1];
     if(v!==0){
       h+=`<td><span class="vc ${v<0?'neg':'pos'}" onclick="abrirMov(${m})" title="${tit}">${BRL(v)}</span></td>`;
     } else {

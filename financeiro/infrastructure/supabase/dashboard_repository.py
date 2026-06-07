@@ -115,13 +115,22 @@ class SupabaseDashboardRepository:
         
         # Movimentações mensais
         mov_response = client.table("movimentacoes_mensais") \
-            .select("mes, conta_id, valor, nota") \
+            .select("id, mes, conta_id, valor, nota") \
             .eq("ano", ano) \
+            .order("id") \
             .execute()
-        movimentacoes = {
-            r["mes"]: {"conta_id": r["conta_id"], "valor": r["valor"], "nota": r["nota"]}
-            for r in mov_response.data
-        }
+        movimentacoes = {}
+        for r in mov_response.data:
+            mes = r["mes"]
+            item = {
+                "id": r["id"],
+                "conta_id": r["conta_id"],
+                "valor": r["valor"],
+                "nota": r["nota"],
+            }
+            bucket = movimentacoes.setdefault(mes, {"valor": 0.0, "items": []})
+            bucket["valor"] += item["valor"]
+            bucket["items"].append(item)
         
         # Depósitos agregados por mês e conta
         dep_response = client.table("depositos_conta") \
@@ -139,10 +148,11 @@ class SupabaseDashboardRepository:
         
         # Adicionar movimentações mensais aos movimentos
         for mes, mv in movimentacoes.items():
-            cid = str(mv["conta_id"])
-            if cid not in movimentos:
-                movimentos[cid] = {}
-            movimentos[cid][mes] = movimentos[cid].get(mes, 0) + mv["valor"]
+            for item in mv["items"]:
+                cid = str(item["conta_id"])
+                if cid not in movimentos:
+                    movimentos[cid] = {}
+                movimentos[cid][mes] = movimentos[cid].get(mes, 0) + item["valor"]
         
         # Calcular saldos acumulados
         saldos = {}
@@ -232,6 +242,7 @@ class SupabaseDashboardRepository:
                 rendimentos[local_id][mes] = {
                     "aporte": 0.0,
                     "rendimento": 0.0,
+                    "saque": 0.0,
                     "projecao": 0.0,
                     "qtd_rendimentos": 0,
                     "last_modified": None
@@ -239,6 +250,8 @@ class SupabaseDashboardRepository:
             
             if r["tipo"] == "aporte":
                 rendimentos[local_id][mes]["aporte"] += r["valor"]
+            elif r["tipo"] == "saque":
+                rendimentos[local_id][mes]["saque"] += r["valor"]
             elif r["tipo"] == "rendimento":
                 if r["nota"] == "Projeção":
                     rendimentos[local_id][mes]["projecao"] += r["valor"]

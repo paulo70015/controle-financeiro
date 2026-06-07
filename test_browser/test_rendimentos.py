@@ -98,6 +98,57 @@ class TestAdicionarAporte:
         assert "neg" in classes_rendimentos_mar
 
 
+class TestSaqueRendimentos:
+    def test_saque_reduz_saldo_e_aparece_no_modal(self, page: Page):
+        alternar_visao(page, "rendimentos")
+        local_nome = "Carteira Saque"
+        if page.locator(f"text={local_nome}").count() == 0:
+            page.click('button:has-text("+ Local")')
+            page.wait_for_selector("#ovRendLocal.show", timeout=3000)
+            fill_input(page, "#rendLocalNome", local_nome)
+            page.click("#ovRendLocal .btn.ba")
+            wait_for_load(page)
+            wait_for_table(page)
+
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "1000,00")
+        fill_input(page, "#rendAddNota", "Aporte para saque")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "saque")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "200,00")
+        fill_input(page, "#rendAddNota", "Resgate parcial")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        linha_local = page.locator("#tw tbody tr").filter(has_text=local_nome).first
+        assert "800" in linha_local.locator("td").nth(1).inner_text()
+        assert "800" in page.locator("#tw .tr-rend-total td").nth(1).inner_text()
+        assert page.locator("#tw .tr-rend-aportes").count() == 0
+        assert page.locator("#tw .tr-rend-saques").count() == 0
+
+        linha_local.locator("td").nth(1).click()
+        page.wait_for_selector("#ovRendLanc.show", timeout=3000)
+        lista = page.locator("#rendLancLista")
+        expect(lista).to_contain_text("Aporte")
+        expect(lista).to_contain_text("Saque")
+        expect(lista).to_contain_text("Resgate parcial")
+        modal_should_be_visible(page, "ovRendLanc")
+
+
 class TestProjecaoTaxa:
     def test_abrir_projecao(self, page: Page):
         alternar_visao(page, "rendimentos")
@@ -106,7 +157,7 @@ class TestProjecaoTaxa:
             pytest.skip("Nenhum local com menu kebab")
         kebabs.first.click(force=True)
         page.wait_for_timeout(200)
-        link_proj = page.locator(".dropdown-content a:has-text('Projetar rendimentos')")
+        link_proj = page.locator(".dropdown-content a:has-text('Projetar rendimentos'):visible")
         if link_proj.count() == 0:
             page.keyboard.press("Escape")
             pytest.skip("Opcao Projetar rendimentos nao encontrada")
@@ -122,7 +173,7 @@ class TestProjecaoTaxa:
             pytest.skip("Nenhum local com menu kebab")
         kebabs.first.click(force=True)
         page.wait_for_timeout(200)
-        link_proj = page.locator(".dropdown-content a:has-text('Projetar rendimentos')")
+        link_proj = page.locator(".dropdown-content a:has-text('Projetar rendimentos'):visible")
         if link_proj.count() == 0:
             page.keyboard.press("Escape")
             pytest.skip("Opcao nao encontrada")
@@ -165,9 +216,8 @@ class TestStatusRealizado:
 
         linha_local = page.locator("#tw tbody tr").filter(has_text="Conta Historica").first
         classes_jan_local = linha_local.locator("td").nth(1).get_attribute("class") or ""
-        classes_jan_aportes = page.locator("#tw .tr-rend-aportes td").nth(1).get_attribute("class") or ""
         classes_jan_total = page.locator("#tw .tr-rend-total td").nth(1).get_attribute("class") or ""
 
         assert "pg-2" in classes_jan_local
-        assert "pg-2" in classes_jan_aportes
+        assert page.locator("#tw .tr-rend-aportes").count() == 0
         assert "pg-2" in classes_jan_total

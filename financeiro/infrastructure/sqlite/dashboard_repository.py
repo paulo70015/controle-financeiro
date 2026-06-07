@@ -58,11 +58,22 @@ class SQLiteDashboardRepository:
             dict(r)
             for r in conn.execute("SELECT id,nome,ordem,saldo_inicial FROM contas_correntes ORDER BY ordem").fetchall()
         ]
-        mov_rows = conn.execute("SELECT mes,conta_id,valor,nota FROM movimentacoes_mensais WHERE ano=?", (ano,)).fetchall()
-        movimentacoes = {
-            r["mes"]: {"conta_id": r["conta_id"], "valor": r["valor"], "nota": r["nota"]}
-            for r in mov_rows
-        }
+        mov_rows = conn.execute(
+            "SELECT id,mes,conta_id,valor,nota FROM movimentacoes_mensais WHERE ano=? ORDER BY id",
+            (ano,),
+        ).fetchall()
+        movimentacoes = {}
+        for r in mov_rows:
+            mes = r["mes"]
+            item = {
+                "id": r["id"],
+                "conta_id": r["conta_id"],
+                "valor": float(r["valor"] or 0),
+                "nota": r["nota"],
+            }
+            bucket = movimentacoes.setdefault(mes, {"valor": 0.0, "items": []})
+            bucket["valor"] += item["valor"]
+            bucket["items"].append(item)
 
         dep_rows = conn.execute(
             "SELECT mes,conta_id,SUM(valor) as total FROM depositos_conta WHERE ano=? GROUP BY mes,conta_id",
@@ -72,9 +83,10 @@ class SQLiteDashboardRepository:
         for r in dep_rows:
             movimentos.setdefault(str(r["conta_id"]), {})[r["mes"]] = r["total"]
         for mes, mv in movimentacoes.items():
-            cid = str(mv["conta_id"])
-            movimentos.setdefault(cid, {})
-            movimentos[cid][mes] = movimentos[cid].get(mes, 0) + mv["valor"]
+            for item in mv["items"]:
+                cid = str(item["conta_id"])
+                movimentos.setdefault(cid, {})
+                movimentos[cid][mes] = movimentos[cid].get(mes, 0) + item["valor"]
 
         saldos = {}
         saldos_ini = {}
@@ -116,6 +128,7 @@ class SQLiteDashboardRepository:
             SELECT mes,local_id,
                 SUM(CASE WHEN tipo='aporte' THEN valor ELSE 0 END) as aporte,
                 SUM(CASE WHEN tipo='rendimento' AND (nota IS NULL OR nota <> 'Projeção') THEN valor ELSE 0 END) as rendimento,
+                SUM(CASE WHEN tipo='saque' THEN valor ELSE 0 END) as saque,
                 SUM(CASE WHEN tipo='rendimento' AND nota = 'Projeção' THEN valor ELSE 0 END) as projecao,
                 COUNT(CASE WHEN tipo='rendimento' AND (nota IS NULL OR nota <> 'Projeção') THEN 1 END) as qtd_rendimentos,
                 MAX(COALESCE(data_alteracao, CURRENT_TIMESTAMP)) as last_modified
@@ -130,6 +143,7 @@ class SQLiteDashboardRepository:
             rendimentos.setdefault(str(r["local_id"]), {})[r["mes"]] = {
                 "aporte": float(r["aporte"] or 0),
                 "rendimento": float(r["rendimento"] or 0),
+                "saque": float(r["saque"] or 0),
                 "projecao": float(r["projecao"] or 0),
                 "qtd_rendimentos": int(r["qtd_rendimentos"] or 0),
                 "last_modified": r["last_modified"],
