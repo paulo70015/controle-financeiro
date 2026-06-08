@@ -57,11 +57,14 @@ class SQLiteAdminRepository:
             )
 
         rend_locais_map = {}
-        rend_locais = conn.execute("SELECT id,nome,ordem FROM rendimentos_locais WHERE ano=?", (ano_origem,)).fetchall()
+        rend_locais = conn.execute(
+            "SELECT id,nome,ordem,conta_vinculada_id FROM rendimentos_locais WHERE ano=?",
+            (ano_origem,),
+        ).fetchall()
         for rl in rend_locais:
             cur = conn.execute(
-                "INSERT INTO rendimentos_locais(ano,nome,ordem) VALUES(?,?,?)",
-                (ano_destino, rl["nome"], rl["ordem"]),
+                "INSERT INTO rendimentos_locais(ano,nome,ordem,conta_vinculada_id) VALUES(?,?,?,?)",
+                (ano_destino, rl["nome"], rl["ordem"], rl["conta_vinculada_id"]),
             )
             rend_locais_map[rl["id"]] = cur.lastrowid
 

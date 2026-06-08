@@ -109,19 +109,8 @@ function abrirRen(id, nome, fixaFlag = 0, contaVinculadaId = null, tooltip = '')
     document.getElementById('renFixas').checked = !!fixaFlag;
   }
   const sel = document.getElementById('renConta');
-  sel.innerHTML = '<option value="">— Sem vínculo de conta —</option>';
-  (dados.contas || []).forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.textContent = '❖ ' + c.nome;
-    if (contaVinculadaId && c.id == contaVinculadaId) opt.selected = true;
-    sel.appendChild(opt);
-  });
   const info = document.getElementById('renContaInfo');
-  info.style.display = sel.value ? 'block' : 'none';
-  sel.onchange = () => {
-    info.style.display = sel.value ? 'block' : 'none';
-  };
+  window.popularSelectContas(sel, contaVinculadaId, info);
   abrirModal('ovRen');
   setTimeout(() => { if (window.injectBankSelector) window.injectBankSelector('renN'); }, 100);
   setTimeout(() => document.getElementById('renN').select(), 100);

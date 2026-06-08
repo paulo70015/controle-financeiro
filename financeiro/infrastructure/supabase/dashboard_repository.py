@@ -218,7 +218,7 @@ class SupabaseDashboardRepository:
         
         # Rendimentos - locais
         rend_locais_response = client.table("rendimentos_locais") \
-            .select("id, ano, nome, ordem, projecao_taxa") \
+            .select("id, ano, nome, ordem, projecao_taxa, conta_vinculada_id") \
             .eq("ano", ano) \
             .order("ordem") \
             .order("id") \

@@ -46,9 +46,11 @@ function obterValorRendimentoPorDiferenca(localId, mes, valorFinalInformado) {
   const rendimentoOriginal = rendEditandoId && rendOriginalData?.tipo === 'rendimento'
     ? parseFloat(rendOriginalData.valor || 0)
     : 0;
-  const saldoAntesDoRendimento = arred2(mesInfo.saldoMesAnterior + mesInfo.aporte - mesInfo.saque);
+  // O rendimento é calculado em relação ao saldo do mês anterior (capital aplicado),
+  // ignorando aportes/saques do mês corrente — conforme label exibido ao usuário.
+  const saldoBase = arred2(mesInfo.saldoMesAnterior);
   const outrosRendimentos = arred2((mesInfo.qtdRend > 0 ? mesInfo.rendimento : 0) - rendimentoOriginal);
-  return arred2(valorFinalInformado - saldoAntesDoRendimento - outrosRendimentos);
+  return arred2(valorFinalInformado - saldoBase - outrosRendimentos);
 }
 
 document.addEventListener('change', function(e) {
@@ -528,18 +530,30 @@ async function apagarLancamentosRendimentoLocal(localId, nome) {
   }
 }
 
+function popularSelectContaRendLocal(contaVinculadaId) {
+  const sel = document.getElementById('rendLocalConta');
+  const help = document.getElementById('rendLocalContaInfo');
+  window.popularSelectContas(sel, contaVinculadaId, help);
+}
+
 function abrirRendimentoLocal() {
   document.getElementById('rendLocalId').value = '';
   document.getElementById('rendLocalNome').value = '';
   document.getElementById('rendLocalDelBtn').style.display = 'none';
+  popularSelectContaRendLocal(null);
   abrirModal('ovRendLocal');
   setTimeout(() => document.getElementById('rendLocalNome').focus(), 120);
 }
 
-function editarRendimentoLocal(id, nome) {
+function editarRendimentoLocal(id, nome, contaVinculadaId) {
   document.getElementById('rendLocalId').value = id;
   document.getElementById('rendLocalNome').value = nome || '';
   document.getElementById('rendLocalDelBtn').style.display = 'inline-block';
+  if (contaVinculadaId === undefined) {
+    const local = (dados.rendimentos_locais || []).find(l => String(l.id) === String(id));
+    contaVinculadaId = local ? local.conta_vinculada_id : null;
+  }
+  popularSelectContaRendLocal(contaVinculadaId);
   abrirModal('ovRendLocal');
   setTimeout(() => document.getElementById('rendLocalNome').focus(), 120);
 }
@@ -548,6 +562,8 @@ async function salvarRendimentoLocal() {
   const id = parseInt(document.getElementById('rendLocalId').value || '0');
   const nome = (document.getElementById('rendLocalNome').value || '').trim();
   if (!nome) return alert('Informe o nome do local');
+  const contaVal = document.getElementById('rendLocalConta')?.value || '';
+  const conta_vinculada_id = contaVal ? parseInt(contaVal) : null;
 
   const url = id ? '/api/rendimento/local/' + id : '/api/rendimento/local';
   const method = id ? 'PUT' : 'POST';
@@ -555,7 +571,7 @@ async function salvarRendimentoLocal() {
     await safeApiCall(url, {
       method,
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ano, nome})
+      body: JSON.stringify({ano, nome, conta_vinculada_id})
     }, 'Falha ao salvar local');
     fecharModal('ovRendLocal');
     await debouncedLoad();
@@ -702,9 +718,10 @@ async function carregarRendimentoDetalhe() {
 
     el.innerHTML = visiveis.map(row => {
       const tipoTxt = row.tipo === 'aporte' ? 'Aporte' : (row.tipo === 'saque' ? 'Saque' : 'Rendimento');
-      const tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : (row.tipo === 'saque' ? 'var(--vermelho)' : 'var(--verde)');
       const valor = row.valor || 0;
-      const valorTxt = row.tipo === 'saque' ? `-${BRL(valor)}` : BRL(valor);
+      let tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : (row.tipo === 'saque' ? 'var(--vermelho)' : 'var(--verde)');
+      if (row.tipo === 'rendimento' && valor < 0) tipoColor = 'var(--vermelho)';
+      const valorTxt = (row.tipo === 'saque' || valor < 0) ? `-${BRL(valor)}` : BRL(valor);
       const notaEscaped = (row.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
       return buildRowDetalheHtml(`${tipoTxt}: ${valorTxt}`, tipoColor, row.nota, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);

@@ -119,7 +119,7 @@ class SQLiteDashboardRepository:
         rend_locais = [
             dict(r)
             for r in conn.execute(
-                "SELECT id,ano,nome,ordem,projecao_taxa FROM rendimentos_locais WHERE ano=? ORDER BY ordem,id",
+                "SELECT id,ano,nome,ordem,projecao_taxa,conta_vinculada_id FROM rendimentos_locais WHERE ano=? ORDER BY ordem,id",
                 (ano,),
             ).fetchall()
         ]

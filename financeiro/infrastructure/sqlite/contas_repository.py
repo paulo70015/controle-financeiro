@@ -39,6 +39,10 @@ class SQLiteContasRepository:
             "UPDATE categorias SET conta_vinculada_id=NULL WHERE conta_vinculada_id=?",
             (conta_id,),
         )
+        conn.execute(
+            "UPDATE rendimentos_locais SET conta_vinculada_id=NULL WHERE conta_vinculada_id=?",
+            (conta_id,),
+        )
         conn.commit()
         conn.close()
 
@@ -114,6 +118,36 @@ class SQLiteContasRepository:
         conn.commit()
         conn.close()
         return saved_id
+
+    def delete_movimentacao_matching(
+        self,
+        ano: int,
+        mes: int,
+        conta_id: int,
+        valor: float,
+        nota: str,
+    ) -> int:
+        """
+        Apaga UMA movimentação que casa exatamente com (ano, mes, conta_id, valor, nota).
+        Usada para reverter o reflexo automático de um rendimento. Se o usuário
+        editou a movimentação no modal de detalhes da conta, o match falha e nada
+        é removido (ela permanece para edição/remoção manual). Retorna a qtd
+        removida (0 ou 1).
+        """
+        conn = self.connection_factory(auto_sync=True)
+        row = conn.execute(
+            """SELECT id FROM movimentacoes_mensais
+               WHERE ano=? AND mes=? AND conta_id=? AND valor=? AND COALESCE(nota,'')=?
+               ORDER BY id DESC LIMIT 1""",
+            (ano, mes, conta_id, valor, nota or ""),
+        ).fetchone()
+        if not row:
+            conn.close()
+            return 0
+        conn.execute("DELETE FROM movimentacoes_mensais WHERE id=?", (row["id"],))
+        conn.commit()
+        conn.close()
+        return 1
 
     def delete_movimentacao(self, movimentacao_id: int) -> None:
         conn = self.connection_factory(auto_sync=True)

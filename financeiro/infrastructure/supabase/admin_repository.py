@@ -121,7 +121,7 @@ class SupabaseAdminRepository:
         # Duplicar rendimentos - locais
         rend_locais_map = {}
         rend_locais_response = client.table("rendimentos_locais") \
-            .select("id, nome, ordem") \
+            .select("id, nome, ordem, conta_vinculada_id") \
             .eq("ano", ano_origem) \
             .execute()
         
@@ -129,7 +129,8 @@ class SupabaseAdminRepository:
             new_local_response = client.table("rendimentos_locais").insert({
                 "ano": ano_destino,
                 "nome": rl["nome"],
-                "ordem": rl["ordem"]
+                "ordem": rl["ordem"],
+                "conta_vinculada_id": rl.get("conta_vinculada_id"),
             }).execute()
             rend_locais_map[rl["id"]] = new_local_response.data[0]["id"]
         
