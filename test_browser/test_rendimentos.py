@@ -221,3 +221,98 @@ class TestStatusRealizado:
         assert "pg-2" in classes_jan_local
         assert page.locator("#tw .tr-rend-aportes").count() == 0
         assert "pg-2" in classes_jan_total
+
+
+class TestRendimentoPorDiferencaComAporte:
+    """
+    Regressao: ao usar o checkbox "lançar só a diferença em relação ao mês
+    anterior" no modal ovRendLanc, o aporte do mês corrente NÃO deve ser
+    descontado do cálculo. O rendimento é em cima do saldo do mês anterior
+    (capital aplicado), não em cima de saldo + aporte do mês.
+
+    Cenário:
+      - Local sem vínculo.
+      - Jan: aporte 10.000 -> saldo Jan = 10.000.
+      - Fev: aporte 2.000 (no próprio mês).
+      - Fev: lançar rendimento via "diff", informando valor final = 10.500.
+      - Esperado: rendimento = 10.500 - 10.000 = +500 (positivo).
+      - Antes do fix: rendimento = 10.500 - 10.000 - 2.000 = -1.500 (negativo).
+    """
+
+    def test_aporte_no_mes_nao_contamina_calculo_da_diferenca(self, page: Page):
+        alternar_visao(page, "rendimentos")
+        local_nome = "Conta DiffAporte"
+
+        if page.locator(f"text={local_nome}").count() == 0:
+            page.click('button:has-text("+ Local")')
+            page.wait_for_selector("#ovRendLocal.show", timeout=3000)
+            fill_input(page, "#rendLocalNome", local_nome)
+            page.click("#ovRendLocal .btn.ba")
+            wait_for_load(page)
+            wait_for_table(page)
+
+        # Jan: aporte 10.000 -> saldo Jan = 10.000
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "10000,00")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        # Fev: aporte 2.000 no proprio mes
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "2")
+        fill_input(page, "#rendAddValor", "2000,00")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        # Abre o modal de Fev (celula da coluna 2 do local)
+        linha_local = page.locator("#tw tbody tr").filter(has_text=local_nome).first
+        linha_local.locator("td").nth(2).click()
+        page.wait_for_selector("#ovRendLanc.show", timeout=3000)
+
+        # Confirma que o label do checkbox reflete o saldo do mes anterior (10.000)
+        label = page.locator("#rendLancDiffLabel").inner_text()
+        assert "10.000,00" in label, f"Label inesperado: {label}"
+
+        # Seleciona tipo rendimento, mantem o checkbox "diff" marcado, digita 10500
+        select_option(page, "#rendLancTipo", "rendimento")
+        diff = page.locator("#rendLancDiff")
+        if not diff.is_checked():
+            diff.check()
+        fill_input(page, "#rendLancValor", "10500,00")
+        page.click("#ovRendLanc button:has-text('+ Lançar')")
+        wait_for_load(page)
+
+        # Reabre o detalhe para validar o valor persistido
+        page.wait_for_selector("#rendLancLista", timeout=3000)
+        lista = page.locator("#rendLancLista").inner_text()
+        # Deve haver uma linha "Rendimento: R$ 500,00" (positivo, sem sinal de menos)
+        assert "Rendimento: R$ 500,00" in lista, (
+            f"Esperado rendimento positivo de 500 (=10500-10000); lista atual:\n{lista}"
+        )
+        assert "-R$ 1.500" not in lista, (
+            "Calculo do diff esta descontando o aporte do mes (regressao)"
+        )
+
+        # Fecha o modal e confirma na tabela: linha de Rendimentos do mes 2 = +500
+        page.locator("#ovRendLanc button:has-text('Fechar')").first.click()
+        wait_for_table(page)
+        cel_rend_fev = page.locator("#tw .tr-rend-rendimentos td").nth(2)
+        texto_cel = cel_rend_fev.inner_text()
+        classes_cel = cel_rend_fev.get_attribute("class") or ""
+        assert "500" in texto_cel and "1.500" not in texto_cel, (
+            f"Total de rendimentos em Fev incorreto: '{texto_cel}'"
+        )
+        assert "neg" not in classes_cel, (
+            f"Total de rendimentos em Fev nao deveria estar negativo. classes='{classes_cel}'"
+        )

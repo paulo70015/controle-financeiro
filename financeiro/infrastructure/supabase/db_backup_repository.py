@@ -87,7 +87,8 @@ TABLES = [
     {
         "name": "rendimentos_locais",
         "pk": "id",
-        "columns": ["id", "ano", "nome", "ordem", "projecao_taxa"],
+        "columns": ["id", "ano", "nome", "ordem", "projecao_taxa", "conta_vinculada_id"],
+        "refs": {"conta_vinculada_id": "contas_correntes"},
     },
     {
         "name": "rendimentos_lancamentos",

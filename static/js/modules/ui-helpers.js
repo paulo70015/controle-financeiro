@@ -4,6 +4,22 @@ window.BANK_ICONS_CFG = {
   '[NU]': { label: 'NU', bg: '#8A05BE', color: '#FFF', title: 'Nubank' }
 };
 
+window.popularSelectContas = function(selectEl, contaVinculadaId, helpEl) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '<option value="">— Sem vínculo de conta —</option>';
+  (window.dados?.contas || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = '❖ ' + c.nome;
+    if (contaVinculadaId && String(c.id) === String(contaVinculadaId)) opt.selected = true;
+    selectEl.appendChild(opt);
+  });
+  if (helpEl) {
+    helpEl.style.display = selectEl.value ? 'block' : 'none';
+    selectEl.onchange = () => { helpEl.style.display = selectEl.value ? 'block' : 'none'; };
+  }
+};
+
 window.escapeHtml = function(text) {
   return String(text ?? '')
     .replace(/&/g, '&amp;')

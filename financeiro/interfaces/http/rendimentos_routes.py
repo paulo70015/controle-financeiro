@@ -1,12 +1,18 @@
 from flask import Blueprint, jsonify, request
 
 from financeiro.application.rendimentos.use_cases import RendimentosUseCases
-from financeiro.infrastructure.repository_factory import get_rendimentos_repository
+from financeiro.infrastructure.repository_factory import (
+    get_contas_repository,
+    get_rendimentos_repository,
+)
 
 
 def create_rendimentos_blueprint(client_factory=None):
     bp = Blueprint("rendimentos", __name__)
-    use_cases = RendimentosUseCases(get_rendimentos_repository())
+    use_cases = RendimentosUseCases(
+        get_rendimentos_repository(),
+        contas_repository=get_contas_repository(),
+    )
 
     @bp.route("/api/rendimentos/locais/<int:ano>")
     def listar_locais(ano):

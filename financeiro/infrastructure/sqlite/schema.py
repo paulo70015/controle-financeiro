@@ -39,6 +39,9 @@ def init_db(connection_factory):
     # 5. Remover unique legada de movimentações para permitir múltiplos lançamentos por mês.
     _migrate_movimentacoes_multiplas(cur)
 
+    # 5b. Adicionar coluna conta_vinculada_id em rendimentos_locais (idempotente).
+    _migrate_rendimentos_locais_conta_vinculada(cur)
+
     # 6. Atualizar schema_version para a versão corrente (1 = schema unificado)
     _update_schema_version(cur, 1)
 
@@ -210,7 +213,9 @@ def _create_schema(cur):
         nome TEXT NOT NULL,
         ordem INTEGER DEFAULT 0,
         projecao_taxa REAL DEFAULT NULL,
-        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
+        conta_vinculada_id INTEGER DEFAULT NULL,
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE,
+        FOREIGN KEY(conta_vinculada_id) REFERENCES contas_correntes(id) ON DELETE SET NULL)"""
     )
 
     # --- rendimentos_lancamentos ---
@@ -445,7 +450,10 @@ def _upgrade_to_anos(cur):
         nome TEXT NOT NULL,
         ordem INTEGER DEFAULT 0,
         projecao_taxa REAL DEFAULT NULL,
-        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)""",
+        conta_vinculada_id INTEGER DEFAULT NULL,
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE,
+        FOREIGN KEY(conta_vinculada_id) REFERENCES contas_correntes(id) ON DELETE SET NULL)""",
+        columns=["id", "ano", "nome", "ordem", "projecao_taxa"],
     )
 
     _recreate_with_fk(
@@ -464,17 +472,39 @@ def _upgrade_to_anos(cur):
     )
 
 
-def _recreate_with_fk(cur, table: str, create_sql: str):
+def _recreate_with_fk(cur, table: str, create_sql: str, columns: list[str] | None = None):
     """
     Recria `table` com a nova definição (que inclui FK para `anos`).
-    Preserva todos os dados existentes.
+    Preserva todos os dados existentes. Quando `columns` é informado,
+    a cópia é restrita a essas colunas (necessário quando a recriação
+    introduz colunas novas inexistentes na tabela legada).
     """
     old = f"{table}_old"
     cur.execute(f"ALTER TABLE {table} RENAME TO {old}")
     cur.execute(create_sql)
-    cur.execute(f"INSERT INTO {table} SELECT * FROM {old}")
+    if columns:
+        col_list = ",".join(columns)
+        cur.execute(f"INSERT INTO {table}({col_list}) SELECT {col_list} FROM {old}")
+    else:
+        cur.execute(f"INSERT INTO {table} SELECT * FROM {old}")
     cur.execute(f"DROP TABLE {old}")
     logging.info("Tabela %s recriada com FK para `anos`.", table)
+
+
+def _migrate_rendimentos_locais_conta_vinculada(cur):
+    """
+    Acrescenta a coluna `conta_vinculada_id` em rendimentos_locais
+    quando ausente (bancos atualizados antes da feature de reflexo
+    do rendimento na conta corrente). Não recria a tabela: ALTER TABLE
+    ADD COLUMN é suficiente porque o vínculo é nullable.
+    """
+    cols = [row[1] for row in cur.execute("PRAGMA table_info('rendimentos_locais')").fetchall()]
+    if "conta_vinculada_id" in cols:
+        return
+    cur.execute(
+        "ALTER TABLE rendimentos_locais ADD COLUMN conta_vinculada_id INTEGER DEFAULT NULL"
+    )
+    logging.info("Coluna conta_vinculada_id adicionada em rendimentos_locais.")
 
 
 def _migrate_movimentacoes_multiplas(cur):

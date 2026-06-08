@@ -204,7 +204,8 @@ async function carregarDep(contaId, mes) {
     const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
     let htmlMovs = visiveis.map(r => {
       const notaEscaped = (r.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      return buildRowDetalheHtml(BRL(r.valor), r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)', r.nota, locked ? '' : `delDep(${r.id})`, locked ? '' : `editarDep(${r.id}, ${r.valor}, '${notaEscaped}')`);
+      const valTxt = r.valor < 0 ? `-${BRL(r.valor)}` : BRL(r.valor);
+      return buildRowDetalheHtml(valTxt, r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)', r.nota, locked ? '' : `delDep(${r.id})`, locked ? '' : `editarDep(${r.id}, ${r.valor}, '${notaEscaped}')`);
     }).join('');
 
     if (despesasVincMes > 0) {
@@ -213,8 +214,17 @@ async function carregarDep(contaId, mes) {
 
     movsConta.slice().reverse().forEach(mov => {
       const movNota = mov.nota ? `Movimentação Geral: ${mov.nota}` : 'Movimentação Geral';
-      const movColor = (mov.valor || 0) < 0 ? 'var(--vermelho)' : 'var(--verde)';
-      htmlMovs = buildRowDetalheHtml(BRL(mov.valor || 0), movColor, movNota) + htmlMovs;
+      const movVal = mov.valor || 0;
+      const movColor = movVal < 0 ? 'var(--vermelho)' : 'var(--verde)';
+      const movNotaEscaped = (mov.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const movValTxt = movVal < 0 ? `-${BRL(movVal)}` : BRL(movVal);
+      htmlMovs = buildRowDetalheHtml(
+        movValTxt,
+        movColor,
+        movNota,
+        locked ? '' : `delMovFromDep(${mov.id})`,
+        locked ? '' : `editarMovFromDep(${mov.id}, ${mov.conta_id}, ${movVal}, '${movNotaEscaped}')`,
+      ) + htmlMovs;
     });
 
     if (mes === 1) {
@@ -330,6 +340,27 @@ async function salvarDepositoEFechar() {
   }
   await fecharEefetivarDep();
 }
+
+window.delMovFromDep = async function(id) {
+  if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado. Desbloqueie para alterar.');
+  if (!confirm('Excluir esta movimentação?')) return;
+  try {
+    await safeApiCall(`/api/movimentacao/${id}`, {method: 'DELETE'}, 'Falha ao excluir movimentação.');
+    await debouncedLoad();
+    carregarDep(depCtx.contaId, depCtx.mes);
+  } catch (err) {
+    alert('Erro: ' + err.message);
+  }
+};
+
+window.editarMovFromDep = function(id, conta_id, valor, nota) {
+  if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado. Desbloqueie para alterar.');
+  fecharEefetivarDep();
+  setTimeout(() => {
+    abrirMov(depCtx.mes);
+    setTimeout(() => editarMov(id, conta_id, valor, nota), 220);
+  }, 50);
+};
 
 function abrirMov(mes) {
   movCtx = {mes};

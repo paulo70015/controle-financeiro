@@ -74,6 +74,12 @@ class SupabaseContasRepository:
             .update({"conta_vinculada_id": None}) \
             .eq("conta_vinculada_id", conta_id) \
             .execute()
+
+        # Desvincular locais de rendimento
+        client.table("rendimentos_locais") \
+            .update({"conta_vinculada_id": None}) \
+            .eq("conta_vinculada_id", conta_id) \
+            .execute()
         
         # Deletar conta
         client.table("contas_correntes") \
@@ -147,6 +153,38 @@ class SupabaseContasRepository:
 
         response = client.table("movimentacoes_mensais").insert(payload).execute()
         return response.data[0]["id"]
+
+    def delete_movimentacao_matching(
+        self,
+        ano: int,
+        mes: int,
+        conta_id: int,
+        valor: float,
+        nota: str,
+    ) -> int:
+        """
+        Apaga UMA movimentação que casa exatamente com (ano, mes, conta_id, valor, nota).
+        Usada para reverter o reflexo automático de um rendimento. Se o usuário
+        editou a movimentação, o match falha e nada é removido.
+        """
+        client: Client = self.client_factory()
+        response = client.table("movimentacoes_mensais") \
+            .select("id") \
+            .eq("ano", ano) \
+            .eq("mes", mes) \
+            .eq("conta_id", conta_id) \
+            .eq("valor", valor) \
+            .eq("nota", nota or "") \
+            .order("id", desc=True) \
+            .limit(1) \
+            .execute()
+        if not response.data:
+            return 0
+        client.table("movimentacoes_mensais") \
+            .delete() \
+            .eq("id", response.data[0]["id"]) \
+            .execute()
+        return 1
 
     def delete_movimentacao(self, movimentacao_id: int) -> None:
         """Deleta uma movimentação mensal"""

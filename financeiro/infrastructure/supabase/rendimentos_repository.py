@@ -17,7 +17,7 @@ class SupabaseRendimentosRepository:
         client: Client = self.client_factory()
         
         response = client.table("rendimentos_locais") \
-            .select("id, ano, nome, ordem, projecao_taxa") \
+            .select("id, ano, nome, ordem, projecao_taxa, conta_vinculada_id") \
             .eq("ano", ano) \
             .order("ordem") \
             .order("id") \
@@ -43,18 +43,30 @@ class SupabaseRendimentosRepository:
         local_response = client.table("rendimentos_locais").insert({
             "ano": local.ano,
             "nome": local.nome,
-            "ordem": prox_ordem
+            "ordem": prox_ordem,
+            "conta_vinculada_id": local.conta_vinculada_id,
         }).execute()
         
         return local_response.data[0]["id"]
 
-    def update_local(self, local_id: int, nome: str) -> None:
-        """Atualiza nome do local"""
+    def update_local(self, local_id: int, nome: str, conta_vinculada_id: Optional[int] = None) -> None:
+        """Atualiza nome e conta vinculada do local"""
         client: Client = self.client_factory()
         
         client.table("rendimentos_locais").update({
-            "nome": nome
+            "nome": nome,
+            "conta_vinculada_id": conta_vinculada_id,
         }).eq("id", local_id).execute()
+
+    def get_local_by_id(self, local_id: int) -> Optional[dict]:
+        """Retorna o local por id ou None."""
+        client: Client = self.client_factory()
+        response = client.table("rendimentos_locais") \
+            .select("id, ano, nome, ordem, projecao_taxa, conta_vinculada_id") \
+            .eq("id", local_id) \
+            .limit(1) \
+            .execute()
+        return response.data[0] if response.data else None
 
     def update_projecao_taxa(self, local_id: int, taxa: Optional[float]) -> None:
         """Atualiza taxa de projeção do local"""
@@ -109,6 +121,16 @@ class SupabaseRendimentosRepository:
             .execute()
         
         return response.data
+
+    def get_lancamento_by_id(self, lancamento_id: int) -> Optional[dict]:
+        """Retorna o lançamento por id ou None."""
+        client: Client = self.client_factory()
+        response = client.table("rendimentos_lancamentos") \
+            .select("id, ano, mes, local_id, tipo, valor, nota") \
+            .eq("id", lancamento_id) \
+            .limit(1) \
+            .execute()
+        return response.data[0] if response.data else None
 
     def add_lancamento(self, lanc: RendimentoLancamento) -> int:
         """Adiciona lançamento de rendimento"""

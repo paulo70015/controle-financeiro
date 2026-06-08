@@ -12,7 +12,7 @@ class SQLiteRendimentosRepository:
         rows = [
             dict(r)
             for r in conn.execute(
-                "SELECT id,ano,nome,ordem,projecao_taxa FROM rendimentos_locais WHERE ano=? ORDER BY ordem,id",
+                "SELECT id,ano,nome,ordem,projecao_taxa,conta_vinculada_id FROM rendimentos_locais WHERE ano=? ORDER BY ordem,id",
                 (ano,),
             ).fetchall()
         ]
@@ -27,19 +27,31 @@ class SQLiteRendimentosRepository:
             (local.ano,),
         ).fetchone()["prox"]
         cur = conn.execute(
-            "INSERT INTO rendimentos_locais(ano,nome,ordem) VALUES(?,?,?)",
-            (local.ano, local.nome, prox_ordem),
+            "INSERT INTO rendimentos_locais(ano,nome,ordem,conta_vinculada_id) VALUES(?,?,?,?)",
+            (local.ano, local.nome, prox_ordem, local.conta_vinculada_id),
         )
         conn.commit()
         local_id = cur.lastrowid
         conn.close()
         return local_id
 
-    def update_local(self, local_id: int, nome: str) -> None:
+    def update_local(self, local_id: int, nome: str, conta_vinculada_id: Optional[int] = None) -> None:
         conn = self.connection_factory(auto_sync=True)
-        conn.execute("UPDATE rendimentos_locais SET nome=? WHERE id=?", (nome, local_id))
+        conn.execute(
+            "UPDATE rendimentos_locais SET nome=?, conta_vinculada_id=? WHERE id=?",
+            (nome, conta_vinculada_id, local_id),
+        )
         conn.commit()
         conn.close()
+
+    def get_local_by_id(self, local_id: int) -> Optional[dict]:
+        conn = self.connection_factory()
+        row = conn.execute(
+            "SELECT id,ano,nome,ordem,projecao_taxa,conta_vinculada_id FROM rendimentos_locais WHERE id=?",
+            (local_id,),
+        ).fetchone()
+        conn.close()
+        return dict(row) if row else None
 
     def update_projecao_taxa(self, local_id: int, taxa: Optional[float]) -> None:
         conn = self.connection_factory(auto_sync=True)
@@ -79,6 +91,15 @@ class SQLiteRendimentosRepository:
         ]
         conn.close()
         return rows
+
+    def get_lancamento_by_id(self, lancamento_id: int) -> Optional[dict]:
+        conn = self.connection_factory()
+        row = conn.execute(
+            "SELECT id,ano,mes,local_id,tipo,valor,nota FROM rendimentos_lancamentos WHERE id=?",
+            (lancamento_id,),
+        ).fetchone()
+        conn.close()
+        return dict(row) if row else None
 
     def add_lancamento(self, lanc: RendimentoLancamento) -> int:
         conn = self.connection_factory(auto_sync=True)

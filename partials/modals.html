@@ -260,6 +260,13 @@
   <h3>&#10020; Local de Rendimento</h3>
   <input type="hidden" id="rendLocalId">
   <div class="fr"><label>Nome</label><input type="text" id="rendLocalNome" placeholder="Ex: Nu Conta, Turbo 120% CDI"></div>
+  <div class="fr">
+    <label>Refletir na conta corrente</label>
+    <select id="rendLocalConta">
+      <option value="">— Sem vínculo de conta —</option>
+    </select>
+    <small id="rendLocalContaInfo" style="display:none;color:var(--mt,#666)">Cada novo lançamento de <b>rendimento</b> (não projeção) feito a partir do mês corrente criará automaticamente uma movimentação nesta conta. O lançamento gerado é independente — para removê-lo, apague-o nas Despesas.</small>
+  </div>
   <div class="mb">
     <button class="btn br" id="rendLocalDelBtn" onclick="excluirRendimentoLocal()" style="margin-right:auto;display:none">&#10005; Excluir</button>
     <button class="btn" onclick="fecharModal('ovRendLocal')">Cancelar</button>
