@@ -1,4 +1,7 @@
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class HomeUseCases:
@@ -17,6 +20,6 @@ class HomeUseCases:
         """Persiste o ano na tabela `anos` se ainda não existir (best-effort)."""
         try:
             self.repository.ensure_year_exists(ano)
-        except Exception:
-            pass  # Operação não crítica — a aba aparece mesmo sem o registro
+        except Exception as e:
+            logger.warning("Falha ao garantir ano %s: %s", ano, e)
 

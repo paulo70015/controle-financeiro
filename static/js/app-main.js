@@ -5,6 +5,8 @@ const MESES_ABREV = __boot.meses_abrev || ["Jan", "Fev", "Mar", "Abr", "Mai", "J
 const anos_srv = __boot.anos || [];
 var viewAtiva = sessionStorage.getItem('cfViewAtiva') === 'rendimentos' ? 'rendimentos' : 'despesas';
 var isAnoBloqueado = false;
+// Inicializa dia de início do mês fiscal via localStorage; load() sobrescreve se o servidor retornar config
+var _cfgDiaInicioMesFiscal = Number(localStorage.getItem('cfgDiaInicioMesFiscal')) || 25;
 
 function parseVal(s) {
   if (s === null || s === undefined) return null;
@@ -63,7 +65,17 @@ function formatarDataHoraBR(dataString) {
 }
 
 async function safeApiCall(url, options = {}, defaultError = 'Erro na operação') {
-  const response = await fetch(url, options);
+  // Garantir que mutações não sejam servidas do cache do navegador
+  const mergedOptions = {
+    ...options,
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      ...(options.headers || {}),
+    },
+  };
+  const response = await fetch(url, mergedOptions);
   if (!response.ok) {
     const err = await response.json().catch(() => ({ erro: 'Erro de comunicação com o servidor.' }));
     throw new Error(err.erro || defaultError);

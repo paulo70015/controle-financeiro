@@ -53,6 +53,12 @@ class SupabaseContasRepository:
                 .eq("id", conta_id) \
                 .execute()
 
+    def ano_existe(self, ano: int) -> bool:
+        """Verifica se o ano existe na tabela `anos` (fonte da verdade)."""
+        client: Client = self.client_factory()
+        resp = client.table("anos").select("ano").eq("ano", ano).limit(1).execute()
+        return bool(resp.data)
+
     def delete_conta(self, conta_id: int) -> None:
         """Deleta conta e limpa dependências"""
         client: Client = self.client_factory()

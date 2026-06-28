@@ -100,19 +100,24 @@ class SQLiteCSVRepository:
                 if mes:
                     col_to_mes[i] = mes
 
+        valores_invalidos = []
+
         def parse_valor(s):
-            s = s.strip()
-            if not s:
+            raw = s.strip()
+            if not raw:
                 return None
-            neg = "-" in s
-            s = re.sub(r"[^\d,.]", "", s)
-            if not s:
+            neg = "-" in raw
+            limpo = re.sub(r"[^\d,.]", "", raw)
+            if not limpo:
+                if raw:
+                    valores_invalidos.append(raw)
                 return None
-            s = s.replace(".", "").replace(",", ".")
+            limpo = limpo.replace(".", "").replace(",", ".")
             try:
-                v = float(s)
+                v = float(limpo)
                 return -v if neg else v
             except ValueError:
+                valores_invalidos.append(raw)
                 return None
 
         conn = self.connection_factory(auto_sync=True)
@@ -340,12 +345,18 @@ class SQLiteCSVRepository:
                         except Exception as e:
                             erros.append("%s mes %d: %s" % (label, mes, str(e)))
 
-        conn.commit()
-        conn.close()
-        return ({"ok": True, "ano": ano, "importados": importados, "erros": erros[:10], "undo_available": True}, 200)
+        try:
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            return ({"erro": f"Falha ao gravar dados importados: {str(e)}"}, 500)
+        finally:
+            conn.close()
+        return ({"ok": True, "ano": ano, "importados": importados, "erros": erros[:10], "valores_invalidos": valores_invalidos[:20], "undo_available": True}, 200)
 
     def exportar_csv(self, ano: int):
         conn = self.connection_factory()
+        conn.execute("PRAGMA group_concat_max_len = 1000000")
         cats = [
             dict(r)
             for r in conn.execute(

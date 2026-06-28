@@ -8,6 +8,7 @@ class SQLiteDashboardRepository:
 
     def get_dados_ano(self, ano: int) -> dict:
         conn = self.connection_factory(auto_sync=True)
+        conn.execute("PRAGMA group_concat_max_len = 1000000")
         self._sync_rendimentos_realizados(conn, ano)
         cats = [
             dict(r)
@@ -157,6 +158,9 @@ class SQLiteDashboardRepository:
             "pagamento_status", "rendimentos_realizados", "depositos_conta", "movimentacoes_mensais",
             "rendimentos_locais", "rendimentos_lancamentos",
         ]
+        # AVISO: Os nomes de tabela abaixo são hardcoded — seguro contra SQL injection.
+        # Se esta lista se tornar dinâmica no futuro, use aspas duplas com identificadores
+        # escapados (ex: conn.execute(f'SELECT ... FROM "{tabela}"')).
         for tabela in tabelas:
             try:
                 for r in conn.execute(f"SELECT DISTINCT ano FROM {tabela}"):
