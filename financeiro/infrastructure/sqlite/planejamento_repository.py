@@ -6,13 +6,18 @@ class SQLitePlanejamentoRepository:
         self.connection_factory = connection_factory
 
     def _is_fixa_expirada(self, dia_fixa, ano_status, mes_status) -> bool:
+        """Verifica se uma despesa fixa ja expirou para o mes de status informado.
+
+        Uma fixa e considerada expirada quando o mes de status esta no passado
+        em relacao ao mes corrente, ou quando esta no mes corrente e o dia da
+        fixa ja passou.  O parametro `dia_fixa` pode ser string ou inteiro;
+        valores nao numericos ou <= 0 sao tratados como dia invalido e a fixa
+        nao expira por dia dentro do mes corrente.
+        """
         from datetime import datetime
         hoje = datetime.now()
         ano_atual = hoje.year
-        mes_atual = hoje.month + 1
-        if mes_atual > 12:
-            mes_atual = 1
-            ano_atual += 1
+        mes_atual = hoje.month
         dia_atual = hoje.day
 
         if ano_status < ano_atual:

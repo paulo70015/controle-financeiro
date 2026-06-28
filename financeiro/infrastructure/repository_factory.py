@@ -5,11 +5,16 @@ Detecta o modo baseado em variável de ambiente DB_MODE
 
 import os
 import sqlite3
+import threading
 from pathlib import Path
 
 
 # Constante de meses (usada por alguns repositórios)
 MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+# Flag para evitar múltiplas inicializações do SQLite por processo
+_sqlite_initialized = False
+_sqlite_init_lock = threading.Lock()
 
 
 def _load_local_env_if_needed():
@@ -59,9 +64,16 @@ def _get_supabase_client():
 
 
 def _ensure_sqlite_initialized():
-    """Garante que o banco SQLite existe e está migrado"""
-    from financeiro.infrastructure.sqlite.schema import init_db
-    init_db(_get_sqlite_connection)
+    """Garante que o banco SQLite existe e está migrado (executa apenas uma vez)."""
+    global _sqlite_initialized
+    if _sqlite_initialized:
+        return
+    with _sqlite_init_lock:
+        if _sqlite_initialized:
+            return
+        from financeiro.infrastructure.sqlite.schema import init_db
+        init_db(_get_sqlite_connection)
+        _sqlite_initialized = True
 
 
 # ============================================

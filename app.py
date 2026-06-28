@@ -50,7 +50,6 @@ from financeiro.infrastructure.repository_factory import get_db_mode
 from financeiro.infrastructure.runtime.tray import run_windows_tray
 
 # Forcar uso de IPv4 no Mac (Resolve problemas de Timeout no IPv6)
-import sys
 if sys.platform == 'darwin':
     import socket
     old_getaddrinfo = socket.getaddrinfo
@@ -61,22 +60,6 @@ if sys.platform == 'darwin':
 
 MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
 "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
-
-def _load_app_config():
-    cfg_path = os.path.join(DATA_DIR, "config.json")
-    if not os.path.exists(cfg_path):
-        return {}
-    try:
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except Exception as e:
-        print(f"[AVISO] Falha ao ler config.json: {e}")
-        return {}
-
-
-_APP_CONFIG = _load_app_config()
-
 
 def register_blueprints(flask_app):
     flask_app.register_blueprint(create_despesas_blueprint())
@@ -125,6 +108,7 @@ if __name__ == "__main__":
         null_file = open(os.devnull, "w", encoding="utf-8")
         sys.stdout = null_file
         sys.stderr = null_file
+        atexit.register(lambda: null_file.close())
     else:
         print(f"\n Controle de Financas {get_version_full()} ({db_mode.upper()}) em: http://localhost:8080\n")
     threading.Thread(target=lambda:app.run(debug=False,port=8080,use_reloader=False),daemon=True).start()

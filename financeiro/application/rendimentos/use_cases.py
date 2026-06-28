@@ -121,11 +121,31 @@ class RendimentosUseCases:
             return None
         return local
 
+    def _mes_destino_reflexo(self, ano: int, mes: int) -> tuple[int, int]:
+        """
+        Retorna (ano, mes) onde a movimentacao reflexa deve ser gravada.
+        Regra: mes seguinte ao do rendimento. Em dezembro, rola para janeiro
+        do ano seguinte SE esse ano ja existir; caso contrario, mantem em
+        dezembro do mesmo ano para evitar criar o ano novo so por causa do
+        reflexo.
+        """
+        if mes < 12:
+            return ano, mes + 1
+        if self.contas_repository is not None and hasattr(self.contas_repository, "ano_existe"):
+            if self.contas_repository.ano_existe(ano + 1):
+                return ano + 1, 1
+        return ano, 12
+
     def _refletir_em_conta_vinculada(self, lanc: RendimentoLancamento) -> None:
         """
         Cria um lançamento comum em movimentacoes_mensais quando os
-        critérios em `_local_para_reflexo` são satisfeitos E o mês é
-        o corrente ou futuro. Lançamentos passados não são refletidos.
+        critérios em `_local_para_reflexo` são satisfeitos E o mês do
+        rendimento é o corrente ou futuro. A movimentação é gravada no
+        MÊS SEGUINTE ao do rendimento (rendimentos geralmente caem no
+        último dia do mês, então o efeito em caixa fica no próximo mês).
+        Em dezembro, rola para janeiro do ano seguinte apenas se o ano
+        ja existir; caso contrario fica em dezembro do mesmo ano.
+        Lançamentos passados não são refletidos.
         """
         local = self._local_para_reflexo(lanc.tipo, lanc.nota, lanc.valor, lanc.local_id)
         if not local:
@@ -135,9 +155,10 @@ class RendimentosUseCases:
         if (lanc.ano, lanc.mes) < (hoje.year, hoje.month):
             return
 
+        mov_ano, mov_mes = self._mes_destino_reflexo(lanc.ano, lanc.mes)
         movimentacao = MovimentacaoMensal(
-            ano=lanc.ano,
-            mes=lanc.mes,
+            ano=mov_ano,
+            mes=mov_mes,
             conta_id=int(local["conta_vinculada_id"]),
             valor=float(lanc.valor),
             nota=self._nota_reflexo(local.get("nome", "")),
@@ -174,6 +195,7 @@ class RendimentosUseCases:
         """
         Reverte o reflexo criado pelo gatilho de _refletir_em_conta_vinculada,
         casando exatamente (ano, mes, conta_id, valor, nota="Rendimento de {nome}").
+        A movimentação reflexa fica no MÊS SEGUINTE ao do rendimento.
         Se o usuário editou a movimentação na conta, o match falha e ela
         permanece — consistente com "remover manualmente".
         """
@@ -185,9 +207,10 @@ class RendimentosUseCases:
         )
         if not local:
             return
+        mov_ano, mov_mes = self._mes_destino_reflexo(int(lanc_dict["ano"]), int(lanc_dict["mes"]))
         self.contas_repository.delete_movimentacao_matching(
-            ano=int(lanc_dict["ano"]),
-            mes=int(lanc_dict["mes"]),
+            ano=mov_ano,
+            mes=mov_mes,
             conta_id=int(local["conta_vinculada_id"]),
             valor=float(lanc_dict["valor"]),
             nota=self._nota_reflexo(local.get("nome", "")),

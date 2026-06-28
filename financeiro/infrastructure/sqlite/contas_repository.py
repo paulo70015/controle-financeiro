@@ -30,6 +30,13 @@ class SQLiteContasRepository:
         conn.commit()
         conn.close()
 
+    def ano_existe(self, ano: int) -> bool:
+        """Verifica se o ano existe na tabela `anos` (fonte da verdade)."""
+        conn = self.connection_factory()
+        row = conn.execute("SELECT 1 FROM anos WHERE ano=? LIMIT 1", (ano,)).fetchone()
+        conn.close()
+        return row is not None
+
     def delete_conta(self, conta_id: int) -> None:
         conn = self.connection_factory(auto_sync=True)
         conn.execute("DELETE FROM contas_correntes WHERE id=?", (conta_id,))

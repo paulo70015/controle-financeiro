@@ -5,6 +5,8 @@
 !package-lock.json
 
 # Se houver chaves de conta de serviço específicas do GCP/Drive:
+# ⚠️ CRÍTICO: Se projeto-financeiro-*.json já foi commitado, rotacione a chave
+# no Google Cloud Console e execute: git rm --cached projeto-financeiro-*.json
 projeto-financeiro-*.json
 service_account.json
 credentials.json

@@ -16,7 +16,9 @@ window.popularSelectContas = function(selectEl, contaVinculadaId, helpEl) {
   });
   if (helpEl) {
     helpEl.style.display = selectEl.value ? 'block' : 'none';
-    selectEl.onchange = () => { helpEl.style.display = selectEl.value ? 'block' : 'none'; };
+    selectEl.addEventListener('change', function _toggleHelp() {
+      helpEl.style.display = selectEl.value ? 'block' : 'none';
+    });
   }
 };
 
@@ -209,6 +211,7 @@ function debounce(func, wait) {
 const tooltipCache = new Map();
 const tooltipInflight = new Map();
 let tooltipRequestSeq = 0;
+const TOOLTIP_CACHE_MAX = 500;
 
 function limparCacheTooltip() {
   tooltipCache.clear();
@@ -236,7 +239,13 @@ async function carregarTooltipCompleto(el, cacheKey, buildTooltip, errorMessage 
       promise = Promise.resolve()
         .then(buildTooltip)
         .then(tooltip => {
-          if (tooltip) tooltipCache.set(cacheKey, tooltip);
+          if (tooltip) {
+            if (tooltipCache.size >= TOOLTIP_CACHE_MAX) {
+              const firstKey = tooltipCache.keys().next().value;
+              tooltipCache.delete(firstKey);
+            }
+            tooltipCache.set(cacheKey, tooltip);
+          }
           return tooltip;
         })
         .finally(() => tooltipInflight.delete(cacheKey));

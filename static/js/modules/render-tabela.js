@@ -69,7 +69,9 @@ function renderTabela(){
   cats.forEach((cat,cidx)=>{
     const d=desp[cat.nome]||{}; let tot=0;
     const fixaFlag=cat.inclui_fixas?1:0;
-    const cnSafe=cat.nome.replace(/'/g,"\\'");
+    const cnSafe = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(cat.nome) : cat.nome.replace(/'/g,"\\'");
+    const catTooltipSafe = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(cat.tooltip || '') : (cat.tooltip || '').replace(/'/g,"\\'");
+    const catNomeHtmlSafe = window.escapeAttr ? window.escapeAttr(cat.nome) : cat.nome;
     const fixasDaCatAll = (dados.fixas || []).filter(f => f.cat_id === cat.id || (cat.inclui_fixas && !f.cat_id));
     const totalFixasCatOriginal = fixasDaCatAll.reduce((s,f)=>s+f.valor, 0);
     const badge=totalFixasCatOriginal?`<span class="fixas-badge">&#9906; Fixas</span>`:'';
@@ -78,10 +80,10 @@ function renderTabela(){
     const nomeFormatado = window.formatBankIcons ? window.formatBankIcons(cat.nome) : cat.nome;
     const linksCat = `
       <a href="#" onclick="event.preventDefault(); abrirLote('despesa','${cnSafe}',${cat.id})">&#8862; Lançar todos os meses</a>
-      <a href="#" onclick="event.preventDefault(); abrirRen(${cat.id},'${cnSafe}',${fixaFlag},${cat.conta_vinculada_id||null},'${(cat.tooltip||'').replace(/'/g,"\\'")}')">&#9998; Configurar</a>
+      <a href="#" onclick="event.preventDefault(); abrirRen(${cat.id},'${cnSafe}',${fixaFlag},${cat.conta_vinculada_id||null},'${catTooltipSafe}')">&#9998; Configurar</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLinhaCat('${cnSafe}')">&#10005; Remover lançamentos</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); excluirCategoriaMenu(${cat.id}, '${cnSafe}')">&#10005; Remover categoria</a>`;
-    h+=`<tr draggable="true" data-cat-id="${cat.id}" class="cat-row" ondragstart="dragStart(event,${cat.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dragDrop(event,${cat.id})"><td class="cat-nome" title=""><div class="cc"><span title="${cat.tooltip || cat.nome}">${nomeFormatado}</span>${badge}${badgeConta}${window.buildKebabMenuHtml(linksCat, true)}</div></td>`;
+    h+=`<tr draggable="true" data-cat-id="${cat.id}" class="cat-row" ondragstart="dragStart(event,${cat.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dragDrop(event,${cat.id})"><td class="cat-nome" title=""><div class="cc"><span title="${catNomeHtmlSafe}">${nomeFormatado}</span>${badge}${badgeConta}${window.buildKebabMenuHtml(linksCat, true)}</div></td>`;
     for(let m=1;m<=12;m++){
       const vLanc=d[m]?d[m].valor:0;
       const vIgnorado=d[m]?(d[m].valor_ignorado||0):0;
@@ -100,7 +102,7 @@ function renderTabela(){
       
       const tit = cat.nome + ': ' + MESES[m-1];
       const tit_modal = cat.nome + ' - ' + MESES[m-1];
-      const tit_onclick = tit_modal.replace(/'/g, "\\'");
+      const tit_onclick = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(tit_modal) : tit_modal.replace(/'/g, "\\'");
       if(vTotalDisplay!==0||fixaFlag||notas||totalFixasCatOriginal>0){
         let txt = '';
         let nota_class = '';
@@ -203,12 +205,13 @@ function renderTabela(){
   contas.forEach(conta=>{
     const cid=String(conta.id);
     const saldoConta=saldos[cid]||{};
-    const cnSafeC=(conta.nome||'').replace(/'/g,"\\'").replace(/"/g,"&quot;");
+    const cnSafeC = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(conta.nome || '') : (conta.nome||'').replace(/'/g,"\\'");
+    const contaNomeHtmlSafe = window.escapeAttr ? window.escapeAttr(conta.nome || '') : (conta.nome || '').replace(/"/g,"&quot;");
       const nomeFormatado = window.formatBankIcons ? window.formatBankIcons(conta.nome) : conta.nome;
     const linksConta = `
       <a href="#" onclick="event.preventDefault(); abrirEditConta(${conta.id},'${cnSafeC}',${conta.saldo_inicial||0})">&#9998; Editar</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); confirmarDelConta(${conta.id})">&#10005; Excluir</a>`;
-    h+=`<tr class="tr-conta"><td class="cat-nome" title=""><div class="cc"><span title="${conta.nome}">&#10020; ${nomeFormatado}</span>${window.buildKebabMenuHtml(linksConta, false)}</div></td>`;
+    h+=`<tr class="tr-conta"><td class="cat-nome" title=""><div class="cc"><span title="${contaNomeHtmlSafe}">&#10020; ${nomeFormatado}</span>${window.buildKebabMenuHtml(linksConta, false)}</div></td>`;
     for(let m=1;m<=12;m++){
       const saldoMes=saldoConta[m]!==undefined?saldoConta[m]:null;
       const cls=saldoMes===null?'':saldoMes<0?'neg':'pos';

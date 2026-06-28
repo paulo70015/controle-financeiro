@@ -203,7 +203,7 @@ async function carregarDep(contaId, mes) {
 
     const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
     let htmlMovs = visiveis.map(r => {
-      const notaEscaped = (r.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.nota || '') : (r.nota || '').replace(/'/g, "\\'");
       const valTxt = r.valor < 0 ? `-${BRL(r.valor)}` : BRL(r.valor);
       return buildRowDetalheHtml(valTxt, r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)', r.nota, locked ? '' : `delDep(${r.id})`, locked ? '' : `editarDep(${r.id}, ${r.valor}, '${notaEscaped}')`);
     }).join('');
@@ -216,7 +216,7 @@ async function carregarDep(contaId, mes) {
       const movNota = mov.nota ? `Movimentação Geral: ${mov.nota}` : 'Movimentação Geral';
       const movVal = mov.valor || 0;
       const movColor = movVal < 0 ? 'var(--vermelho)' : 'var(--verde)';
-      const movNotaEscaped = (mov.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const movNotaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mov.nota || '') : (mov.nota || '').replace(/'/g, "\\'");
       const movValTxt = movVal < 0 ? `-${BRL(movVal)}` : BRL(movVal);
       htmlMovs = buildRowDetalheHtml(
         movValTxt,
@@ -454,7 +454,7 @@ function carregarMovLocal() {
     const conta = (dados.contas || []).find(c => String(c.id) === String(mv.conta_id));
     const nomeConta = conta ? conta.nome : '';
     const texto = nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || '');
-    const notaEscaped = (mv.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.nota || '') : (mv.nota || '').replace(/'/g, "\\'");
     return buildRowDetalheHtml(
       BRL(mv.valor),
       mv.valor < 0 ? 'var(--vermelho)' : 'var(--verde)',

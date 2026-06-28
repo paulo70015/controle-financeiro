@@ -7,6 +7,8 @@ class DespesasUseCases:
         self.categorias_repository = categorias_repository
 
     def lancar(self, payload: dict) -> int:
+        # NOTA: float(payload.get("valor") or 0) trata ausência de "valor" como 0
+        # por design. O frontend sempre envia o campo; o fallback evita 500.
         despesa = Despesa(
             ano=int(payload["ano"]),
             mes=int(payload["mes"]),

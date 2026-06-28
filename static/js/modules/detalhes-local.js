@@ -120,7 +120,7 @@ async function addLancEFechar() {
   detDeleteQueue = [];
   detUndoManager.clear();
   fecharModal('ovDet');
-  debouncedLoad();
+  await debouncedLoad();
 }
 
 async function carregarDetLocal() {
@@ -142,8 +142,8 @@ async function carregarDetLocal() {
     if (!visiveis.length) { el.innerHTML = '<p class="empty-state">Nenhuma receita.</p>'; return; }
     
     el.innerHTML = visiveis.map(r => {
-      const descricaoEscaped = (r.descricao || 'Receita').replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      const notaEscaped = (r.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const descricaoEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.descricao || 'Receita') : (r.descricao || 'Receita').replace(/'/g, "\\'");
+      const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.nota || '') : (r.nota || '').replace(/'/g, "\\'");
       let notaFormatada = r.descricao + (r.nota ? ` (${r.nota})` : '');
       if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);
       return buildRowDetalheHtml(BRL(r.valor), 'var(--verde)', notaFormatada, locked ? '' : `delR(${r.id})`, locked ? '' : `editarDet(${r.id}, 'receita', ${r.valor}, '${descricaoEscaped}', false, '${notaEscaped}')`);
@@ -201,7 +201,7 @@ async function carregarDetLocal() {
       const cor = ehCartao ? 'var(--text-muted)' : (r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)');
       let notaFormatada = ehCartao ? (r.nota ? r.nota + ' (Não somado)' : 'Cartão (Não somado)') : r.nota;
       if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);
-      const notaEscaped = (r.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.nota || '') : (r.nota || '').replace(/'/g, "\\'");
       return buildRowDetalheHtml(icone + BRL(r.valor), cor, notaFormatada, locked ? '' : `delD(${r.id})`, locked ? '' : `editarDet(${r.id}, 'despesa', ${r.valor}, '${notaEscaped}', ${ehCartao})`);
     }).join('');
     
@@ -253,5 +253,5 @@ async function addLanc() {
   if (document.getElementById('detMesEditar')) document.getElementById('detMesEditar').value = String(detCtx.mes || 1);
   if (document.getElementById('detIgnorar')) document.getElementById('detIgnorar').checked = false;
   await carregarDetLocal();
-  debouncedLoad();
+  await debouncedLoad();
 }

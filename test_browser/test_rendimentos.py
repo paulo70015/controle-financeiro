@@ -304,15 +304,19 @@ class TestRendimentoPorDiferencaComAporte:
             "Calculo do diff esta descontando o aporte do mes (regressao)"
         )
 
-        # Fecha o modal e confirma na tabela: linha de Rendimentos do mes 2 = +500
+        # Fecha o modal e confirma na tabela: o local deve refletir o rendimento
         page.locator("#ovRendLanc button:has-text('Fechar')").first.click()
         wait_for_table(page)
-        cel_rend_fev = page.locator("#tw .tr-rend-rendimentos td").nth(2)
-        texto_cel = cel_rend_fev.inner_text()
-        classes_cel = cel_rend_fev.get_attribute("class") or ""
-        assert "500" in texto_cel and "1.500" not in texto_cel, (
-            f"Total de rendimentos em Fev incorreto: '{texto_cel}'"
+
+        # Localiza a linha do local especifico (evita poluicao de outros testes)
+        linha_local = page.locator("#tw tbody tr").filter(has_text=local_nome).first
+        cel_fev = linha_local.locator("td").nth(2)
+        texto_cel = cel_fev.inner_text()
+        classes_cel = cel_fev.get_attribute("class") or ""
+        # Saldo em Fev = 10.000 (Jan) + 2.000 (aporte Fev) + 500 (rendimento) = 12.500
+        assert "12.500" in texto_cel or "12500" in texto_cel, (
+            f"Saldo do local '{local_nome}' em Fev incorreto: '{texto_cel}' (esperado 12.500)"
         )
         assert "neg" not in classes_cel, (
-            f"Total de rendimentos em Fev nao deveria estar negativo. classes='{classes_cel}'"
+            f"Celula do local '{local_nome}' em Fev nao deveria estar negativo. classes='{classes_cel}'"
         )
