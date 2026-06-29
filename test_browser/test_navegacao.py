@@ -39,7 +39,7 @@ class TestCarregaPagina:
     def test_botoes_acao_visiveis(self, page: Page):
         acoes = page.locator("#acoesDespesas")
         expect(acoes).to_be_visible()
-        expect(acoes).to_contain_text("Despesa")
+        expect(acoes).to_contain_text("+ Despesa")
 
     def test_versao_visivel(self, page: Page):
         expect(page.locator("span.versao")).to_contain_text(re.compile(r"v\d+\.\d+\.\d+"))
@@ -64,7 +64,7 @@ class TestTrocaAno:
         ano_futuro = str(ANO_TESTE + 10 + random.randint(0, 5))
         tabs_antes = page.locator("#anoTabs a").count()
 
-        page.click('button:has-text("+ Ano")')
+        page.click('button:has-text("Ano")')
         page.wait_for_selector("#ovAno.show")
         page.fill("#anoNovoVal", ano_futuro)
         page.click("#ovAno .btn.bv")

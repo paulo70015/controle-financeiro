@@ -21,7 +21,7 @@ class TestCriarMeta:
 
     def test_criar_meta_inline(self, page: Page):
         abrir_drawer(page, "metas")
-        page.click('button:has-text("+ Nova Meta")')
+        page.click('button:has-text("Nova Meta")')
         page.wait_for_selector("#m-exeD", timeout=3000)
 
         from test_browser.helpers import ANO_TESTE
@@ -41,7 +41,7 @@ class TestCriarMeta:
         abrir_drawer(page, "metas")
 
         for nome in ["Viagem ferias", "Carro novo"]:
-            page.click('button:has-text("+ Nova Meta")')
+            page.click('button:has-text("Nova Meta")')
             page.wait_for_selector("#m-exeD", timeout=3000)
             fill_input(page, "#m-exeD", nome)
             fill_input(page, "#m-exeV", "5000,00")
@@ -56,7 +56,7 @@ class TestToggleConclusao:
     def test_marcar_meta_concluida(self, page: Page):
         abrir_drawer(page, "metas")
         # Cria uma meta especifica para este teste
-        page.click('button:has-text("+ Nova Meta")')
+        page.click('button:has-text("Nova Meta")')
         page.wait_for_selector("#m-exeD", timeout=3000)
         from test_browser.helpers import ANO_TESTE
         fill_input(page, "#m-exeD", "Meta para concluir")

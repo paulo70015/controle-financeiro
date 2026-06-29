@@ -21,12 +21,12 @@ class TestCriarFixa:
 
     def test_criar_fixa_inline(self, page: Page):
         abrir_drawer(page, "fixas")
-        page.click('button:has-text("+ Nova Despesa Fixa")')
+        page.click('button:has-text("Nova Despesa Fixa")')
         page.wait_for_selector(".fx-edit-row", timeout=3000)
         fill_input(page, "#fxeV", "500,00")
         fill_input(page, "#fxeDi", "15")
         fill_input(page, "#fxeD", "Aluguel")
-        page.click('.fx-edit-row button:has-text("+ Lançar")')
+        page.click('.fx-edit-row button:has-text("Lançar")')
         wait_for_load(page)
         expect(page.locator(".fx-edit-row")).to_be_hidden()
         expect(page.locator("#drawerFixas .drawer-body")).to_contain_text("Aluguel")
@@ -65,12 +65,12 @@ class TestExcecaoFixa:
 
         # Cria fixa — aparecerá na categoria
         abrir_drawer(page, "fixas")
-        page.click('button:has-text("+ Nova Despesa Fixa")')
+        page.click('button:has-text("Nova Despesa Fixa")')
         page.wait_for_selector(".fx-edit-row", timeout=3000)
         fill_input(page, "#fxeV", "500,00")
         fill_input(page, "#fxeDi", "15")
         fill_input(page, "#fxeD", fixa_nome)
-        page.click('.fx-edit-row button:has-text("+ Lançar")')
+        page.click('.fx-edit-row button:has-text("Lançar")')
         wait_for_load(page)
         fechar_drawer(page)
 
@@ -102,7 +102,7 @@ class TestDuplicarFixaAno:
         # Ano futuro com offset aleatório para evitar colisão entre execuções
         ano_futuro = str(ANO_TESTE + 5 + random.randint(0, 4))
 
-        page.click('button:has-text("+ Ano")')
+        page.click('button:has-text("Ano")')
         page.wait_for_selector("#ovAno.show")
         page.fill("#anoNovoVal", ano_futuro)
         page.check("#anoNovoDuplicar")

@@ -1,3 +1,14 @@
+/* ========================================= */
+/* ÍCONES — Helper centralizado (DRY)        */
+/* ========================================= */
+window.iconSVG = function(name, size) {
+  var cls = 'icon';
+  if (size === 'sm') cls = 'icon icon-sm';
+  else if (size === 'lg') cls = 'icon icon-lg';
+  else if (size === 'xl') cls = 'icon icon-xl';
+  return '<svg class="' + cls + '" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-' + name + '"></use></svg>';
+};
+
 window.BANK_ICONS_CFG = {
   '[BB]': { label: 'BB', bg: '#F9D342', color: '#003DA5', title: 'Banco do Brasil' },
   '[CX]': { label: 'CX', bg: '#005CA9', color: '#F28E13', title: 'Caixa Econômica' },
@@ -97,8 +108,8 @@ function buildRowDetalheHtml(valStr, color, text, btnAction, btnEditAction = '')
       <span class="di-val" style="color:${color}">${valStr}</span>
       ${formattedText ? `<span class="di-desc">${formattedText}</span>` : ''}
     </div>
-    ${btnEditAction ? `<button class="btn-edit" onclick="${btnEditAction}" title="Editar">&#9998;</button>` : ''}
-    ${btnAction ? `<button class="btn-delete" onclick="${btnAction}" title="Excluir">&#10005;</button>` : ''}
+    ${btnEditAction ? `<button class="btn-edit" onclick="${btnEditAction}" title="Editar">${window.iconSVG('pencil', 'sm')}</button>` : ''}
+    ${btnAction ? `<button class="btn-delete" onclick="${btnAction}" title="Excluir">${window.iconSVG('trash-2', 'sm')}</button>` : ''}
   </div>`;
 }
 
