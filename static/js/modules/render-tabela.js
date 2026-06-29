@@ -143,7 +143,7 @@ function renderTabela(){
     <a href="#" onclick="event.preventDefault(); abrirLote('receita')">${window.iconSVG('calendar-plus', 'sm')} Lançar todos os meses</a>
     <a href="#" onclick="event.preventDefault(); renomearReceita()">${window.iconSVG('pencil', 'sm')} Renomear</a>
     <a href="#" class="text-danger" onclick="event.preventDefault(); apagarTodasReceitas()">${window.iconSVG('trash-2', 'sm')} Remover lançamentos</a>`;
-  h+=`<tr class="tr-rec"><td class="cat-nome" title=""><div class="cc"><span>${recLabel}</span>${window.buildKebabMenuHtml(linksRec, false)}</div></td>`;
+  h+=`<tr class="tr-rec"><td class="cat-nome" title=""><div class="cc"><span>${window.iconSVG('hand-coins', 'sm')} ${recLabel}</span>${window.buildKebabMenuHtml(linksRec, false)}</div></td>`;
   let totR=0;
   const recMod = dados.receitas_mod || {};
   for(let m=1;m<=12;m++){
@@ -164,7 +164,7 @@ function renderTabela(){
     }
   }
   h+=`<td class="total-col pos">${BRL(totR)}</td></tr>`;
-  h+='<tr class="tr-total-desp"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('circle-arrow-down', 'sm') + ' Total Despesas</span></div></td>';
+  h+='<tr class="tr-total-desp"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('receipt', 'sm') + ' Total Despesas</span></div></td>';
   let totG=0;
   for(let m=1;m<=12;m++){
     const s = window.CFAppTabela.totalDespesasMes(dados, cats, m, totalFixasDaCategoriaDin);
@@ -188,7 +188,7 @@ function renderTabela(){
   }
   h+=`<td class="total-col ${totMov<0?'neg':totMov>0?'pos':''}">${BRL(totMov)}</td></tr>`;
 
-  h+='<tr class="tr-saldo"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('scale', 'sm') + ' Saldo</span></div></td>';
+  h+='<tr class="tr-saldo"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('wallet', 'sm') + ' Saldo</span></div></td>';
   let totS=0;
   for(let m=1;m<=12;m++){
     const r2=rec[m]||0;

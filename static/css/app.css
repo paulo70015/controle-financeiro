@@ -130,7 +130,7 @@ body {
   display: flex;
   flex-direction: column;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 14px;
   min-height: 100vh;
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
@@ -172,10 +172,10 @@ h2 {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 24px;
+  gap: 16px;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: 16px 20px;
   width: 100%;
 }
 
@@ -188,22 +188,16 @@ h2 {
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: 24px;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.card:hover {
-  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-  transform: translateY(-2px);
+  padding: 16px;
 }
 
 .card-toolbar {
   align-items: center;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 .view-tabs {
@@ -220,9 +214,9 @@ h2 {
   color: var(--text-muted);
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 8px 16px;
+  padding: 6px 12px;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -249,9 +243,9 @@ header {
   color: var(--text-main);
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  height: 56px;
-  padding: 0 24px;
+  gap: 12px;
+  height: 48px;
+  padding: 0 20px;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -423,7 +417,7 @@ th {
   font-weight: 600;
   letter-spacing: 0.02em;
   min-width: 90px;
-  padding: 10px 8px;
+  padding: 6px 8px;
   position: sticky;
   text-align: center;
   text-transform: uppercase;
@@ -503,10 +497,10 @@ th .resize-handle.resizing {
 
 td {
   border-bottom: 1px solid var(--border);
-  height: 36px;
+  height: 28px;
   padding: 0;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 tr:hover td {
@@ -518,25 +512,25 @@ td.cat-nome {
   border-right: 1px solid var(--border);
   font-weight: 600;
   left: 0;
-  padding: 0 12px;
+  padding: 0 8px;
   position: sticky;
   vertical-align: middle;
   white-space: nowrap;
   width: auto;
   z-index: 2;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 td.total-col {
   background: var(--bg-linha-rend-total);
   font-weight: 700;
-  padding: 0 12px;
+  padding: 0 8px;
   text-align: right;
   vertical-align: middle;
 }
 
 .td-num {
-  padding: 0 12px;
+  padding: 0 8px;
   text-align: right;
   vertical-align: middle;
 }
@@ -557,9 +551,9 @@ tr.tr-rend-total td { background: var(--bg-linha-rend-total); font-weight: 700; 
 .vc {
   cursor: pointer;
   display: block;
-  height: 36px;
-  line-height: 36px;
-  padding: 0 12px;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 8px;
   text-align: right;
   width: 100%;
 }
@@ -572,9 +566,9 @@ tr.tr-rend-total td { background: var(--bg-linha-rend-total); font-weight: 700; 
 .vc-conta {
   cursor: pointer;
   display: block;
-  height: 36px;
-  line-height: 36px;
-  padding: 0 12px;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 8px;
   text-align: right;
   width: 100%;
 }
@@ -587,14 +581,14 @@ tr.tr-rend-total td { background: var(--bg-linha-rend-total); font-weight: 700; 
   display: block;
   height: auto;
   line-height: 1.35;
-  min-height: 36px;
-  padding: 6px 12px 0;
+  min-height: 28px;
+  padding: 4px 8px 0;
 }
 
 td.rend-cell {
   cursor: pointer;
   line-height: 1.2;
-  padding: 4px 12px;
+  padding: 3px 8px;
   text-align: right;
 }
 
@@ -615,13 +609,13 @@ td.rend-cell:hover { background: var(--bg-hover); }
 /* ========================================= */
 /* 5. BOTÕES E AÇÕES — Genesis               */
 /* ========================================= */
-.acoes-group { gap: 8px; display: flex; flex-wrap: wrap; }
+.acoes-group { gap: 6px; display: flex; flex-wrap: wrap; }
 
 .action-bar-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .action-bar-wrap input,
@@ -656,11 +650,11 @@ td.rend-cell:hover { background: var(--bg-hover); }
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   gap: 6px;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 6px 12px;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   line-height: 1.2;
 }
@@ -713,7 +707,7 @@ td.rend-cell:hover { background: var(--bg-hover); }
 .bco:hover { background: #0F766E; border-color: #0F766E; }
 
 /* Small variant */
-.bs { font-size: 11px; padding: 4px 10px; }
+.bs { font-size: 11px; padding: 3px 8px; }
 
 .btn-block { width: 100%; justify-content: center; }
 
@@ -1105,7 +1099,7 @@ td.cat-nome:hover .eb { opacity: 1; visibility: visible; }
 .drawer-tabs {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   position: fixed;
   right: 0;
   top: 50%;
@@ -1122,7 +1116,7 @@ td.cat-nome:hover .eb { opacity: 1; visibility: visible; }
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
-  padding: 14px 8px;
+  padding: 12px 5px;
   transition: background 0.2s, box-shadow 0.2s;
   user-select: none;
   writing-mode: vertical-lr;
