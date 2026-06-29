@@ -83,11 +83,10 @@ function arred2(v) {
 
 function classeValorRendimento(valor) {
   if (valor < 0) return 'neg';
-  if (valor > 0) return 'pos';
   return '';
 }
 
-function corValorRendimento(valor, corPositiva = 'var(--verde)') {
+function corValorRendimento(valor, corPositiva = 'var(--text-main)') {
   return valor < 0 ? 'var(--vermelho)' : corPositiva;
 }
 
@@ -203,11 +202,11 @@ function renderRendimentos() {
     const { historico } = calcularSaldoAcumuladoLocal(local.id, 12);
 
     const linksLocal = `
-      <a href="#" onclick="event.preventDefault(); abrirRendimentoProjecao(${local.id},'${nomeSafe}')">&#10532; Projetar rendimentos</a>
-      <a href="#" onclick="event.preventDefault(); abrirRendimentoLoteLocal(${local.id})">&#8862; Lançar em todos os meses</a>
-      <a href="#" onclick="event.preventDefault(); editarRendimentoLocal(${local.id},'${nomeSafe}')">&#9998; Editar local</a>
-      <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLancamentosRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Apagar lançamentos</a>
-      <a href="#" class="text-danger" onclick="event.preventDefault(); excluirRendimentoLocal(${local.id},'${nomeSafe}')">&#10005; Excluir local</a>`;
+      <a href="#" onclick="event.preventDefault(); abrirRendimentoProjecao(${local.id},'${nomeSafe}')">${window.iconSVG('trending-up', 'sm')} Projetar rendimentos</a>
+      <a href="#" onclick="event.preventDefault(); abrirRendimentoLoteLocal(${local.id})">${window.iconSVG('calendar-plus', 'sm')} Lançar em todos os meses</a>
+      <a href="#" onclick="event.preventDefault(); editarRendimentoLocal(${local.id},'${nomeSafe}')">${window.iconSVG('pencil', 'sm')} Editar local</a>
+      <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLancamentosRendimentoLocal(${local.id},'${nomeSafe}')">${window.iconSVG('trash-2', 'sm')} Apagar lançamentos</a>
+      <a href="#" class="text-danger" onclick="event.preventDefault(); excluirRendimentoLocal(${local.id},'${nomeSafe}')">${window.iconSVG('trash-2', 'sm')} Excluir local</a>`;
     const localNomeAttr = window.escapeAttr ? window.escapeAttr(local.nome || '') : (local.nome || '');
     h += `<tr draggable="true" data-local-id="${local.id}" class="cat-row" ondragstart="dragLocalStart(event,${local.id})" ondragover="dragLocalOver(event)" ondragleave="dragLocalLeave(event)" ondrop="dropLocal(event,${local.id})"><td class="cat-nome"><div class="cc"><span title="${localNomeAttr}">${nomeFormatado}</span>${window.buildKebabMenuHtml(linksLocal, true)}</div></td>`;
 
@@ -630,8 +629,8 @@ function recalcularProjecaoModal(visiveis) {
     } else if (valorProjetado !== null && valorProjetado > 0) {
       projInfoEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span>Rendimento projetado (${percStr}): <strong style="color:var(--verde)">${BRL(valorProjetado)}</strong></span>
-          <button class="btn-delete" onclick="removerProjecaoMes()" title="Remover projeção deste mês">&#10005;</button>
+          <span>Rendimento projetado (${percStr}): <strong style="color:var(--text-main)">${BRL(valorProjetado)}</strong></span>
+          <button class="btn-delete" onclick="removerProjecaoMes()" title="Remover projeção deste mês">${window.iconSVG('x', 'sm')}</button>
         </div>
         <div style="margin-top:4px; font-size:11px; opacity:0.8;">Qualquer lançamento de rendimento irá substituir esta projeção.</div>
       `;
@@ -719,7 +718,7 @@ async function carregarRendimentoDetalhe() {
     el.innerHTML = visiveis.map(row => {
       const tipoTxt = row.tipo === 'aporte' ? 'Aporte' : (row.tipo === 'saque' ? 'Saque' : 'Rendimento');
       const valor = row.valor || 0;
-      let tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : (row.tipo === 'saque' ? 'var(--vermelho)' : 'var(--verde)');
+      let tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : (row.tipo === 'saque' ? 'var(--vermelho)' : 'var(--text-main)');
       if (row.tipo === 'rendimento' && valor < 0) tipoColor = 'var(--vermelho)';
       const valorTxt = (row.tipo === 'saque' || valor < 0) ? `-${BRL(valor)}` : BRL(valor);
       const notaEscaped = (row.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");

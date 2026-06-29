@@ -74,15 +74,15 @@ function renderTabela(){
     const catNomeHtmlSafe = window.escapeAttr ? window.escapeAttr(cat.nome) : cat.nome;
     const fixasDaCatAll = (dados.fixas || []).filter(f => f.cat_id === cat.id || (cat.inclui_fixas && !f.cat_id));
     const totalFixasCatOriginal = fixasDaCatAll.reduce((s,f)=>s+f.valor, 0);
-    const badge=totalFixasCatOriginal?`<span class="fixas-badge">&#9906; Fixas</span>`:'';
+    const badge=totalFixasCatOriginal?`<span class="fixas-badge">${window.iconSVG('pin', 'sm')}</span>`:'';
     const contaVinc=cat.conta_vinculada_id?(dados.contas||[]).find(c=>c.id==cat.conta_vinculada_id):null;
-    const badgeConta=contaVinc?`<span class="fixas-badge badge-conta">&#10020; ${contaVinc.nome}</span>`:'';
+    const badgeConta=contaVinc?`<span class="fixas-badge badge-conta">${window.iconSVG('building-2', 'sm')} ${contaVinc.nome}</span>`:'';
     const nomeFormatado = window.formatBankIcons ? window.formatBankIcons(cat.nome) : cat.nome;
     const linksCat = `
-      <a href="#" onclick="event.preventDefault(); abrirLote('despesa','${cnSafe}',${cat.id})">&#8862; Lançar todos os meses</a>
-      <a href="#" onclick="event.preventDefault(); abrirRen(${cat.id},'${cnSafe}',${fixaFlag},${cat.conta_vinculada_id||null},'${catTooltipSafe}')">&#9998; Configurar</a>
-      <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLinhaCat('${cnSafe}')">&#10005; Remover lançamentos</a>
-      <a href="#" class="text-danger" onclick="event.preventDefault(); excluirCategoriaMenu(${cat.id}, '${cnSafe}')">&#10005; Remover categoria</a>`;
+      <a href="#" onclick="event.preventDefault(); abrirLote('despesa','${cnSafe}',${cat.id})">${window.iconSVG('calendar-plus', 'sm')} Lançar todos os meses</a>
+      <a href="#" onclick="event.preventDefault(); abrirRen(${cat.id},'${cnSafe}',${fixaFlag},${cat.conta_vinculada_id||null},'${catTooltipSafe}')">${window.iconSVG('pencil', 'sm')} Configurar</a>
+      <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLinhaCat('${cnSafe}')">${window.iconSVG('trash-2', 'sm')} Remover lançamentos</a>
+      <a href="#" class="text-danger" onclick="event.preventDefault(); excluirCategoriaMenu(${cat.id}, '${cnSafe}')">${window.iconSVG('trash-2', 'sm')} Remover categoria</a>`;
     h+=`<tr draggable="true" data-cat-id="${cat.id}" class="cat-row" ondragstart="dragStart(event,${cat.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dragDrop(event,${cat.id})"><td class="cat-nome" title=""><div class="cc"><span title="${catNomeHtmlSafe}">${nomeFormatado}</span>${badge}${badgeConta}${window.buildKebabMenuHtml(linksCat, true)}</div></td>`;
     for(let m=1;m<=12;m++){
       const vLanc=d[m]?d[m].valor:0;
@@ -108,10 +108,10 @@ function renderTabela(){
         let nota_class = '';
         if (vTotalDisplay !== 0) {
             txt = BRL(vTotalDisplay);
-            if (vIgnorado !== 0 || (notas && notas.includes('💳'))) txt = '&#9645; ' + txt;
+            if (vIgnorado !== 0 || (notas && notas.includes('💳'))) txt = window.iconSVG('credit-card', 'sm') + ' ' + txt;
         } else if (notas) {
             if (notas.includes('💳')) {
-                txt = '&#9645;';
+                txt = window.iconSVG('credit-card', 'sm');
             } else {
                 txt = notas.substring(0, 15) + (notas.length > 15 ? '...' : '');
             }
@@ -140,9 +140,9 @@ function renderTabela(){
   })
   const recLabel=(dados.config&&dados.config.receita_label)||'Receitas';
   const linksRec = `
-    <a href="#" onclick="event.preventDefault(); abrirLote('receita')">&#8862; Lançar todos os meses</a>
-    <a href="#" onclick="event.preventDefault(); renomearReceita()">&#9998; Renomear</a>
-    <a href="#" class="text-danger" onclick="event.preventDefault(); apagarTodasReceitas()">&#10005; Remover lançamentos</a>`;
+    <a href="#" onclick="event.preventDefault(); abrirLote('receita')">${window.iconSVG('calendar-plus', 'sm')} Lançar todos os meses</a>
+    <a href="#" onclick="event.preventDefault(); renomearReceita()">${window.iconSVG('pencil', 'sm')} Renomear</a>
+    <a href="#" class="text-danger" onclick="event.preventDefault(); apagarTodasReceitas()">${window.iconSVG('trash-2', 'sm')} Remover lançamentos</a>`;
   h+=`<tr class="tr-rec"><td class="cat-nome" title=""><div class="cc"><span>${recLabel}</span>${window.buildKebabMenuHtml(linksRec, false)}</div></td>`;
   let totR=0;
   const recMod = dados.receitas_mod || {};
@@ -164,7 +164,7 @@ function renderTabela(){
     }
   }
   h+=`<td class="total-col pos">${BRL(totR)}</td></tr>`;
-  h+='<tr class="tr-total-desp"><td class="cat-nome" title=""><div class="cc"><span>&#9660; Total Despesas</span></div></td>';
+  h+='<tr class="tr-total-desp"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('circle-arrow-down', 'sm') + ' Total Despesas</span></div></td>';
   let totG=0;
   for(let m=1;m<=12;m++){
     const s = window.CFAppTabela.totalDespesasMes(dados, cats, m, totalFixasDaCategoriaDin);
@@ -173,7 +173,7 @@ function renderTabela(){
   }
   h+=`<td class="total-col txt-total-desp">${BRL(totG)}</td></tr>`;
   
-  h+='<tr class="tr-mov"><td class="cat-nome" title=""><div class="cc"><span>&#8644; Movimenta&ccedil;&atilde;o</span></div></td>';
+  h+='<tr class="tr-mov"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('repeat', 'sm') + ' Movimenta&ccedil;&atilde;o</span></div></td>';
   let totMov=0;
   for(let m=1;m<=12;m++){
     const mv=movimentacoes[m];
@@ -188,7 +188,7 @@ function renderTabela(){
   }
   h+=`<td class="total-col ${totMov<0?'neg':totMov>0?'pos':''}">${BRL(totMov)}</td></tr>`;
 
-  h+='<tr class="tr-saldo"><td class="cat-nome" title=""><div class="cc"><span>&#931; Saldo</span></div></td>';
+  h+='<tr class="tr-saldo"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('scale', 'sm') + ' Saldo</span></div></td>';
   let totS=0;
   for(let m=1;m<=12;m++){
     const r2=rec[m]||0;
@@ -209,9 +209,9 @@ function renderTabela(){
     const contaNomeHtmlSafe = window.escapeAttr ? window.escapeAttr(conta.nome || '') : (conta.nome || '').replace(/"/g,"&quot;");
       const nomeFormatado = window.formatBankIcons ? window.formatBankIcons(conta.nome) : conta.nome;
     const linksConta = `
-      <a href="#" onclick="event.preventDefault(); abrirEditConta(${conta.id},'${cnSafeC}',${conta.saldo_inicial||0})">&#9998; Editar</a>
-      <a href="#" class="text-danger" onclick="event.preventDefault(); confirmarDelConta(${conta.id})">&#10005; Excluir</a>`;
-    h+=`<tr class="tr-conta"><td class="cat-nome" title=""><div class="cc"><span title="${contaNomeHtmlSafe}">&#10020; ${nomeFormatado}</span>${window.buildKebabMenuHtml(linksConta, false)}</div></td>`;
+      <a href="#" onclick="event.preventDefault(); abrirEditConta(${conta.id},'${cnSafeC}',${conta.saldo_inicial||0})">${window.iconSVG('pencil', 'sm')} Editar</a>
+      <a href="#" class="text-danger" onclick="event.preventDefault(); confirmarDelConta(${conta.id})">${window.iconSVG('trash-2', 'sm')} Excluir</a>`;
+    h+=`<tr class="tr-conta"><td class="cat-nome" title=""><div class="cc"><span title="${contaNomeHtmlSafe}">${window.iconSVG('building-2', 'sm')} ${nomeFormatado}</span>${window.buildKebabMenuHtml(linksConta, false)}</div></td>`;
     for(let m=1;m<=12;m++){
       const saldoMes=saldoConta[m]!==undefined?saldoConta[m]:null;
       const cls=saldoMes===null?'':saldoMes<0?'neg':'pos';
@@ -221,7 +221,7 @@ function renderTabela(){
     h+=`<td class="total-col ${saldoDez<0?'neg':'pos'}">${BRL(saldoDez)}</td></tr>`;
   });
   if(contas.length>0){
-    h+='<tr class="tr-total-contas"><td class="cat-nome" title=""><div class="cc"><span>&#10020; Total Contas</span></div></td>';
+    h+='<tr class="tr-total-contas"><td class="cat-nome" title=""><div class="cc"><span>' + window.iconSVG('building-2', 'sm') + ' Total Contas</span></div></td>';
     for(let m=1;m<=12;m++){
       const soma=contas.reduce((s,c)=>s+((saldos[String(c.id)]||{})[m]||0),0);
       h+=`<td class="td-num ${soma<0?'neg':'pos'} txt-bold">${BRL(soma)}</td>`;
@@ -287,7 +287,7 @@ window.carregarTooltipDet = function(el, mes, cat, lastMod) {
         }
 
         let txt = cat === '__rec__' ? (r.descricao + (r.nota ? ` (${r.nota})` : '')) : r.nota;
-        if (r.ignorar_total) txt = '&#9645; ' + (txt || 'Cartão');
+        if (r.ignorar_total) txt = window.iconSVG('credit-card', 'sm') + ' ' + (txt || 'Cartão');
         
         return { valor: r.valor || 0, texto: txt };
       });

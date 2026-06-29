@@ -4,27 +4,27 @@
 <!-- Drawer de Despesas Fixas -->
 <div id="drawerFixas" class="drawer-panel">
   <div class="drawer-header">
-    <h3 style="margin:0">&#9906; Despesas Fixas</h3>
-    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+    <h3 style="margin:0"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-pin"></use></svg> Despesas Fixas</h3>
+    <button class="drawer-close" onclick="toggleDrawer()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-x"></use></svg></button>
   </div>
   <div class="drawer-body">
-    <div id="mesFiscalInfo" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;padding:4px 8px;background:rgba(0,0,0,0.05);border-radius:4px;text-align:center"></div>
+    <div id="mesFiscalInfo" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;padding:6px 10px;background:var(--bg-hover);border-radius:6px;text-align:center;font-family:var(--font-body)"></div>
     <div id="lf"></div>
     <div id="tf" class="drawer-tf"></div>
   </div>
   <div class="drawer-footer">
-    <button class="btn bv btn-block" onclick="abrirF()">+ Nova Despesa Fixa</button>
+    <button class="btn bv btn-block" onclick="abrirF()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-pin"></use></svg> Nova Despesa Fixa</button>
   </div>
 </div>
 
 <!-- Drawer de Metas Financeiras -->
 <div id="drawerMetas" class="drawer-panel">
   <div class="drawer-header">
-    <h3>&#8857; Metas Financeiras</h3>
-    <button class="drawer-close" onclick="toggleDrawer()">✕</button>
+    <h3><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-target"></use></svg> Metas Financeiras</h3>
+    <button class="drawer-close" onclick="toggleDrawer()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-x"></use></svg></button>
   </div>
   <div class="drawer-body" id="lm"></div>
   <div class="drawer-footer">
-    <button class="btn bv btn-block" onclick="abrirM()">+ Nova Meta</button>
+    <button class="btn bv btn-block" onclick="abrirM()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-target"></use></svg> Nova Meta</button>
   </div>
 </div>

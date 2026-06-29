@@ -3,34 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <title>Controle Financeiro {{ versao }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
 <header>
-  <h1>&#9672; Controle Financeiro</h1>
+  <h1><svg class="icon icon-lg" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-circle-dollar-sign"></use></svg> Controle Financeiro</h1>
   <div class="ano-tabs" id="anoTabs"></div>
-  <button class="header-action" onclick="adicionarAno()">+ Ano</button>
+  <button class="header-action" onclick="adicionarAno()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-calendar-plus"></use></svg> Ano</button>
   <div class="csv-menu" id="csvMenu">
-    <button class="header-action csv-trigger" onclick="toggleCsvMenu()">&#9783; CSV &#9660;</button>
+    <button class="header-action csv-trigger" onclick="toggleCsvMenu()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-menu"></use></svg> CSV <svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-chevron-down"></use></svg></button>
     <div class="csv-dropdown" id="csvDropdown">
-      <button onclick="document.getElementById('inputCsv').click();toggleCsvMenu()">&#10515; Importar CSV</button>
-      <button onclick="exportarCSV();toggleCsvMenu()">&#10514; Exportar CSV</button>
+      <button onclick="document.getElementById('inputCsv').click();toggleCsvMenu()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-download"></use></svg> Importar CSV</button>
+      <button onclick="exportarCSV();toggleCsvMenu()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-upload"></use></svg> Exportar CSV</button>
     </div>
   </div>
   {% if db_mode == 'supabase' %}
   <div class="csv-menu" id="dbMenu">
-    <button class="header-action csv-trigger" onclick="toggleDbMenu()">&#9783; BD &#9660;</button>
+    <button class="header-action csv-trigger" onclick="toggleDbMenu()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-menu"></use></svg> BD <svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-chevron-down"></use></svg></button>
     <div class="csv-dropdown" id="dbDropdown">
-      <button onclick="document.getElementById('inputDbTxt').click();toggleDbMenu()">&#10515; Importar BD</button>
-      <button onclick="exportarDB();toggleDbMenu()">&#10514; Exportar BD</button>
+      <button onclick="document.getElementById('inputDbTxt').click();toggleDbMenu()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-download"></use></svg> Importar BD</button>
+      <button onclick="exportarDB();toggleDbMenu()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-upload"></use></svg> Exportar BD</button>
     </div>
   </div>
   <input type="file" id="inputDbTxt" accept=".txt" style="display:none" onchange="importarDB(this)">
   {% endif %}
-  <button class="header-action btn-undo" id="btnUndoCsv" onclick="desfazerImportacaoCsv()" style="display:none" title="Desfazer a última importação">&#8617; Desfazer Importação</button>
+  <button class="header-action btn-undo" id="btnUndoCsv" onclick="desfazerImportacaoCsv()" style="display:none" title="Desfazer a última importação"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-undo-2"></use></svg> Desfazer Importação</button>
 <input type="file" id="inputCsv" accept=".csv" style="display:none" onchange="importarCSV(this)">
 <span class="versao">{{ versao }}</span>
-    <button class="btn-cfg" onclick="abrirCfgApp()" title="Configurações">&#8859;</button>
+    <button class="btn-cfg" onclick="abrirCfgApp()" title="Configurações"><svg class="icon" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-settings"></use></svg></button>
 </header>
 <div class="main">
   <div class="card">
@@ -40,21 +44,21 @@
         <button id="viewTabRendimentos" class="view-tab" onclick="setView('rendimentos')">Rendimentos</button>
       </div>
       <div id="acoesDespesas" class="acoes-group" style="display:flex">
-        <button class="btn bv bs" onclick="abrirD()">+ Despesa</button>
-        <button class="btn ba bs" onclick="abrirR()">+ Receita</button>
-        <button class="btn bc bs" onclick="abrirC()">+ Categoria</button>
-        <button class="btn bco bs" onclick="abrirConta()">+ Conta</button>
+        <button class="btn bv bs" onclick="abrirD()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-receipt"></use></svg> + Despesa</button>
+        <button class="btn ba bs" onclick="abrirR()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-diamond"></use></svg> + Receita</button>
+        <button class="btn bc bs" onclick="abrirC()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-shapes"></use></svg> + Categoria</button>
+        <button class="btn bco bs" onclick="abrirConta()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-building-2"></use></svg> + Conta</button>
       </div>
       <div id="acoesRendimentos" class="acoes-group" style="display:none">
-        <button class="btn bv bs" onclick="abrirRendimentoAdd()">+ Lançamento</button>
-        <button class="btn ba bs" onclick="abrirRendimentoLocal()">+ Local</button>
+        <button class="btn bv bs" onclick="abrirRendimentoAdd()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-trending-up"></use></svg> + Lançamento</button>
+        <button class="btn ba bs" onclick="abrirRendimentoLocal()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-building-2"></use></svg> + Local</button>
       </div>
     </div>
     <div class="tbl-wrap" id="tw"></div>
   </div>
   <div class="drawer-tabs">
-    <button class="drawer-tab" id="tabFixas" onclick="toggleDrawer('fixas')">&#9906; Despesas Fixas</button>
-    <button class="drawer-tab" id="tabMetas" onclick="toggleDrawer('metas')">&#8857; Metas</button>
+    <button class="drawer-tab" id="tabFixas" onclick="toggleDrawer('fixas')"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-pin"></use></svg> Despesas Fixas</button>
+    <button class="drawer-tab" id="tabMetas" onclick="toggleDrawer('metas')"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-target"></use></svg> Metas</button>
   </div>
 
   {% include 'partials/drawers.html' %}

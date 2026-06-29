@@ -175,16 +175,16 @@ async function carregarDetLocal() {
       if (somaFixasOriginal > 0) {
         if (!fixaExcluida) {
           totalFixas = somaFixasAtivas;
-          let label = '&#9906; ' + BRL(somaFixasAtivas);
+          let label = window.iconSVG('pin', 'sm') + ' ' + BRL(somaFixasAtivas);
           if (somaFixasExpiradas > 0) label += ` <span style="text-decoration:line-through;color:var(--text-muted);font-size:11px;margin-left:4px" title="Já aplicadas neste mês">${BRL(somaFixasExpiradas)}</span>`;
           htmlFixas = buildRowDetalheHtml(label, 'var(--azul)', 'Despesas Fixas (Restantes)', locked ? '' : `toggleFixaExcecaoModal(${catObj.id}, ${mes}, true)`, '');
         } else {
           htmlFixas = `<div class="di" style="opacity:0.6; background:var(--cinza)">
             <div class="di-texts">
-              <span class="di-val" style="color:var(--text-muted); text-decoration:line-through">&#9906; ${BRL(somaFixasOriginal)}</span>
+              <span class="di-val" style="color:var(--text-muted); text-decoration:line-through">' + window.iconSVG('pin', 'sm') + ' ${BRL(somaFixasOriginal)}</span>
               <span class="di-desc" style="color:var(--text-muted)">Despesas Fixas (Removidas)</span>
             </div>
-            ${locked ? '' : `<button class="btn-restore" onclick="toggleFixaExcecaoModal(${catObj.id}, ${mes}, false)" title="Restaurar fixas neste mês">&#8617;</button>`}
+            ${locked ? '' : `<button class="btn-restore" onclick="toggleFixaExcecaoModal(${catObj.id}, ${mes}, false)" title="Restaurar fixas neste mês">' + window.iconSVG('undo-2', 'sm') + '</button>`}
           </div>`;
         }
       }
@@ -197,7 +197,7 @@ async function carregarDetLocal() {
     if (!visiveis.length && !htmlFixas) { el.innerHTML = '<p class="empty-state">Nenhum lançamento.</p>'; return; }
     const htmlDesp = visiveis.map(r => {
       const ehCartao = r.ignorar_total === 1 || r.ignorar_total === true;
-      const icone = ehCartao ? '&#9645; ' : '';
+      const icone = ehCartao ? window.iconSVG('credit-card', 'sm') + ' ' : '';
       const cor = ehCartao ? 'var(--text-muted)' : (r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)');
       let notaFormatada = ehCartao ? (r.nota ? r.nota + ' (Não somado)' : 'Cartão (Não somado)') : r.nota;
       if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);

@@ -65,8 +65,8 @@ function renderFixas() {
         <span style="color:var(--text-muted);font-size:11px">${descFormatada} (Dia ${f.dia||'?'})</span>
       </div>
       ${btnAplicar}
-      <button class="btn-edit" onclick="editarFxInline(${f.id})" title="Editar">&#9998;</button>
-      <button class="btn-delete" onclick="delFx(${f.id})" title="Excluir">&#10005;</button>
+      <button class="btn-edit" onclick="editarFxInline(${f.id})" title="Editar">${window.iconSVG('pencil', 'sm')}</button>
+      <button class="btn-delete" onclick="delFx(${f.id})" title="Excluir">${window.iconSVG('trash-2', 'sm')}</button>
     </div>`;
   }).join('');
   
@@ -87,8 +87,8 @@ function renderMetas() {
       <span class="mn">${descFormatada}</span>
       <span class="mv">${m.valor?BRL(m.valor):''}</span>
       <span class="ma" style="margin-right:4px">${m.ano_meta||'N/A'}</span>
-      <button class="btn-edit" onclick="editarMInline(${m.id})" title="Editar">&#9998;</button>
-      <button class="btn-delete" onclick="delMeta(${m.id})" title="Excluir">&#10005;</button>
+      <button class="btn-edit" onclick="editarMInline(${m.id})" title="Editar">${window.iconSVG('pencil', 'sm')}</button>
+      <button class="btn-delete" onclick="delMeta(${m.id})" title="Excluir">${window.iconSVG('trash-2', 'sm')}</button>
     </div>`
   }).join('');
 }

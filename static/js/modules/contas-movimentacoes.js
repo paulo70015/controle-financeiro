@@ -370,7 +370,7 @@ function abrirMov(mes) {
   movOriginalData = null;
 
   injetarLayoutModalDRY('ovMov', {
-    title: '<h3>&#8644; Movimentação - <span id="movMesNome"></span></h3>',
+    title: '<h3>' + window.iconSVG('repeat', 'sm') + ' Movimentação - <span id="movMesNome"></span></h3>',
     listId: 'movL',
     inputs: `
       <select id="movConta" class="ab-select"></select>

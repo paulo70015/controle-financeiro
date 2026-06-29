@@ -29,12 +29,12 @@ def setup_fixa(page: Page):
     abrir_drawer(page, "fixas")
     # Verifica se ja existe
     if page.locator("#lf:has-text('Aluguel')").count() == 0:
-        page.click('button:has-text("+ Nova Despesa Fixa")')
+        page.click('button:has-text("Nova Despesa Fixa")')
         page.wait_for_selector(".fx-edit-row", timeout=3000)
         fill_input(page, "#fxeV", "800,00")
         fill_input(page, "#fxeDi", "28")
         fill_input(page, "#fxeD", "Aluguel")
-        page.click('.fx-edit-row button:has-text("+ Lançar")')
+        page.click('.fx-edit-row button:has-text("Lançar")')
         wait_for_load(page)
     fechar_drawer(page)
 
@@ -173,12 +173,12 @@ class TestEditarExcluirFixa:
         """Excluir uma fixa permanente."""
         # Primeiro cria uma fixa descartavel
         abrir_drawer(page, "fixas")
-        page.click('button:has-text("+ Nova Despesa Fixa")')
+        page.click('button:has-text("Nova Despesa Fixa")')
         page.wait_for_selector(".fx-edit-row", timeout=3000)
         fill_input(page, "#fxeV", "50,00")
         fill_input(page, "#fxeDi", "20")
         fill_input(page, "#fxeD", "Fixa descartavel")
-        page.click('.fx-edit-row button:has-text("+ Lançar")')
+        page.click('.fx-edit-row button:has-text("Lançar")')
         wait_for_load(page)
 
         # Agora exclui
