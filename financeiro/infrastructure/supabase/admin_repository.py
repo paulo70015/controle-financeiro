@@ -70,6 +70,7 @@ class SupabaseAdminRepository:
         desp_response = client.table("despesas") \
             .select("mes, categoria, valor, nota") \
             .eq("ano", ano_origem) \
+            .neq("nota", "Soma das Despesas Fixas\u200b") \
             .execute()
         
         for r in desp_response.data:

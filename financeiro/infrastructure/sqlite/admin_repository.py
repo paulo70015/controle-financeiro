@@ -33,7 +33,10 @@ class SQLiteAdminRepository:
                 (f["descricao"], f["valor"], f["dia"], new_cat_id, f["ativa"], ano_destino),
             )
 
-        desp = conn.execute("SELECT mes,categoria,valor,nota FROM despesas WHERE ano=?", (ano_origem,)).fetchall()
+        desp = conn.execute(
+            "SELECT mes,categoria,valor,nota FROM despesas WHERE ano=? AND nota != 'Soma das Despesas Fixas\u200b'",
+            (ano_origem,),
+        ).fetchall()
         for r in desp:
             cur = conn.execute(
                 "INSERT INTO despesas(ano,mes,categoria,valor,nota) VALUES(?,?,?,?,?)",

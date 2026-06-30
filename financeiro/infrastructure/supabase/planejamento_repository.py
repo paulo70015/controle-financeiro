@@ -15,10 +15,7 @@ class SupabasePlanejamentoRepository:
         from datetime import datetime
         hoje = datetime.now()
         ano_atual = hoje.year
-        mes_atual = hoje.month + 1
-        if mes_atual > 12:
-            mes_atual = 1
-            ano_atual += 1
+        mes_atual = hoje.month
         dia_atual = hoje.day
 
         if ano_status < ano_atual:
