@@ -173,6 +173,8 @@ class SupabaseDBBackupRepository:
             delete_field = table.get("delete_field", "id")
             if delete_field == "id":
                 client.table(table["name"]).delete().neq(delete_field, -1).execute()
+            elif delete_field == "ano":
+                client.table(table["name"]).delete().neq(delete_field, -1).execute()
             else:
                 client.table(table["name"]).delete().neq(delete_field, "__controle_financeiro_nunca__").execute()
 

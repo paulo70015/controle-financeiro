@@ -63,7 +63,7 @@ class TestEditarExcluirReceita:
 
         # Clica na celula de receitas do mes 3
         # A linha de receitas tem classe tr-rec
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        linha_rec = page.locator("tr.tr-rec")
         if linha_rec.count() == 0:
             pytest.skip("Linha de receitas nao encontrada")
 
@@ -78,7 +78,7 @@ class TestEditarExcluirReceita:
         criar_receita(page, "Extra", 5, "1000,00")
         wait_for_table(page)
 
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        linha_rec = page.locator("tr.tr-rec")
         if linha_rec.count() == 0:
             pytest.skip("Linha de receitas nao encontrada")
         linha_rec.first.locator("td").nth(5).click()
@@ -93,7 +93,7 @@ class TestEditarExcluirReceita:
         criar_receita(page, "Para excluir", 7, "300,00")
         wait_for_table(page)
 
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        linha_rec = page.locator("tr.tr-rec")
         if linha_rec.count() == 0:
             pytest.skip("Linha de receitas nao encontrada")
         linha_rec.first.locator("td").nth(7).click()
@@ -116,7 +116,7 @@ class TestLoteReceitas:
         wait_for_table(page)
 
         # Abre o kebab menu da linha de receitas (tr.tr-rec)
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        linha_rec = page.locator("tr.tr-rec")
         assert linha_rec.count() > 0, "Linha de receitas nao encontrada"
         kebabs = linha_rec.first.locator(".btn-kebab")
         assert kebabs.count() > 0, "Sem menu kebab na linha de receitas"
@@ -139,7 +139,7 @@ class TestLoteReceitas:
         criar_receita(page, "LoteRecTest2", 3, "500,00")
         wait_for_table(page)
 
-        linha_rec = page.locator("#tw table tbody tr.tr-rec")
+        linha_rec = page.locator("tr.tr-rec")
         assert linha_rec.count() > 0, "Linha de receitas nao encontrada"
         kebabs = linha_rec.first.locator(".btn-kebab")
         assert kebabs.count() > 0, "Sem menu kebab"

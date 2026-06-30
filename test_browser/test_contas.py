@@ -67,7 +67,7 @@ class TestDeposito:
     def _abrir_deposito(self, page: Page):
         """Clica na celula de valor (mes 1) da conta para abrir ovDep."""
         wait_for_table(page)
-        linha_conta = page.locator("#tw table tbody tr.tr-conta")
+        linha_conta = page.locator("tr.tr-conta")
         if linha_conta.count() == 0:
             pytest.skip("Linha de conta nao encontrada")
         # Clica na segunda celula (mes 1), que tem onclick="abrirDep(...)"
@@ -122,7 +122,7 @@ class TestMovimentacaoMensal:
     def test_abrir_movimentacao(self, page: Page):
         """Abrir modal de edicao da conta via kebab."""
         wait_for_table(page)
-        linha_conta = page.locator("#tw table tbody tr.tr-conta").first
+        linha_conta = page.locator("tr.tr-conta").first
         if linha_conta.count() == 0:
             pytest.skip("Linha de conta nao encontrada")
 
@@ -157,7 +157,7 @@ class TestMovimentacaoMensal:
                 wait_for_table(page)
 
         mes_teste = 11
-        page.locator("#tw table tbody tr.tr-mov td").nth(mes_teste).click()
+        page.locator("tr.tr-mov td").nth(mes_teste).click()
         page.wait_for_selector("#ovMov.show", timeout=3000)
         modal_should_be_visible(page, "ovMov")
 
@@ -184,7 +184,7 @@ class TestMovimentacaoMensal:
         modal_should_be_hidden(page, "ovMov")
         wait_for_table(page)
 
-        mov_nov = page.locator("#tw table tbody tr.tr-mov td").nth(mes_teste)
+        mov_nov = page.locator("tr.tr-mov td").nth(mes_teste)
         assert "60" in mov_nov.inner_text()
 
 
@@ -199,7 +199,7 @@ class TestEditarExcluirConta:
         wait_for_load(page)
         wait_for_table(page)
 
-        linha_conta = page.locator("#tw table tbody tr.tr-conta").first
+        linha_conta = page.locator("tr.tr-conta").first
         assert linha_conta.count() > 0, "Linha de conta nao encontrada"
 
         kebabs = linha_conta.locator(".btn-kebab")

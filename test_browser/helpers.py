@@ -75,7 +75,7 @@ def select_option(page: Page, selector: str, value: str):
 def get_table_data(page: Page) -> list[list[str]]:
     """Extrai dados da tabela principal como matriz de strings."""
     wait_for_table(page)
-    rows = page.locator("#tw table tbody tr")
+    rows = page.locator("#tw table tbody tr, #tabelaFixed tbody tr")
     data = []
     count = rows.count()
     for i in range(count):
