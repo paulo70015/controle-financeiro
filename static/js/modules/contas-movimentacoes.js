@@ -376,6 +376,10 @@ function abrirMov(mes) {
       <select id="movConta" class="ab-select"></select>
       <input type="text" inputmode="decimal" id="movValor" placeholder="Valor (R$)" class="ab-val">
       <input type="text" id="movNota" placeholder="Nota" class="ab-nota">
+      <select id="movTipo" class="ab-select">
+        <option value="">Normal (saque/transferência)</option>
+        <option value="rendimento">Rendimento</option>
+      </select>
     `,
     btnSaveId: 'movBtnSave',
     fnSave: 'salvarMov()',
@@ -421,12 +425,14 @@ function abrirMov(mes) {
   setTimeout(() => document.getElementById('movValor').focus(), 200);
 }
 
-window.editarMov = function(id, conta_id, valor, nota) {
+window.editarMov = function(id, conta_id, valor, nota, tipo) {
   movEditando = true;
-  movOriginalData = { id, conta_id, valor, nota };
+  movOriginalData = { id, conta_id, valor, nota, tipo: tipo || '' };
   document.getElementById('movConta').value = conta_id;
   document.getElementById('movValor').value = (valor !== undefined && valor !== null && valor !== '') ? parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '';
   document.getElementById('movNota').value = nota || '';
+  const selTipo = document.getElementById('movTipo');
+  if (selTipo) selTipo.value = tipo || '';
   toggleEditUiMov(true);
   focarCampo('movValor');
 };
@@ -455,12 +461,14 @@ function carregarMovLocal() {
     const nomeConta = conta ? conta.nome : '';
     const texto = nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || '');
     const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.nota || '') : (mv.nota || '').replace(/'/g, "\\'");
+    const tipoTag = mv.tipo === 'rendimento' ? ' <span style="font-size:0.7em;opacity:0.7;">[Rendimento]</span>' : '';
+    const tipoEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.tipo || '') : (mv.tipo || '').replace(/'/g, "\\'");
     return buildRowDetalheHtml(
       BRL(mv.valor),
       mv.valor < 0 ? 'var(--vermelho)' : 'var(--verde)',
-      texto,
+      texto + tipoTag,
       locked ? '' : `delMov(${mv.id})`,
-      locked ? '' : `editarMov(${mv.id}, ${mv.conta_id}, ${mv.valor}, '${notaEscaped}')`
+      locked ? '' : `editarMov(${mv.id}, ${mv.conta_id}, ${mv.valor}, '${notaEscaped}', '${tipoEscaped}')`
     );
   }).join('');
 }
@@ -473,8 +481,9 @@ async function salvarMov() {
   const nota = document.getElementById('movNota').value;
 
   try {
+    const tipo = document.getElementById('movTipo') ? document.getElementById('movTipo').value : '';
     const isEdit = movEditando;
-    const body = {ano, mes: movCtx.mes, conta_id, valor: v, nota};
+    const body = {ano, mes: movCtx.mes, conta_id, valor: v, nota, tipo};
     if (isEdit && movOriginalData?.id) body.id = movOriginalData.id;
     await safeApiCall('/api/movimentacao', {
       method: 'POST',
@@ -490,6 +499,8 @@ async function salvarMov() {
     movEditando = false;
     toggleEditUiMov(false);
     document.getElementById('movValor').value = '';
+    const selTipo = document.getElementById('movTipo');
+    if (selTipo) selTipo.value = '';
     document.getElementById('movNota').value = '';
 
     await debouncedLoad();

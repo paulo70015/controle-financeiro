@@ -60,7 +60,7 @@ class SQLiteDashboardRepository:
             for r in conn.execute("SELECT id,nome,ordem,saldo_inicial FROM contas_correntes ORDER BY ordem").fetchall()
         ]
         mov_rows = conn.execute(
-            "SELECT id,mes,conta_id,valor,nota FROM movimentacoes_mensais WHERE ano=? ORDER BY id",
+            "SELECT id,mes,conta_id,valor,nota,tipo FROM movimentacoes_mensais WHERE ano=? ORDER BY id",
             (ano,),
         ).fetchall()
         movimentacoes = {}
@@ -71,6 +71,7 @@ class SQLiteDashboardRepository:
                 "conta_id": r["conta_id"],
                 "valor": float(r["valor"] or 0),
                 "nota": r["nota"],
+                "tipo": r["tipo"] or "",
             }
             bucket = movimentacoes.setdefault(mes, {"valor": 0.0, "items": []})
             bucket["valor"] += item["valor"]

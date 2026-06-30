@@ -138,8 +138,8 @@ class RendimentosUseCases:
 
     def _refletir_em_conta_vinculada(self, lanc: RendimentoLancamento) -> None:
         """
-        Cria um lançamento comum em movimentacoes_mensais quando os
-        critérios em `_local_para_reflexo` são satisfeitos E o mês do
+        Cria uma movimentacao em movimentacoes_mensais com tipo='rendimento'
+        quando os critérios em `_local_para_reflexo` são satisfeitos E o mês do
         rendimento é o corrente ou futuro. A movimentação é gravada no
         MÊS SEGUINTE ao do rendimento (rendimentos geralmente caem no
         último dia do mês, então o efeito em caixa fica no próximo mês).
@@ -162,6 +162,7 @@ class RendimentosUseCases:
             conta_id=int(local["conta_vinculada_id"]),
             valor=float(lanc.valor),
             nota=self._nota_reflexo(local.get("nome", "")),
+            tipo="rendimento",
         )
         self.contas_repository.save_movimentacao(movimentacao)
 
@@ -214,6 +215,7 @@ class RendimentosUseCases:
             conta_id=int(local["conta_vinculada_id"]),
             valor=float(lanc_dict["valor"]),
             nota=self._nota_reflexo(local.get("nome", "")),
+            tipo="rendimento",
         )
 
     def definir_projecao(self, payload: dict) -> None:

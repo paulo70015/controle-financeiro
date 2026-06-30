@@ -48,6 +48,7 @@ class ContasUseCases:
             conta_id=int(payload["conta_id"]),
             valor=float(payload["valor"]),
             nota=payload.get("nota", ""),
+            tipo=payload.get("tipo", ""),
         )
         movimentacao_id = payload.get("id")
         saved_id = self.repository.save_movimentacao(

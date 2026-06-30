@@ -42,6 +42,9 @@ def init_db(connection_factory):
     # 5b. Adicionar coluna conta_vinculada_id em rendimentos_locais (idempotente).
     _migrate_rendimentos_locais_conta_vinculada(cur)
 
+    # 5c. Adicionar coluna tipo em movimentacoes_mensais (idempotente).
+    _migrate_movimentacoes_tipo(cur)
+
     # 6. Atualizar schema_version para a versão corrente (1 = schema unificado)
     _update_schema_version(cur, 1)
 
@@ -164,6 +167,7 @@ def _create_schema(cur):
         conta_id INTEGER NOT NULL,
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
+        tipo TEXT DEFAULT '',
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
     )
     cur.execute(
@@ -541,17 +545,30 @@ def _migrate_movimentacoes_multiplas(cur):
         conta_id INTEGER NOT NULL,
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
+        tipo TEXT DEFAULT '',
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
     )
     cur.execute(
-        f"""INSERT INTO movimentacoes_mensais(id,ano,mes,conta_id,valor,nota)
-        SELECT id,ano,mes,conta_id,valor,nota FROM {old}"""
+        f"""INSERT INTO movimentacoes_mensais(id,ano,mes,conta_id,valor,nota,tipo)
+        SELECT id,ano,mes,conta_id,valor,nota,COALESCE(tipo,'') FROM {old}"""
     )
     cur.execute(f"DROP TABLE {old}")
     cur.execute(
         "CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id)"
     )
     logging.info("Tabela movimentacoes_mensais migrada para múltiplos lançamentos.")
+
+
+def _migrate_movimentacoes_tipo(cur):
+    """
+    Adiciona a coluna `tipo` em movimentacoes_mensais se ela não existir.
+    Idempotente: se a coluna já existir, ignora o erro.
+    """
+    try:
+        cur.execute("ALTER TABLE movimentacoes_mensais ADD COLUMN tipo TEXT DEFAULT ''")
+        logging.info("Coluna 'tipo' adicionada em movimentacoes_mensais.")
+    except Exception:
+        pass  # Coluna já existe — ignorar
 
 
 # ---------------------------------------------------------------------------

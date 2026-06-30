@@ -126,6 +126,39 @@ class SupabaseContasRepository:
             .eq("id", deposito_id) \
             .execute()
 
+    def delete_deposito_matching(
+        self,
+        ano: int,
+        mes: int,
+        conta_id: int,
+        valor: float,
+        nota: str,
+    ) -> int:
+        """
+        Apaga UM depósito que casa exatamente com (ano, mes, conta_id, valor, nota).
+        Usada para reverter o reflexo automático de um rendimento. Se o usuário
+        editou o depósito, o match falha e nada é removido.
+        Retorna a qtd removida (0 ou 1).
+        """
+        client: Client = self.client_factory()
+        response = client.table("depositos_conta") \
+            .select("id") \
+            .eq("ano", ano) \
+            .eq("mes", mes) \
+            .eq("conta_id", conta_id) \
+            .eq("valor", valor) \
+            .eq("nota", nota or "") \
+            .order("id", desc=True) \
+            .limit(1) \
+            .execute()
+        if not response.data:
+            return 0
+        client.table("depositos_conta") \
+            .delete() \
+            .eq("id", response.data[0]["id"]) \
+            .execute()
+        return 1
+
     def get_depositos_detalhe(self, ano: int, mes: int, conta_id: int) -> list[dict]:
         """Retorna todos os depósitos de uma conta em um mês"""
         client: Client = self.client_factory()
@@ -148,7 +181,8 @@ class SupabaseContasRepository:
             "mes": movimentacao.mes,
             "conta_id": movimentacao.conta_id,
             "valor": movimentacao.valor,
-            "nota": movimentacao.nota
+            "nota": movimentacao.nota,
+            "tipo": movimentacao.tipo or ""
         }
         if movimentacao_id:
             client.table("movimentacoes_mensais") \
@@ -167,9 +201,10 @@ class SupabaseContasRepository:
         conta_id: int,
         valor: float,
         nota: str,
+        tipo: str = "",
     ) -> int:
         """
-        Apaga UMA movimentação que casa exatamente com (ano, mes, conta_id, valor, nota).
+        Apaga UMA movimentação que casa exatamente com (ano, mes, conta_id, valor, nota, tipo).
         Usada para reverter o reflexo automático de um rendimento. Se o usuário
         editou a movimentação, o match falha e nada é removido.
         """
@@ -181,6 +216,7 @@ class SupabaseContasRepository:
             .eq("conta_id", conta_id) \
             .eq("valor", valor) \
             .eq("nota", nota or "") \
+            .eq("tipo", tipo or "") \
             .order("id", desc=True) \
             .limit(1) \
             .execute()
