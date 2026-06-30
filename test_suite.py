@@ -24,8 +24,8 @@ import requests
 import json
 from datetime import datetime
 
-BASE_URL = "http://127.0.0.1:8080"
-ANO_TESTE = datetime.now().year + 5
+BASE_URL = "http://127.0.0.1:8086"
+ANO_TESTE = datetime.now().year + 10
 MES_TESTE = 12  # Dezembro (evita conflitos com dados existentes)
 
 class Colors:
@@ -387,6 +387,7 @@ if __name__ == "__main__":
     # ── Iniciar servidor Flask em modo SQLite (protege contra Supabase) ──
     env = os.environ.copy()
     env["DB_MODE"] = "sqlite"
+    env["PORT"] = "8086"
     env["FLASK_SKIP_BROWSER"] = "1"
     env["PYTHONPATH"] = os.path.dirname(os.path.abspath(__file__))
 

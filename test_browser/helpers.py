@@ -13,7 +13,7 @@ from playwright.sync_api import Page, expect
 #  Constantes de isolamento — testes operam no futuro para
 #  nunca colidirem com dados reais do usuario.
 # ═══════════════════════════════════════════════════════════════
-ANO_TESTE = datetime.datetime.now().year + 5
+ANO_TESTE = datetime.datetime.now().year + 10
 MES_TESTE = 12  # Dezembro (evita conflitos com dados existentes)
 
 DEBOUNCE_WAIT_MS = 200

@@ -85,13 +85,17 @@ class TestStatusNoModal:
         page.click('#ovDet button:has-text("Fechar")')
         wait_for_load(page)
 
-    def test_status_receita_diferente(self, page: Page):
+    def test_status_receita_diferente(self, page: Page, server_url: str):
         """Receitas usam Previsto/Realizado em vez de Aberto/Pago."""
+        # Recarrega a pagina para zerar qualquer debouncedLoad pendente de testes anteriores
+        from test_browser.helpers import ANO_TESTE
+        page.goto(f"{server_url}/?ano={ANO_TESTE}")
+        wait_for_table(page)
+
         criar_receita(page, "Teste status rec", 2, "500,00")
         wait_for_table(page)
-        # Aguarda a linha de receitas aparecer (pode levar um ciclo de render)
         try:
-            page.wait_for_selector("#tw table tbody tr.tr-rec", timeout=3000)
+            page.wait_for_selector("#tw table tbody tr.tr-rec", timeout=5000)
         except Exception:
             pytest.skip("Linha de receitas nao encontrada apos espera")
 

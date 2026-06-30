@@ -102,6 +102,8 @@ if __name__ == "__main__":
         except ImportError:
             pass
 
+    port = int(os.environ.get("PORT", 8080))
+
     if not args.show_console:
         import logging; logging.getLogger("werkzeug").setLevel(logging.ERROR)
         
@@ -110,10 +112,10 @@ if __name__ == "__main__":
         sys.stderr = null_file
         atexit.register(lambda: null_file.close())
     else:
-        print(f"\n Controle de Financas {get_version_full()} ({db_mode.upper()}) em: http://localhost:8080\n")
-    threading.Thread(target=lambda:app.run(debug=False,port=8080,use_reloader=False),daemon=True).start()
+        print(f"\n Controle de Financas {get_version_full()} ({db_mode.upper()}) em: http://localhost:{port}\n")
+    threading.Thread(target=lambda:app.run(debug=False,port=port,use_reloader=False),daemon=True).start()
     if not os.getenv("FLASK_SKIP_BROWSER"):
-        threading.Timer(1.2,lambda:webbrowser.open("http://localhost:8080")).start()
+        threading.Timer(1.2,lambda:webbrowser.open(f"http://localhost:{port}")).start()
     try:
         if args.show_console:
             input()
@@ -121,7 +123,7 @@ if __name__ == "__main__":
             import time
             start_time = time.time()
             try:
-                run_windows_tray(lambda: None)  # Tenta iniciar o ícone
+                run_windows_tray(lambda: None, app_url=f"http://localhost:{port}")  # Tenta iniciar o ícone
             except Exception as e:
                 print(f"Erro no tray: {e}")
             
