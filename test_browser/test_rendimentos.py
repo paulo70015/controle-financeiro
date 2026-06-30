@@ -227,16 +227,16 @@ class TestRendimentoPorDiferencaComAporte:
     """
     Regressao: ao usar o checkbox "lançar só a diferença em relação ao mês
     anterior" no modal ovRendLanc, o aporte do mês corrente NÃO deve ser
-    descontado do cálculo. O rendimento é em cima do saldo do mês anterior
-    (capital aplicado), não em cima de saldo + aporte do mês.
+    considerado no cálculo. O rendimento é calculado como:
+    rendimento = valorFinal - saldoMesAnterior - aporte + saque - outrosRendimentos.
 
     Cenário:
       - Local sem vínculo.
       - Jan: aporte 10.000 -> saldo Jan = 10.000.
       - Fev: aporte 2.000 (no próprio mês).
-      - Fev: lançar rendimento via "diff", informando valor final = 10.500.
-      - Esperado: rendimento = 10.500 - 10.000 = +500 (positivo).
-      - Antes do fix: rendimento = 10.500 - 10.000 - 2.000 = -1.500 (negativo).
+      - Fev: lançar rendimento via "diff", informando valor final = 12.500.
+      - Esperado: rendimento = 12.500 - 10.000 - 2.000 = +500 (positivo).
+      - Antes do fix (bug): rendimento = 12.500 - 10.000 = +2.500 (aportes ignorados).
     """
 
     def test_aporte_no_mes_nao_contamina_calculo_da_diferenca(self, page: Page):
@@ -280,16 +280,16 @@ class TestRendimentoPorDiferencaComAporte:
         linha_local.locator("td").nth(2).click()
         page.wait_for_selector("#ovRendLanc.show", timeout=3000)
 
-        # Confirma que o label do checkbox reflete o saldo do mes anterior (10.000)
+        # Confirma que o label reflete o saldo antes do rendimento (10.000 + 2.000 = 12.000)
         label = page.locator("#rendLancDiffLabel").inner_text()
-        assert "10.000,00" in label, f"Label inesperado: {label}"
+        assert "12.000,00" in label, f"Label inesperado: {label}"
 
-        # Seleciona tipo rendimento, mantem o checkbox "diff" marcado, digita 10500
+        # Seleciona tipo rendimento, mantem o checkbox "diff" marcado, digita 12500
         select_option(page, "#rendLancTipo", "rendimento")
         diff = page.locator("#rendLancDiff")
         if not diff.is_checked():
             diff.check()
-        fill_input(page, "#rendLancValor", "10500,00")
+        fill_input(page, "#rendLancValor", "12500,00")
         page.click("#ovRendLanc button:has-text('+ Lançar')")
         wait_for_load(page)
 
@@ -298,10 +298,10 @@ class TestRendimentoPorDiferencaComAporte:
         lista = page.locator("#rendLancLista").inner_text()
         # Deve haver uma linha "Rendimento: R$ 500,00" (positivo, sem sinal de menos)
         assert "Rendimento: R$ 500,00" in lista, (
-            f"Esperado rendimento positivo de 500 (=10500-10000); lista atual:\n{lista}"
+            f"Esperado rendimento positivo de 500 (=12500-10000-2000); lista atual:\n{lista}"
         )
-        assert "-R$ 1.500" not in lista, (
-            "Calculo do diff esta descontando o aporte do mes (regressao)"
+        assert "-R$ 2.500" not in lista, (
+            "Calculo do diff esta ignorando o aporte do mes (regressao)"
         )
 
         # Fecha o modal e confirma na tabela: o local deve refletir o rendimento
