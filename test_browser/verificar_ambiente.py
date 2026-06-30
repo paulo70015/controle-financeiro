@@ -23,7 +23,7 @@ from pathlib import Path
 
 
 PROJETO_RAIZ = Path(__file__).parent.parent
-PORTA = 8080
+PORTA = 8085
 BASE_URL = f"http://127.0.0.1:{PORTA}"
 
 RED = "\033[91m"

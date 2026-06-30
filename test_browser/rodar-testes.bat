@@ -53,16 +53,16 @@ if %ERRORLEVEL% NEQ 0 (
     echo   Chromium ja instalado.
 )
 
-echo.
+echo(
 echo [3/3] Executando testes em test_browser/...
-echo.
+echo(
 cd /d "%~dp0.."
-python -m pytest test_browser/ %* -v --tb=short
+python -u -m pytest test_browser/ %* -v --tb=short
 set EXIT_CODE=%ERRORLEVEL%
 cd /d "%~dp0"
 
-echo.
-if %EXIT_CODE% EQU 0 (
+echo(
+if "%EXIT_CODE%"=="0" (
     echo Todos os testes passaram!
 ) else (
     echo Alguns testes falharam (codigo: %EXIT_CODE%).

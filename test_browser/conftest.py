@@ -29,7 +29,7 @@ PROJETO_RAIZ = Path(__file__).parent.parent
 DB_REAL = PROJETO_RAIZ / "financeiro.db"
 DB_BACKUP = PROJETO_RAIZ / "financeiro.db.bak_tests"
 DB_TESTE = PROJETO_RAIZ / "test_financeiro.db"
-PORTA = 8080
+PORTA = 8085
 BASE_URL = f"http://127.0.0.1:{PORTA}"
 
 
@@ -95,6 +95,7 @@ def flask_server():
 
     env = os.environ.copy()
     env["DB_MODE"] = "sqlite"
+    env["PORT"] = str(PORTA)
     env["PYTHONPATH"] = str(PROJETO_RAIZ)
 
     # FLASK_SKIP_BROWSER evita que o app.py abra o navegador padrão
@@ -170,7 +171,7 @@ def context(browser):
 def page(context, flask_server):
     """Nova aba no navegador compartilhado, com contexto limpo a cada teste.
 
-    Navega para ANO_TESTE (ano atual + 5) para isolar dos dados reais.
+    Navega para ANO_TESTE (ano atual + 10) para isolar dos dados reais.
     """
     from test_browser.helpers import ANO_TESTE
 
@@ -188,3 +189,25 @@ def page(context, flask_server):
     yield page_obj
 
     page_obj.close()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PROGRESSO NO TÍTULO DO CONSOLE
+# ═══════════════════════════════════════════════════════════════════
+_total_testes = 0
+_testes_concluidos = 0
+
+
+def pytest_collection_modifyitems(session, config, items):
+    global _total_testes
+    _total_testes = len(items)
+
+
+def pytest_runtest_logreport(report):
+    global _testes_concluidos
+    if report.when == "call" or (report.when == "setup" and report.skipped):
+        _testes_concluidos += 1
+        if _total_testes > 0:
+            pct = int((_testes_concluidos / _total_testes) * 100)
+            sys.stdout.write(f"\x1b]0;Controle Financeiro E2E: {pct}% ({_testes_concluidos}/{_total_testes})\x07")
+            sys.stdout.flush()

@@ -84,3 +84,17 @@ Ao adicionar ou alterar fluxos de UI, considere incluir ou atualizar o teste E2E
 correspondente em `test_browser/`.
 
 Se algum teste nao puder ser executado, informe o motivo.
+
+## Isolamento de Ambiente (Testes vs Producao)
+
+- **Portas separadas**: os testes usam portas diferentes da aplicacao real.
+  - App real: `PORT` do ambiente ou `8080`.
+  - E2E (Playwright): `8085` (`conftest.py`).
+  - Unitarios (`test_suite.py`): `8086`.
+  - `app.py` respeita `os.environ.get("PORT")` — nunca hardcodar porta.
+- **Ano de teste**: `ANO_TESTE = ano_atual + 10` para evitar colisao com dados reais
+  mesmo apos multiplas execucoes acumularem registros.
+- **Licao aprendida**: antes de cacar race conditions complexas no frontend
+  (debouncedLoad, innerHTML, wait_for_function), verifique se a infra esta isolada:
+  portas, bancos e arquivos compartilhados entre ambientes sao a causa mais comum
+  de falhas intermitentes.
