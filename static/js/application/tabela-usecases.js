@@ -77,12 +77,12 @@
     const receita = receitas[mes] || 0;
     const despesas = totalDespesasMes(dados, categorias, mes, funcTotalFixas);
     const movMes = dados.movimentacoes && dados.movimentacoes[mes] ? dados.movimentacoes[mes] : null;
-    const mv = movMes
-      ? (typeof movMes.valor === 'number'
-        ? movMes.valor
-        : ((movMes.items || []).reduce((s, item) => s + (item.valor || 0), 0)))
-      : 0;
-    return receita - despesas - mv; // Movimentaçoes subtraídas (saque vira positivo no saldo)
+    const items = movMes ? (movMes.items || []) : [];
+    // Movimentações subtraídas do saldo (saque/transferência), exceto tipo 'rendimento'
+    const mv = items
+      .filter(function(item) { return item.tipo !== 'rendimento'; })
+      .reduce(function(s, item) { return s + (item.valor || 0); }, 0);
+    return receita - despesas - mv;
   }
 
   global.CFAppTabela = {

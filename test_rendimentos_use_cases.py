@@ -48,9 +48,9 @@ class _ContasRepositoryFake:
         self.movimentacoes.append(mov)
         return len(self.movimentacoes)
 
-    def delete_movimentacao_matching(self, ano, mes, conta_id, valor, nota):
+    def delete_movimentacao_matching(self, ano, mes, conta_id, valor, nota, tipo=""):
         for m in list(self.movimentacoes):
-            if (m.ano, m.mes, m.conta_id, m.valor, m.nota) == (ano, mes, conta_id, valor, nota):
+            if (m.ano, m.mes, m.conta_id, m.valor, m.nota, getattr(m, 'tipo', '')) == (ano, mes, conta_id, valor, nota, tipo):
                 self.movimentacoes.remove(m)
                 return 1
         return 0
@@ -114,6 +114,7 @@ def test_rendimento_reflete_em_conta_vinculada_no_mes_seguinte():
     assert mov.conta_id == 7
     assert mov.valor == 123.45
     assert mov.nota == "Rendimento de Nu Conta"
+    assert mov.tipo == "rendimento"
 
 
 def test_rendimento_no_passado_nao_reflete():
@@ -207,6 +208,7 @@ def test_rendimento_em_dezembro_com_ano_seguinte_existente_reflete_em_janeiro():
     assert len(contas.movimentacoes) == 1
     mov = contas.movimentacoes[0]
     assert (mov.ano, mov.mes) == (ano_rend + 1, 1)
+    assert mov.tipo == "rendimento"
 
 
 def test_rendimento_em_dezembro_sem_ano_seguinte_fica_em_dezembro():
@@ -227,6 +229,7 @@ def test_rendimento_em_dezembro_sem_ano_seguinte_fica_em_dezembro():
     assert len(contas.movimentacoes) == 1
     mov = contas.movimentacoes[0]
     assert (mov.ano, mov.mes) == (ano_rend, 12)
+    assert mov.tipo == "rendimento"
 
     # Cascata reversa tambem deve usar o mesmo destino (dezembro/mesmo ano).
     use_cases.excluir_lancamento(lid)
@@ -271,6 +274,7 @@ def test_excluir_rendimento_remove_reflexo_quando_match_exato():
     lid = use_cases.lancar({"ano": hoje.year, "mes": hoje.month, "local_id": 1,
                             "tipo": "rendimento", "valor": 100.0, "nota": ""})
     assert len(contas.movimentacoes) == 1
+    assert contas.movimentacoes[0].tipo == "rendimento"
 
     use_cases.excluir_lancamento(lid)
     assert contas.movimentacoes == []
@@ -290,7 +294,7 @@ def test_excluir_rendimento_nao_remove_se_movimentacao_foi_editada():
     mov = contas.movimentacoes[0]
     contas.movimentacoes[0] = type(mov)(
         ano=mov.ano, mes=mov.mes, conta_id=mov.conta_id,
-        valor=mov.valor, nota="Editado pelo usuário",
+        valor=mov.valor, nota="Editado pelo usuário", tipo=mov.tipo,
     )
 
     use_cases.excluir_lancamento(lid)

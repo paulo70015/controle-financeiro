@@ -23,4 +23,5 @@ class MovimentacaoMensal:
     conta_id: int
     valor: float
     nota: str = ""
+    tipo: str = ""
 

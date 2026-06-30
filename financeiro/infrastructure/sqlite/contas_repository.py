@@ -80,6 +80,36 @@ class SQLiteContasRepository:
         conn.commit()
         conn.close()
 
+    def delete_deposito_matching(
+        self,
+        ano: int,
+        mes: int,
+        conta_id: int,
+        valor: float,
+        nota: str,
+    ) -> int:
+        """
+        Apaga UM depósito que casa exatamente com (ano, mes, conta_id, valor, nota).
+        Usada para reverter o reflexo automático de um rendimento. Se o usuário
+        editou o depósito no modal de detalhes da conta, o match falha e nada
+        é removido (permanece para edição/remoção manual). Retorna a qtd
+        removida (0 ou 1).
+        """
+        conn = self.connection_factory(auto_sync=True)
+        row = conn.execute(
+            """SELECT id FROM depositos_conta
+               WHERE ano=? AND mes=? AND conta_id=? AND valor=? AND COALESCE(nota,'')=?
+               ORDER BY id DESC LIMIT 1""",
+            (ano, mes, conta_id, valor, nota or ""),
+        ).fetchone()
+        if not row:
+            conn.close()
+            return 0
+        conn.execute("DELETE FROM depositos_conta WHERE id=?", (row["id"],))
+        conn.commit()
+        conn.close()
+        return 1
+
     def get_depositos_detalhe(self, ano: int, mes: int, conta_id: int) -> list[dict]:
         conn = self.connection_factory()
         rows = [
@@ -98,7 +128,7 @@ class SQLiteContasRepository:
         if movimentacao_id:
             conn.execute(
                 """UPDATE movimentacoes_mensais
-                SET ano=?, mes=?, conta_id=?, valor=?, nota=?
+                SET ano=?, mes=?, conta_id=?, valor=?, nota=?, tipo=?
                 WHERE id=?""",
                 (
                     movimentacao.ano,
@@ -106,19 +136,21 @@ class SQLiteContasRepository:
                     movimentacao.conta_id,
                     movimentacao.valor,
                     movimentacao.nota,
+                    movimentacao.tipo or "",
                     movimentacao_id,
                 ),
             )
             saved_id = movimentacao_id
         else:
             cur = conn.execute(
-                "INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota) VALUES(?,?,?,?,?)",
+                "INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota,tipo) VALUES(?,?,?,?,?,?)",
                 (
                     movimentacao.ano,
                     movimentacao.mes,
                     movimentacao.conta_id,
                     movimentacao.valor,
                     movimentacao.nota,
+                    movimentacao.tipo or "",
                 ),
             )
             saved_id = cur.lastrowid
@@ -133,9 +165,10 @@ class SQLiteContasRepository:
         conta_id: int,
         valor: float,
         nota: str,
+        tipo: str = "",
     ) -> int:
         """
-        Apaga UMA movimentação que casa exatamente com (ano, mes, conta_id, valor, nota).
+        Apaga UMA movimentação que casa exatamente com (ano, mes, conta_id, valor, nota, tipo).
         Usada para reverter o reflexo automático de um rendimento. Se o usuário
         editou a movimentação no modal de detalhes da conta, o match falha e nada
         é removido (ela permanece para edição/remoção manual). Retorna a qtd
@@ -144,9 +177,9 @@ class SQLiteContasRepository:
         conn = self.connection_factory(auto_sync=True)
         row = conn.execute(
             """SELECT id FROM movimentacoes_mensais
-               WHERE ano=? AND mes=? AND conta_id=? AND valor=? AND COALESCE(nota,'')=?
+               WHERE ano=? AND mes=? AND conta_id=? AND valor=? AND COALESCE(nota,'')=? AND COALESCE(tipo,'')=?
                ORDER BY id DESC LIMIT 1""",
-            (ano, mes, conta_id, valor, nota or ""),
+            (ano, mes, conta_id, valor, nota or "", tipo or ""),
         ).fetchone()
         if not row:
             conn.close()
