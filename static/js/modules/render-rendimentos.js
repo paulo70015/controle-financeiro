@@ -24,7 +24,7 @@ function atualizarRendLancDiffUi() {
   boxEl.style.display = isRendimento ? 'flex' : 'none';
   if (diffEl && !rendEditandoId) diffEl.checked = isRendimento;
   if (labelEl) {
-    labelEl.textContent = `Usar valor final informado e lançar só a diferença em relação ao mês anterior (${BRL(obterValorAnteriorRendimentoLancamento())}).`;
+    labelEl.textContent = `Usar valor final informado e lançar só a diferença em relação ao saldo antes do rendimento (${BRL(obterValorAnteriorRendimentoLancamento())}).`;
   }
 }
 window.atualizarRendLancDiffUi = atualizarRendLancDiffUi;
@@ -35,7 +35,10 @@ function obterValorAnteriorRendimentoLancamento() {
   if (!localId || !mes) return 0;
 
   const { historico } = calcularSaldoAcumuladoLocal(localId, mes);
-  return historico[mes - 1]?.saldoMesAnterior || 0;
+  const mesInfo = historico[mes - 1];
+  if (!mesInfo) return 0;
+  // Saldo antes do rendimento no mês: saldo anterior + aportes - saques
+  return arred2((mesInfo.saldoMesAnterior || 0) + (mesInfo.aporte || 0) - (mesInfo.saque || 0));
 }
 
 function obterValorRendimentoPorDiferenca(localId, mes, valorFinalInformado) {
@@ -46,11 +49,13 @@ function obterValorRendimentoPorDiferenca(localId, mes, valorFinalInformado) {
   const rendimentoOriginal = rendEditandoId && rendOriginalData?.tipo === 'rendimento'
     ? parseFloat(rendOriginalData.valor || 0)
     : 0;
-  // O rendimento é calculado em relação ao saldo do mês anterior (capital aplicado),
-  // ignorando aportes/saques do mês corrente — conforme label exibido ao usuário.
+  // O valor final informado inclui saldo anterior + aportes - saques + rendimentos.
+  // Para isolar o rendimento: rendimento = valorFinal - saldoAnterior - aportes + saques - outrosRendimentos
   const saldoBase = arred2(mesInfo.saldoMesAnterior);
+  const aportes = arred2(mesInfo.aporte || 0);
+  const saques = arred2(mesInfo.saque || 0);
   const outrosRendimentos = arred2((mesInfo.qtdRend > 0 ? mesInfo.rendimento : 0) - rendimentoOriginal);
-  return arred2(valorFinalInformado - saldoBase - outrosRendimentos);
+  return arred2(valorFinalInformado - saldoBase - aportes + saques - outrosRendimentos);
 }
 
 document.addEventListener('change', function(e) {
