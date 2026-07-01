@@ -26,7 +26,7 @@ TABLES = [
     {
         "name": "categorias",
         "pk": "id",
-        "columns": ["id", "nome", "ordem", "inclui_fixas", "conta_vinculada_id", "tooltip", "ano"],
+        "columns": ["id", "nome", "ordem", "inclui_fixas", "conta_vinculada_id", "tooltip", "ano", "is_cartao"],
         "refs": {"conta_vinculada_id": "contas_correntes"},
     },
     {
@@ -81,7 +81,7 @@ TABLES = [
     {
         "name": "movimentacoes_mensais",
         "pk": "id",
-        "columns": ["id", "ano", "mes", "conta_id", "valor", "nota"],
+        "columns": ["id", "ano", "mes", "conta_id", "valor", "nota", "tipo"],
         "refs": {"conta_id": "contas_correntes"},
     },
     {

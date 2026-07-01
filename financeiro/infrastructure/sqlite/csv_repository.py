@@ -223,6 +223,15 @@ class SQLiteCSVRepository:
                 elif label == "Rendimentos":
                     modo_vertical = "rendimentos"
                     continue
+                elif label == "Receitas":
+                    modo_vertical = "receitas"
+                    continue
+                elif label == "Movimentações":
+                    modo_vertical = "movimentacoes"
+                    continue
+                elif label == "Contas Saldo Acumulado":
+                    modo_vertical = "contas"
+                    continue
 
             if modo_vertical == "fixas":
                 dia_str = row[1].strip() if len(row) > 1 else "1"
@@ -251,46 +260,128 @@ class SQLiteCSVRepository:
                 continue
 
             if modo_vertical == "rendimentos":
-                local_id = get_or_create_local_rendimento(label)
+                # Linhas podem ter formato "Local - tipo" (export com tipos separados)
+                nome_local = label
+                tipo_forcado = None
+                if " - " in label:
+                    partes = label.rsplit(" - ", 1)
+                    if partes[1] in ("aporte", "saque"):
+                        nome_local = partes[0]
+                        tipo_forcado = partes[1]
+
+                # Coluna extra após o Total pode conter nome da conta vinculada
+                conta_vinculada_nome = None
+                if len(row) > 14 and row[14].strip():
+                    conta_vinculada_nome = row[14].strip()
+
+                local_id = get_or_create_local_rendimento(nome_local)
+                if conta_vinculada_nome:
+                    conta_id = get_or_create_conta(conta_vinculada_nome)
+                    conn.execute("UPDATE rendimentos_locais SET conta_vinculada_id=? WHERE id=?", (conta_id, local_id))
+
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
                         if val is not None and val != 0:
+                            if tipo_forcado:
+                                tipo = tipo_forcado
+                            else:
+                                tipo = 'saque' if val < 0 else 'aporte'
+                            valor_abs = abs(val)
                             try:
-                                conn.execute("DELETE FROM rendimentos_lancamentos WHERE ano=? AND mes=? AND local_id=? AND tipo=?", (ano, mes, local_id, 'aporte'))
-                                conn.execute("INSERT INTO rendimentos_lancamentos (ano, mes, local_id, tipo, valor, nota) VALUES (?,?,?,?,?,?)", (ano, mes, local_id, 'aporte', val, "Importado CSV"))
+                                conn.execute("DELETE FROM rendimentos_lancamentos WHERE ano=? AND mes=? AND local_id=? AND tipo=?", (ano, mes, local_id, tipo))
+                                conn.execute("INSERT INTO rendimentos_lancamentos (ano, mes, local_id, tipo, valor, nota) VALUES (?,?,?,?,?,?)", (ano, mes, local_id, tipo, valor_abs, "Importado CSV"))
                                 importados["rendimentos"] += 1
                             except Exception as e: pass
                 continue
 
-            if not is_exported and label.lower() == "rendimento":
-                local_id = get_or_create_local_rendimento("Rendimento")
-                for col, mes in col_to_mes.items():
-                    if col < len(row):
-                        val = parse_valor(row[col])
-                        if val is not None and val != 0:
-                            try:
-                                conn.execute("DELETE FROM rendimentos_lancamentos WHERE ano=? AND mes=? AND local_id=? AND tipo=?", (ano, mes, local_id, 'aporte'))
-                                conn.execute("INSERT INTO rendimentos_lancamentos (ano, mes, local_id, tipo, valor, nota) VALUES (?,?,?,?,?,?)", (ano, mes, local_id, 'aporte', val, "Importado CSV"))
-                                importados["rendimentos"] += 1
-                            except Exception as e: pass
-                continue
-
-            if label.lower() == "nubank" or label.lower() == "movimentacao":
+            if modo_vertical == "receitas":
+                # Label é ignorado — usamos "Receitas" como descrição
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
                         if val is not None and val != 0:
                             try:
                                 conn.execute(
-                                    "INSERT INTO movimentacoes_mensais (ano, mes, valor, nota) VALUES (?,?,?,?)",
-                                    (ano, mes, val, "Importado CSV"),
+                                    "INSERT INTO receitas (ano, mes, descricao, valor, nota) VALUES (?,?,?,?,?)",
+                                    (ano, mes, "Receitas", val, "Importado CSV"),
+                                )
+                            except Exception as e:
+                                erros.append("Receita mes %d: %s" % (mes, str(e)))
+                continue
+
+            if modo_vertical == "movimentacoes":
+                conta_id = get_or_create_conta(label)
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None and val != 0:
+                            try:
+                                conn.execute(
+                                    "INSERT INTO movimentacoes_mensais (ano, mes, conta_id, valor, nota, tipo) VALUES (?,?,?,?,?,?)",
+                                    (ano, mes, conta_id, val, "Importado CSV", ""),
                                 )
                                 importados["movimentacoes"] += 1
                             except Exception as e:
                                 erros.append("Mov mes %d: %s" % (mes, str(e)))
                 continue
-            if label.lower() in ("nuconta", "nu conta", "conta", "contas saldo acumulado"):
+
+            if modo_vertical == "contas":
+                conta_id = get_or_create_conta(label)
+                saldos_mes = {}
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None:
+                            saldos_mes[mes] = val
+                meses_ord = sorted(saldos_mes.keys())
+                for i, mes in enumerate(meses_ord):
+                    saldo_atual = saldos_mes[mes]
+                    saldo_anterior = saldos_mes[meses_ord[i - 1]] if i > 0 else 0
+                    delta = round(saldo_atual - saldo_anterior, 2)
+                    if delta != 0:
+                        try:
+                            conn.execute(
+                                "INSERT INTO depositos_conta (ano, mes, conta_id, valor, nota) VALUES (?,?,?,?,?)",
+                                (ano, mes, conta_id, delta, "Importado CSV"),
+                            )
+                            importados["depositos"] += 1
+                        except Exception as e:
+                            erros.append("Conta %s mes %d: %s" % (label, mes, str(e)))
+                continue
+
+            # -- Fallbacks para CSVs não-exportados (formato legado) --
+            if not is_exported and label.lower() == "rendimento":
+                local_id = get_or_create_local_rendimento("Rendimento")
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None and val != 0:
+                            tipo = 'saque' if val < 0 else 'aporte'
+                            valor_abs = abs(val)
+                            try:
+                                conn.execute("DELETE FROM rendimentos_lancamentos WHERE ano=? AND mes=? AND local_id=? AND tipo=?", (ano, mes, local_id, tipo))
+                                conn.execute("INSERT INTO rendimentos_lancamentos (ano, mes, local_id, tipo, valor, nota) VALUES (?,?,?,?,?,?)", (ano, mes, local_id, tipo, valor_abs, "Importado CSV"))
+                                importados["rendimentos"] += 1
+                            except Exception as e: pass
+                continue
+
+            if not is_exported and (label.lower() == "nubank" or label.lower() == "movimentacao"):
+                conta_id = get_or_create_conta("NuConta")
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None and val != 0:
+                            try:
+                                conn.execute(
+                                    "INSERT INTO movimentacoes_mensais (ano, mes, conta_id, valor, nota, tipo) VALUES (?,?,?,?,?,?)",
+                                    (ano, mes, conta_id, val, "Importado CSV", ""),
+                                )
+                                importados["movimentacoes"] += 1
+                            except Exception as e:
+                                erros.append("Mov mes %d: %s" % (mes, str(e)))
+                continue
+            if not is_exported and label.lower() in ("nuconta", "nu conta", "conta", "contas saldo acumulado"):
                 conta_id = get_or_create_conta("NuConta")
                 saldos_mes = {}
                 for col, mes in col_to_mes.items():
@@ -314,7 +405,7 @@ class SQLiteCSVRepository:
                             erros.append("NuConta mes %d: %s" % (mes, str(e)))
                 continue
 
-            if "receitas" in label.lower() or "salario" in label.lower():
+            if not is_exported and ("receitas" in label.lower() or "salario" in label.lower()):
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
@@ -390,22 +481,59 @@ class SQLiteCSVRepository:
         rend_locais = [
             dict(r)
             for r in conn.execute(
-                "SELECT id,nome,ordem FROM rendimentos_locais WHERE ano=? ORDER BY ordem,id",
+                """SELECT rl.id, rl.nome, rl.ordem, rl.conta_vinculada_id,
+                   cc.nome as conta_vinculada_nome
+                FROM rendimentos_locais rl
+                LEFT JOIN contas_correntes cc ON cc.id = rl.conta_vinculada_id
+                WHERE rl.ano=? ORDER BY rl.ordem, rl.id""",
                 (ano,),
             ).fetchall()
         ]
         rend_rows = conn.execute(
             """
-            SELECT mes,local_id,SUM(valor) as total
+            SELECT mes,local_id,tipo,SUM(valor) as total
             FROM rendimentos_lancamentos
             WHERE ano=?
-            GROUP BY mes,local_id
+            GROUP BY mes,local_id,tipo
             """,
             (ano,),
         ).fetchall()
-        rendimentos = {}
+        rendimentos = {}  # chave: (local_id, tipo) -> {mes: total}
+        rend_tipos_por_local = {}  # chave: local_id -> set de tipos
         for r in rend_rows:
-            rendimentos.setdefault(r["local_id"], {})[r["mes"]] = float(r["total"] or 0)
+            key = (r["local_id"], r["tipo"])
+            rendimentos.setdefault(key, {})[r["mes"]] = float(r["total"] or 0)
+            rend_tipos_por_local.setdefault(r["local_id"], set()).add(r["tipo"])
+        # Movimentações mensais (agrupadas por conta e mês)
+        mov_rows = conn.execute(
+            """
+            SELECT m.mes, m.conta_id, cc.nome as conta_nome, SUM(m.valor) as total
+            FROM movimentacoes_mensais m
+            JOIN contas_correntes cc ON cc.id = m.conta_id
+            WHERE m.ano=?
+            GROUP BY m.mes, m.conta_id
+            ORDER BY cc.nome, m.mes
+            """,
+            (ano,),
+        ).fetchall()
+        movimentacoes = {}  # chave: conta_nome -> {mes: total}
+        for r in mov_rows:
+            movimentacoes.setdefault(r["conta_nome"], {})[r["mes"]] = float(r["total"] or 0)
+        # Depósitos / saldo acumulado por conta
+        dep_rows = conn.execute(
+            """
+            SELECT d.mes, d.conta_id, cc.nome as conta_nome, SUM(d.valor) as total
+            FROM depositos_conta d
+            JOIN contas_correntes cc ON cc.id = d.conta_id
+            WHERE d.ano=?
+            GROUP BY d.mes, d.conta_id
+            ORDER BY cc.nome, d.mes
+            """,
+            (ano,),
+        ).fetchall()
+        depositos = {}  # chave: conta_nome -> {mes: delta}
+        for r in dep_rows:
+            depositos.setdefault(r["conta_nome"], {})[r["mes"]] = float(r["total"] or 0)
         fixas_excecoes = {
             f"{r['cat_id']}_{r['mes']}": True
             for r in conn.execute("SELECT mes, cat_id FROM fixas_excecoes WHERE ano=?", (ano,)).fetchall()
@@ -457,19 +585,78 @@ class SQLiteCSVRepository:
             writer.writerow([mt["descricao"], _brl(mt.get("valor", 0)), mt.get("ano_meta", ""), status] + [""] * 10)
 
         writer.writerow([""] * 14)
-        writer.writerow(["Rendimentos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+        writer.writerow(["Receitas", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+        row_rec = ["Receitas"]
+        total_rec = 0
+        for m in range(1, 13):
+            v = receitas.get(m, 0) or 0
+            total_rec += v
+            row_rec.append(_brl(v) if v else "")
+        row_rec.append(_brl(total_rec))
+        writer.writerow(row_rec)
+
+        writer.writerow([""] * 14)
+        writer.writerow(["Rendimentos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total", "Conta Vinculada"])
         for rl in rend_locais:
-            row = [rl["nome"]]
-            total_linha = 0
-            for m in range(1, 13):
-                soma = float((rendimentos.get(rl["id"], {}) or {}).get(m, 0) or 0)
-                total_linha += soma
-                if soma:
-                    row.append(_brl(soma))
-                else:
-                    row.append("")
-            row.append(_brl(total_linha))
-            writer.writerow(row)
+            conta_vinculada_nome = rl.get("conta_vinculada_nome") or ""
+            tipos = sorted(rend_tipos_por_local.get(rl["id"], set()))
+            if not tipos:
+                # Local sem lançamentos: exporta linha vazia com nome
+                row = [rl["nome"]] + [""] * 13 + [conta_vinculada_nome]
+                writer.writerow(row)
+            elif len(tipos) == 1:
+                # Um único tipo: exporta sem sufixo (compatível com versões anteriores)
+                tipo_unico = tipos[0]
+                row = [rl["nome"]]
+                total_linha = 0.0
+                for m in range(1, 13):
+                    v = float((rendimentos.get((rl["id"], tipo_unico), {}) or {}).get(m, 0) or 0)
+                    total_linha += v
+                    row.append(_brl(v) if v != 0 else "")
+                row.append(_brl(total_linha))
+                row.append(conta_vinculada_nome)
+                writer.writerow(row)
+            else:
+                # Múltiplos tipos: uma linha por tipo com sufixo " - tipo"
+                for tipo in tipos:
+                    sub_row = [f"{rl['nome']} - {tipo}"]
+                    sub_total = 0.0
+                    for m in range(1, 13):
+                        v = float((rendimentos.get((rl["id"], tipo), {}) or {}).get(m, 0) or 0)
+                        sub_total += v
+                        sub_row.append(_brl(v) if v != 0 else "")
+                    sub_row.append(_brl(sub_total))
+                    # Conta vinculada só na primeira linha do grupo
+                    sub_row.append(conta_vinculada_nome if tipo == tipos[0] else "")
+                    writer.writerow(sub_row)
+
+        # Movimentações Mensais (por conta)
+        if movimentacoes:
+            writer.writerow([""] * 14)
+            writer.writerow(["Movimentações", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+            for conta_nome in sorted(movimentacoes.keys()):
+                row = [conta_nome]
+                total_linha = 0
+                for m in range(1, 13):
+                    v = movimentacoes[conta_nome].get(m, 0) or 0
+                    total_linha += v
+                    row.append(_brl(v) if v != 0 else "")
+                row.append(_brl(total_linha))
+                writer.writerow(row)
+
+        # Depósitos / Contas — Saldo Acumulado
+        if depositos:
+            writer.writerow([""] * 14)
+            writer.writerow(["Contas Saldo Acumulado", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+            for conta_nome in sorted(depositos.keys()):
+                row = [conta_nome]
+                saldo_acumulado = 0.0
+                for m in range(1, 13):
+                    delta = depositos[conta_nome].get(m, 0) or 0
+                    saldo_acumulado += delta
+                    row.append(_brl(saldo_acumulado))
+                row.append("")
+                writer.writerow(row)
 
         csv_bytes = ("\ufeff" + out.getvalue()).encode("utf-8")
         headers = {

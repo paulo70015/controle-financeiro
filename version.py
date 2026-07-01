@@ -6,7 +6,7 @@ import re
 import sys
 
 # Versão base do sistema (alterada pela skill de commit conforme o impacto)
-VERSION_BASE = "2.2.1"
+VERSION_BASE = "2.3.0"
 
 # Caminho do arquivo BUILD_NUMBER (mesmo diretório que este módulo)
 _BUILD_DIR = os.path.dirname(os.path.abspath(__file__))
