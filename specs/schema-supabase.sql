@@ -229,6 +229,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_mensais (
     conta_id INTEGER NOT NULL,
     valor NUMERIC(10,2) NOT NULL DEFAULT 0,
     nota TEXT DEFAULT '',
+    tipo TEXT DEFAULT '',
     FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
     FOREIGN KEY (conta_id) REFERENCES contas_correntes(id) ON DELETE CASCADE
 );
@@ -245,7 +246,9 @@ CREATE TABLE IF NOT EXISTS rendimentos_locais (
     nome TEXT NOT NULL,
     ordem INTEGER DEFAULT 0,
     projecao_taxa NUMERIC(5,2) DEFAULT NULL,
-    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE
+    conta_vinculada_id INTEGER DEFAULT NULL,
+    FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
+    FOREIGN KEY (conta_vinculada_id) REFERENCES contas_correntes(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_rendimentos_locais_ano ON rendimentos_locais(ano);

@@ -54,6 +54,8 @@ Apos alteracoes relevantes, rodar os testes aplicaveis:
 ### Testes unitarios / integracao
 - `python test_suite.py`
 - `python test_sqlite_mode.py`
+- `python test_csv.py`          (importacao/exportacao CSV — blocos, tipos, roundtrip)
+- `python test_db_backup.py`    (backup/restore BD — export .db, roundtrip, colunas novas)
 - `python test_dependencies_compatibility.py`
 
 ### Testes E2E com Playwright

@@ -219,6 +219,15 @@ class SupabaseCSVRepository:
                 elif label == "Rendimentos":
                     modo_vertical = "rendimentos"
                     continue
+                elif label == "Receitas":
+                    modo_vertical = "receitas"
+                    continue
+                elif label == "Movimentações":
+                    modo_vertical = "movimentacoes"
+                    continue
+                elif label == "Contas Saldo Acumulado":
+                    modo_vertical = "contas"
+                    continue
 
             if modo_vertical == "fixas":
                 dia_str = row[1].strip() if len(row) > 1 else "1"
@@ -260,19 +269,42 @@ class SupabaseCSVRepository:
                 continue
 
             if modo_vertical == "rendimentos":
-                local_id = get_or_create_local_rendimento(label)
+                # Linhas podem ter formato "Local - tipo" (export com tipos separados)
+                nome_local = label
+                tipo_forcado = None
+                if " - " in label:
+                    partes = label.rsplit(" - ", 1)
+                    if partes[1] in ("aporte", "saque"):
+                        nome_local = partes[0]
+                        tipo_forcado = partes[1]
+
+                # Coluna extra após o Total pode conter nome da conta vinculada
+                conta_vinculada_nome = None
+                if len(row) > 14 and row[14].strip():
+                    conta_vinculada_nome = row[14].strip()
+
+                local_id = get_or_create_local_rendimento(nome_local)
+                if conta_vinculada_nome:
+                    conta_id = get_or_create_conta(conta_vinculada_nome)
+                    client.table("rendimentos_locais").update({"conta_vinculada_id": conta_id}).eq("id", local_id).execute()
+
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
                         if val is not None and val != 0:
+                            if tipo_forcado:
+                                tipo = tipo_forcado
+                            else:
+                                tipo = 'saque' if val < 0 else 'aporte'
+                            valor_abs = abs(val)
                             try:
-                                client.table("rendimentos_lancamentos").delete().eq("ano", ano).eq("mes", mes).eq("local_id", local_id).eq("tipo", "aporte").execute()
+                                client.table("rendimentos_lancamentos").delete().eq("ano", ano).eq("mes", mes).eq("local_id", local_id).eq("tipo", tipo).execute()
                                 client.table("rendimentos_lancamentos").insert({
                                     "ano": ano,
                                     "mes": mes,
                                     "local_id": local_id,
-                                    "tipo": "aporte",
-                                    "valor": val,
+                                    "tipo": tipo,
+                                    "valor": valor_abs,
                                     "nota": "Importado CSV"
                                 }).execute()
                                 importados["rendimentos"] += 1
@@ -280,28 +312,26 @@ class SupabaseCSVRepository:
                                 pass
                 continue
 
-            if not is_exported and label.lower() == "rendimento":
-                local_id = get_or_create_local_rendimento("Rendimento")
+            if modo_vertical == "receitas":
+                # Label é ignorado — usamos "Receitas" como descrição
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
                         if val is not None and val != 0:
                             try:
-                                client.table("rendimentos_lancamentos").delete().eq("ano", ano).eq("mes", mes).eq("local_id", local_id).eq("tipo", "aporte").execute()
-                                client.table("rendimentos_lancamentos").insert({
+                                client.table("receitas").insert({
                                     "ano": ano,
                                     "mes": mes,
-                                    "local_id": local_id,
-                                    "tipo": "aporte",
+                                    "descricao": "Receitas",
                                     "valor": val,
                                     "nota": "Importado CSV"
                                 }).execute()
-                                importados["rendimentos"] += 1
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                erros.append(f"Receita mes {mes}: {str(e)}")
                 continue
 
-            if label.lower() in ("nubank", "movimentacao"):
+            if modo_vertical == "movimentacoes":
+                conta_id = get_or_create_conta(label)
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
@@ -310,15 +340,88 @@ class SupabaseCSVRepository:
                                 client.table("movimentacoes_mensais").insert({
                                     "ano": ano,
                                     "mes": mes,
+                                    "conta_id": conta_id,
                                     "valor": val,
-                                    "nota": "Importado CSV"
+                                    "nota": "Importado CSV",
+                                    "tipo": ""
                                 }).execute()
                                 importados["movimentacoes"] += 1
                             except Exception as e:
                                 erros.append(f"Mov mes {mes}: {str(e)}")
                 continue
 
-            if label.lower() in ("nuconta", "nu conta", "conta", "contas saldo acumulado"):
+            if modo_vertical == "contas":
+                conta_id = get_or_create_conta(label)
+                saldos_mes = {}
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None:
+                            saldos_mes[mes] = val
+                meses_ord = sorted(saldos_mes.keys())
+                for i, mes in enumerate(meses_ord):
+                    saldo_atual = saldos_mes[mes]
+                    saldo_anterior = saldos_mes[meses_ord[i - 1]] if i > 0 else 0
+                    delta = round(saldo_atual - saldo_anterior, 2)
+                    if delta != 0:
+                        try:
+                            client.table("depositos_conta").insert({
+                                "ano": ano,
+                                "mes": mes,
+                                "conta_id": conta_id,
+                                "valor": delta,
+                                "nota": "Importado CSV"
+                            }).execute()
+                            importados["depositos"] += 1
+                        except Exception as e:
+                            erros.append(f"Conta {label} mes {mes}: {str(e)}")
+                continue
+
+            # -- Fallbacks para CSVs não-exportados (formato legado) --
+            if not is_exported and label.lower() == "rendimento":
+                local_id = get_or_create_local_rendimento("Rendimento")
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None and val != 0:
+                            tipo = 'saque' if val < 0 else 'aporte'
+                            valor_abs = abs(val)
+                            try:
+                                client.table("rendimentos_lancamentos").delete().eq("ano", ano).eq("mes", mes).eq("local_id", local_id).eq("tipo", tipo).execute()
+                                client.table("rendimentos_lancamentos").insert({
+                                    "ano": ano,
+                                    "mes": mes,
+                                    "local_id": local_id,
+                                    "tipo": tipo,
+                                    "valor": valor_abs,
+                                    "nota": "Importado CSV"
+                                }).execute()
+                                importados["rendimentos"] += 1
+                            except Exception:
+                                pass
+                continue
+
+            if not is_exported and label.lower() in ("nubank", "movimentacao"):
+                conta_id = get_or_create_conta("NuConta")
+                for col, mes in col_to_mes.items():
+                    if col < len(row):
+                        val = parse_valor(row[col])
+                        if val is not None and val != 0:
+                            try:
+                                client.table("movimentacoes_mensais").insert({
+                                    "ano": ano,
+                                    "mes": mes,
+                                    "conta_id": conta_id,
+                                    "valor": val,
+                                    "nota": "Importado CSV",
+                                    "tipo": ""
+                                }).execute()
+                                importados["movimentacoes"] += 1
+                            except Exception as e:
+                                erros.append(f"Mov mes {mes}: {str(e)}")
+                continue
+
+            if not is_exported and label.lower() in ("nuconta", "nu conta", "conta", "contas saldo acumulado"):
                 conta_id = get_or_create_conta("NuConta")
                 saldos_mes = {}
                 for col, mes in col_to_mes.items():
@@ -345,7 +448,7 @@ class SupabaseCSVRepository:
                             erros.append(f"NuConta mes {mes}: {str(e)}")
                 continue
 
-            if "receitas" in label.lower() or "salario" in label.lower():
+            if not is_exported and ("receitas" in label.lower() or "salario" in label.lower()):
                 for col, mes in col_to_mes.items():
                     if col < len(row):
                         val = parse_valor(row[col])
@@ -425,19 +528,58 @@ class SupabaseCSVRepository:
         metas_response = client.table("metas").select("*").lte("ano_criacao", ano).gte("ano_meta", ano).order("concluida").order("ano_meta").execute()
         metas = metas_response.data
         
-        # Rendimentos - locais
-        rend_locais_response = client.table("rendimentos_locais").select("id, nome, ordem").eq("ano", ano).order("ordem").order("id").execute()
+        # Rendimentos - locais (com conta vinculada)
+        rend_locais_response = client.table("rendimentos_locais").select("id, nome, ordem, conta_vinculada_id").eq("ano", ano).order("ordem").order("id").execute()
         rend_locais = rend_locais_response.data
+        # Resolver nomes das contas vinculadas
+        for rl in rend_locais:
+            if rl.get("conta_vinculada_id"):
+                cc_response = client.table("contas_correntes").select("nome").eq("id", rl["conta_vinculada_id"]).execute()
+                rl["conta_vinculada_nome"] = cc_response.data[0]["nome"] if cc_response.data else ""
+            else:
+                rl["conta_vinculada_nome"] = ""
         
-        # Rendimentos - lançamentos agregados
-        rend_response = client.table("rendimentos_lancamentos").select("mes, local_id, valor").eq("ano", ano).execute()
-        rendimentos = {}
+        # Rendimentos - lançamentos agregados por tipo
+        rend_response = client.table("rendimentos_lancamentos").select("mes, local_id, tipo, valor").eq("ano", ano).execute()
+        rendimentos = {}  # chave: (local_id, tipo) -> {mes: total}
+        rend_tipos_por_local = {}  # chave: local_id -> set de tipos
         for r in rend_response.data:
             local_id = r["local_id"]
-            mes = r["mes"]
-            if local_id not in rendimentos:
-                rendimentos[local_id] = {}
-            rendimentos[local_id][mes] = rendimentos[local_id].get(mes, 0) + r["valor"]
+            tipo = r.get("tipo", "aporte")
+            key = (local_id, tipo)
+            if key not in rendimentos:
+                rendimentos[key] = {}
+            rendimentos[key][r["mes"]] = rendimentos[key].get(r["mes"], 0) + r["valor"]
+            if local_id not in rend_tipos_por_local:
+                rend_tipos_por_local[local_id] = set()
+            rend_tipos_por_local[local_id].add(tipo)
+        
+        # Movimentações mensais
+        mov_response = client.table("movimentacoes_mensais").select("mes, conta_id, valor").eq("ano", ano).execute()
+        movimentacoes = {}  # chave: conta_id -> {mes: total}
+        contas_mov = {}  # cache conta_id -> nome
+        for r in mov_response.data:
+            cid = r["conta_id"]
+            if cid not in contas_mov:
+                cc = client.table("contas_correntes").select("nome").eq("id", cid).execute()
+                contas_mov[cid] = cc.data[0]["nome"] if cc.data else f"Conta {cid}"
+            nome = contas_mov[cid]
+            if nome not in movimentacoes:
+                movimentacoes[nome] = {}
+            movimentacoes[nome][r["mes"]] = movimentacoes[nome].get(r["mes"], 0) + r["valor"]
+        
+        # Depósitos / saldo acumulado por conta
+        dep_response = client.table("depositos_conta").select("mes, conta_id, valor").eq("ano", ano).execute()
+        depositos = {}  # chave: conta_nome -> {mes: delta}
+        for r in dep_response.data:
+            cid = r["conta_id"]
+            if cid not in contas_mov:
+                cc = client.table("contas_correntes").select("nome").eq("id", cid).execute()
+                contas_mov[cid] = cc.data[0]["nome"] if cc.data else f"Conta {cid}"
+            nome = contas_mov[cid]
+            if nome not in depositos:
+                depositos[nome] = {}
+            depositos[nome][r["mes"]] = depositos[nome].get(r["mes"], 0) + r["valor"]
         
         # Exceções de fixas
         fixas_excecoes_response = client.table("fixas_excecoes").select("mes, cat_id").eq("ano", ano).execute()
@@ -488,16 +630,78 @@ class SupabaseCSVRepository:
             writer.writerow([mt["descricao"], _brl(mt.get("valor", 0)), mt.get("ano_meta", ""), status] + [""] * 10)
 
         writer.writerow([""] * 14)
-        writer.writerow(["Rendimentos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+        writer.writerow(["Receitas", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+        row_rec = ["Receitas"]
+        total_rec = 0
+        for m in range(1, 13):
+            v = receitas.get(m, 0) or 0
+            total_rec += v
+            row_rec.append(_brl(v) if v else "")
+        row_rec.append(_brl(total_rec))
+        writer.writerow(row_rec)
+
+        writer.writerow([""] * 14)
+        writer.writerow(["Rendimentos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total", "Conta Vinculada"])
         for rl in rend_locais:
-            row = [rl["nome"]]
-            total_linha = 0
-            for m in range(1, 13):
-                soma = float(rendimentos.get(rl["id"], {}).get(m, 0) or 0)
-                total_linha += soma
-                row.append(_brl(soma) if soma else "")
-            row.append(_brl(total_linha))
-            writer.writerow(row)
+            conta_vinculada_nome = rl.get("conta_vinculada_nome") or ""
+            tipos = sorted(rend_tipos_por_local.get(rl["id"], set()))
+            if not tipos:
+                # Local sem lançamentos: exporta linha vazia com nome
+                row = [rl["nome"]] + [""] * 13 + [conta_vinculada_nome]
+                writer.writerow(row)
+            elif len(tipos) == 1:
+                # Um único tipo: exporta sem sufixo (compatível com versões anteriores)
+                tipo_unico = tipos[0]
+                row = [rl["nome"]]
+                total_linha = 0.0
+                for m in range(1, 13):
+                    v = float((rendimentos.get((rl["id"], tipo_unico), {}) or {}).get(m, 0) or 0)
+                    total_linha += v
+                    row.append(_brl(v) if v != 0 else "")
+                row.append(_brl(total_linha))
+                row.append(conta_vinculada_nome)
+                writer.writerow(row)
+            else:
+                # Múltiplos tipos: uma linha por tipo com sufixo " - tipo"
+                for tipo in tipos:
+                    sub_row = [f"{rl['nome']} - {tipo}"]
+                    sub_total = 0.0
+                    for m in range(1, 13):
+                        v = float((rendimentos.get((rl["id"], tipo), {}) or {}).get(m, 0) or 0)
+                        sub_total += v
+                        sub_row.append(_brl(v) if v != 0 else "")
+                    sub_row.append(_brl(sub_total))
+                    # Conta vinculada só na primeira linha do grupo
+                    sub_row.append(conta_vinculada_nome if tipo == tipos[0] else "")
+                    writer.writerow(sub_row)
+
+        # Movimentações Mensais (por conta)
+        if movimentacoes:
+            writer.writerow([""] * 14)
+            writer.writerow(["Movimentações", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+            for conta_nome in sorted(movimentacoes.keys()):
+                row = [conta_nome]
+                total_linha = 0
+                for m in range(1, 13):
+                    v = movimentacoes[conta_nome].get(m, 0) or 0
+                    total_linha += v
+                    row.append(_brl(v) if v != 0 else "")
+                row.append(_brl(total_linha))
+                writer.writerow(row)
+
+        # Depósitos / Contas — Saldo Acumulado
+        if depositos:
+            writer.writerow([""] * 14)
+            writer.writerow(["Contas Saldo Acumulado", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
+            for conta_nome in sorted(depositos.keys()):
+                row = [conta_nome]
+                saldo_acumulado = 0.0
+                for m in range(1, 13):
+                    delta = depositos[conta_nome].get(m, 0) or 0
+                    saldo_acumulado += delta
+                    row.append(_brl(saldo_acumulado))
+                row.append("")
+                writer.writerow(row)
 
         csv_bytes = ("\ufeff" + out.getvalue()).encode("utf-8")
         headers = {
