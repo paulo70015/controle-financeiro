@@ -559,7 +559,7 @@ tr.tr-rend-total td { background: var(--bg-linha-rend-total); font-weight: 700; 
 }
 
 .vc:hover { background: var(--bg-hover); }
-.vc.nota { text-align: left; }
+.vc.nota { text-align: right; }
 .vc.vz { color: var(--text-muted); font-size: 12px; text-align: center; }
 .vc.vz:hover { background: var(--bg-hover); color: var(--primary); }
 

@@ -41,5 +41,6 @@ ENV/
 .vscode/
 .idea/
 .kiro/
+reasonix.toml
 specs/dados-supabase.sql
 .env_embutido
