@@ -3,7 +3,7 @@ name: Keep Supabase Alive
 on:
   schedule:
     # Run at midnight (0 0 * *) on Sunday (0) and Friday(5)
-    - cron: '0 0 * * 0,5'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 jobs:
