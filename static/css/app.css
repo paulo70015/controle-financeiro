@@ -41,12 +41,12 @@
   /* === Linhas da Tabela === */
   --bg-linha-conta: #EEF2FF;
   --bg-linha-mov: #FFFBEB;
-  --bg-linha-rec: #ECFDF5;
+  --bg-linha-rec: #D1FAE5;
   --bg-linha-saldo: #FEFCE8;
   --bg-linha-total-contas: #DBEAFE;
   --bg-linha-total-desp: #FEF2F2;
   --txt-linha-total-desp: #EF4444;
-  --bg-linha-rend-aportes: #ECFDF5;
+  --bg-linha-rend-aportes: #D1FAE5;
   --bg-linha-rend-rend: #FFFBEB;
   --bg-linha-rend-total: #EEF2FF;
 
@@ -54,9 +54,9 @@
   --bg-st1: #FFFBEB;
   --txt-st1: #D97706;
   --borda-st1: #FDE68A;
-  --bg-st2: #ECFDF5;
-  --txt-st2: #059669;
-  --borda-st2: #A7F3D0;
+  --bg-st2: #D1FAE5;
+  --txt-st2: #047857;
+  --borda-st2: #6EE7B7;
 
   /* === Tipografia Genesis === */
   --font-display: 'General Sans', -apple-system, sans-serif;
@@ -92,22 +92,22 @@ html.dark-mode {
 
   --bg-linha-conta: #172554;
   --bg-linha-mov: #422006;
-  --bg-linha-rec: #052E16;
+  --bg-linha-rec: #064E3B;
   --bg-linha-saldo: #422006;
   --bg-linha-total-contas: #1E3A5F;
   --bg-linha-total-desp: #450A0A;
   --txt-linha-total-desp: #FCA5A5;
-  --bg-linha-rend-aportes: #052E16;
+  --bg-linha-rend-aportes: #064E3B;
   --bg-linha-rend-rend: #422006;
   --bg-linha-rend-total: #172554;
 
   --bg-st1: #422006;
   --txt-st1: #FBBF24;
   --borda-st1: #78350F;
-  --bg-st2: #052E16;
-  --txt-st2: #34D399;
-  --borda-st2: #064E3B;
-  --verde: #34D399;
+  --bg-st2: #064E3B;
+  --txt-st2: #6EE7B7;
+  --borda-st2: #047857;
+  --verde: #6EE7B7;
 }
 
 * {

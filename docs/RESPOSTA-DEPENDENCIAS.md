@@ -202,7 +202,7 @@ postgrest>=0.15.1,<1.0.0
 
 Você pode:
 - ✅ Continuar desenvolvendo normalmente
-- ✅ Fazer builds com `construir.bat --com-sqlite`
+- ✅ Fazer builds com `scripts\construir.bat --com-sqlite`
 - ✅ Usar Python 3.14+ sem problemas
 
 Se quiser atualizar dependências no futuro, use o teste criado para validar.

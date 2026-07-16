@@ -73,7 +73,7 @@ python app.py --show-console
 
 ```bash
 # Gerar executável com SQLite embutido
-construir.bat --com-sqlite
+scripts\construir.bat --com-sqlite
 ```
 
 O executável gerado:
@@ -114,5 +114,5 @@ financeiro/
 - `financeiro/infrastructure/runtime/paths.py` - Helper de paths (NOVO)
 - `financeiro/infrastructure/repository_factory.py` - Factory de repositórios
 - `.env.sqlite` - Configuração para modo SQLite
-- `construir.bat` - Script de build com opção `--com-sqlite`
+- `scripts\construir.bat` - Script de build com opção `--com-sqlite`
 - `test_sqlite_mode.py` - Teste de integridade (NOVO)

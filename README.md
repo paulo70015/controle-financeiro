@@ -6,10 +6,10 @@ Aplicativo de controle financeiro pessoal com interface web moderna.
 
 ```bash
 # Windows
-iniciar_log.bat
+scripts\iniciar_log.bat
 
 # Linux/Mac
-./iniciar_log.sh
+./scripts/iniciar_log.sh
 ```
 
 ## 📚 Documentação
@@ -26,13 +26,13 @@ Toda a documentação está organizada na pasta [`docs/`](docs/):
 
 ```bash
 # Standalone SQLite (recomendado para compartilhar)
-construir.bat --com-sqlite
+scripts\construir.bat --com-sqlite
 
 # Supabase vazio (cada um cria conta)
-construir.bat --com-env-vazio
+scripts\construir.bat --com-env-vazio
 
 # Pessoal (suas credenciais - não compartilhe)
-construir.bat --com-env
+scripts\construir.bat --com-env
 ```
 
 Veja [docs/DISTRIBUICAO.md](docs/DISTRIBUICAO.md) para mais detalhes.

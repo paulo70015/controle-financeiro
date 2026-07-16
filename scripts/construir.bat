@@ -1,6 +1,6 @@
 @echo off
 title Controle Financeiro - Construtor Windows
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 set "PYTHON_CMD=python"
 

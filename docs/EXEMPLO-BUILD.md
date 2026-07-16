@@ -3,7 +3,7 @@
 ## Executando sem parâmetros (mostra ajuda)
 
 ```bash
-C:\projeto> construir.bat
+C:\projeto> scripts\construir.bat
 
 ============================================
  Controle Financeiro - Gerador de Executavel
@@ -14,18 +14,18 @@ ERRO: Parametro obrigatorio nao fornecido!
 
 Escolha um modo de build:
 
-  construir.bat --com-sqlite
+  scripts\construir.bat --com-sqlite
     > Modo STANDALONE com SQLite local
     > Funciona imediatamente, sem configuracao
     > Ideal para compartilhar
     > Cada usuario tem seu proprio banco local
 
-  construir.bat --com-env-vazio
+  scripts\construir.bat --com-env-vazio
     > Modo Supabase SEM credenciais
     > Usuario precisa criar .env com suas credenciais
     > Ideal para compartilhar quando quer que cada um use seu Supabase
 
-  construir.bat --com-env
+  scripts\construir.bat --com-env
     > Modo Supabase COM suas credenciais embutidas
     > NAO compartilhe - acessa SEU banco Supabase
     > Ideal para uso pessoal em outro computador
@@ -38,7 +38,7 @@ Pressione qualquer tecla para continuar...
 ## Build Standalone (SQLite)
 
 ```bash
-C:\projeto> construir.bat --com-sqlite
+C:\projeto> scripts\construir.bat --com-sqlite
 
 ============================================
  Controle Financeiro - Gerador de Executavel
@@ -76,7 +76,7 @@ O banco sera criado automaticamente na primeira execucao.
 ## Build Supabase Vazio (para compartilhar)
 
 ```bash
-C:\projeto> construir.bat --com-env-vazio
+C:\projeto> scripts\construir.bat --com-env-vazio
 
 ============================================
  Controle Financeiro - Gerador de Executavel
@@ -116,7 +116,7 @@ Use .env.example como modelo.
 ## Build Pessoal (com suas credenciais)
 
 ```bash
-C:\projeto> construir.bat --com-env
+C:\projeto> scripts\construir.bat --com-env
 
 ============================================
  Controle Financeiro - Gerador de Executavel
@@ -153,7 +153,7 @@ Use apenas para uso pessoal.
 ## Parâmetro Inválido
 
 ```bash
-C:\projeto> construir.bat --outro-parametro
+C:\projeto> scripts\construir.bat --outro-parametro
 
 ============================================
  Controle Financeiro - Gerador de Executavel
@@ -163,7 +163,7 @@ C:\projeto> construir.bat --outro-parametro
 ERRO: Parametro invalido: --outro-parametro
 
 Use: --com-sqlite, --com-env-vazio ou --com-env
-Execute 'construir.bat' sem parametros para ver as opcoes.
+Execute 'scripts\construir.bat' sem parametros para ver as opcoes.
 
 Pressione qualquer tecla para continuar...
 ```
