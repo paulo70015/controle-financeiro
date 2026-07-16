@@ -94,7 +94,7 @@ def test_sqlite_repositories():
         print("=" * 60)
         print()
         print("O modo SQLite está funcionando corretamente!")
-        print("Você pode usar 'construir.bat --com-sqlite' para gerar o executável.")
+        print("Você pode usar 'scripts\construir.bat --com-sqlite' para gerar o executável.")
         
         return True
         

@@ -6,7 +6,7 @@
 
 ### 1. Build Standalone com SQLite (RECOMENDADO para compartilhar) ✨
 ```bash
-construir.bat --com-sqlite
+scripts\construir.bat --com-sqlite
 ```
 - Gera executável **100% standalone** com banco SQLite local
 - **Seguro para compartilhar** - cada usuário terá seu próprio banco
@@ -16,7 +16,7 @@ construir.bat --com-sqlite
 
 ### 2. Build Supabase sem Credenciais (para compartilhar)
 ```bash
-construir.bat --com-env-vazio
+scripts\construir.bat --com-env-vazio
 ```
 - Gera executável **sem** suas credenciais
 - Seguro para compartilhar com outras pessoas
@@ -25,7 +25,7 @@ construir.bat --com-env-vazio
 
 ### 3. Build Supabase com Suas Credenciais (uso pessoal) 🔒
 ```bash
-construir.bat --com-env
+scripts\construir.bat --com-env
 ```
 - Gera executável **com** suas credenciais do `.env` embutidas
 - **⚠️ NÃO COMPARTILHE** este executável - use apenas para você mesmo
@@ -121,20 +121,20 @@ SUPABASE_KEY=sua_chave_publica_aqui
 ## 🎯 Cenários de Uso
 
 ### Cenário 1: Você quer compartilhar com amigos/família
-**Use:** `construir.bat --com-sqlite`
+**Use:** `scripts\construir.bat --com-sqlite`
 - Eles só precisam executar
 - Cada um tem seu banco próprio
 - Mais fácil para quem não é técnico
 - **RECOMENDADO** ✨
 
 ### Cenário 2: Você quer que cada pessoa tenha conta Supabase
-**Use:** `construir.bat --com-env-vazio`
+**Use:** `scripts\construir.bat --com-env-vazio`
 - Mais trabalho inicial (criar conta)
 - Vantagem: dados na nuvem, sincronização
 - Cada pessoa tem seu próprio banco Supabase
 
 ### Cenário 3: Você quer usar em outro PC seu
-**Use:** `construir.bat --com-env`
+**Use:** `scripts\construir.bat --com-env`
 - Acessa seus dados diretamente
 - Não compartilhe este executável!
 - Ideal para ter em pendrive/backup pessoal

@@ -118,7 +118,13 @@ if __name__ == "__main__":
         threading.Timer(1.2,lambda:webbrowser.open(f"http://localhost:{port}")).start()
     try:
         if args.show_console:
-            input()
+            if sys.stdin.isatty():
+                input()
+            else:
+                # Non-TTY (CI, tests): keep alive via sleep loop
+                import time as _time
+                while True:
+                    _time.sleep(1)
         else:
             import time
             start_time = time.time()

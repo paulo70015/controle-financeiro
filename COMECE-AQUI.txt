@@ -11,10 +11,10 @@
 ═══════════════════════════════════════════════════════════════
 
 Windows:
-  → Dê duplo clique em: iniciar_log.bat
+  → Dê duplo clique em: scripts\iniciar_log.bat
 
 Linux/Mac:
-  → Execute no terminal: ./iniciar_log.sh
+  → Execute no terminal: ./scripts/iniciar_log.sh
 
 Pronto! O navegador abrirá automaticamente.
 
@@ -54,7 +54,7 @@ R: Sim, configure o modo Supabase (veja INICIO-RAPIDO.md)
 🎯 PRÓXIMOS PASSOS
 ═══════════════════════════════════════════════════════════════
 
-1. Execute iniciar_log.bat (ou .sh)
+1. Execute scripts\iniciar_log.bat (ou scripts\iniciar_log.sh)
 2. Crie suas categorias (Alimentação, Transporte, etc.)
 3. Lance suas despesas e receitas
 4. Configure despesas fixas (aluguel, cartão, etc.)

@@ -29,7 +29,7 @@ for arg in "$@"; do
     fi
 done
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 PYTHON_CMD="python3"
 
 # Monta flags de dados opcionais

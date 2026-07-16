@@ -8,7 +8,7 @@ Escolha seu caminho:
 
 **Tempo: 30 segundos**
 
-1. Dê duplo clique em `iniciar_log.bat` (Windows) ou execute `./iniciar_log.sh` (Linux/Mac)
+1. Dê duplo clique em `scripts\iniciar_log.bat` (Windows) ou execute `./scripts/iniciar_log.sh` (Linux/Mac)
 2. Pronto! ✨
 
 O navegador abrirá automaticamente e você já pode começar a usar.
@@ -65,7 +65,7 @@ O navegador abrirá automaticamente e você já pode começar a usar.
 3. Salve o arquivo
 
 ### Passo 5: Iniciar (30 seg)
-1. Dê duplo clique em `iniciar_log.bat` (Windows) ou execute `./iniciar_log.sh` (Linux/Mac)
+1. Dê duplo clique em `scripts\iniciar_log.bat` (Windows) ou execute `./scripts/iniciar_log.sh` (Linux/Mac)
 2. Pronto! ✨
 
 ---
@@ -157,7 +157,7 @@ R: Copie o arquivo `financeiro.db` para um local seguro (pendrive, nuvem, etc.)
 ## ✅ Checklist de Sucesso
 
 ### SQLite:
-- [ ] Executei `iniciar_log.bat` ou `./iniciar_log.sh`
+- [ ] Executei `scripts\iniciar_log.bat` ou `./scripts/iniciar_log.sh`
 - [ ] Navegador abriu automaticamente
 - [ ] Consigo criar categorias e lançamentos
 
@@ -165,7 +165,7 @@ R: Copie o arquivo `financeiro.db` para um local seguro (pendrive, nuvem, etc.)
 - [ ] Criei conta no Supabase
 - [ ] Executei `schema-supabase.sql` no SQL Editor
 - [ ] Criei arquivo `.env` com minhas credenciais
-- [ ] Executei `iniciar_log.bat` ou `./iniciar_log.sh`
+- [ ] Executei `scripts\iniciar_log.bat` ou `./scripts/iniciar_log.sh`
 - [ ] Navegador abriu e consigo usar normalmente
 
 ---

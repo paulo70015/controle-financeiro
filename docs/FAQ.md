@@ -3,7 +3,7 @@
 ## 🚀 Início e Configuração
 
 ### Como faço para começar a usar?
-Execute `iniciar_log.bat` (Windows) ou `./iniciar_log.sh` (Linux/Mac). O navegador abrirá automaticamente.
+Execute `scripts\iniciar_log.bat` (Windows) ou `./scripts/iniciar_log.sh` (Linux/Mac). O navegador abrirá automaticamente.
 
 ### Preciso instalar alguma coisa?
 Apenas Python 3.10+ (baixe em https://python.org). O resto é automático.
@@ -66,7 +66,7 @@ Veja o arquivo `.env`:
 
 ### Como gero um executável para compartilhar?
 ```bash
-construir.bat --com-sqlite  # Modo standalone (RECOMENDADO)
+scripts\construir.bat --com-sqlite  # Modo standalone (RECOMENDADO)
 ```
 
 ### Qual a diferença entre os modos de build?

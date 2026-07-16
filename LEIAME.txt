@@ -10,7 +10,7 @@ Interface moderna acessada pelo navegador, com opção de banco local (SQLite) o
 ### Opção 1: Modo Simples (SQLite Local) - RECOMENDADO
 Perfeito se você quer começar imediatamente sem configurações:
 
-1. Execute `iniciar_log.bat` (Windows) ou `./iniciar_log.sh` (Linux/Mac)
+1. Execute `scripts\iniciar_log.bat` (Windows) ou `./scripts/iniciar_log.sh` (Linux/Mac)
 2. Pronto! O navegador abrirá automaticamente
 3. Seus dados ficam salvos localmente em `financeiro.db`
 
@@ -19,7 +19,7 @@ Ideal se você quer acessar de vários dispositivos ou ter backup automático:
 
 1. Crie uma conta gratuita em https://supabase.com
 2. Configure seu banco (veja seção "Configuração Supabase" abaixo)
-3. Execute `iniciar_log.bat` ou `./iniciar_log.sh`
+3. Execute `scripts\iniciar_log.bat` ou `./scripts/iniciar_log.sh`
 4. Seus dados ficam na nuvem, acessíveis de qualquer lugar
 
 ---
@@ -75,7 +75,7 @@ DB_MODE=supabase
 ```
 
 3. Salve o arquivo
-4. Execute `iniciar_log.bat` (Windows) ou `./iniciar_log.sh` (Linux/Mac)
+4. Execute `scripts\iniciar_log.bat` (Windows) ou `./scripts/iniciar_log.sh` (Linux/Mac)
 
 **Pronto!** Agora seus dados estão na nuvem e você pode acessar de qualquer computador.
 
@@ -101,7 +101,7 @@ Quer compartilhar o aplicativo com amigos ou família? Use os scripts de build:
 
 ### Modo Standalone (RECOMENDADO para compartilhar)
 ```
-construir.bat --com-sqlite
+scripts\construir.bat --com-sqlite
 ```
 - Gera um executável que funciona imediatamente
 - Não precisa configurar nada
@@ -109,14 +109,14 @@ construir.bat --com-sqlite
 
 ### Modo Supabase Vazio (cada um cria sua conta)
 ```
-construir.bat --com-env-vazio
+scripts\construir.bat --com-env-vazio
 ```
 - Cada pessoa precisa criar conta no Supabase
 - Dados ficam na nuvem de cada um
 
 ### Modo Pessoal (suas credenciais)
 ```
-construir.bat --com-env
+scripts\construir.bat --com-env
 ```
 - ⚠️ **NÃO COMPARTILHE** - acessa SEU banco
 - Use apenas para você em outro computador
@@ -205,10 +205,10 @@ construir.bat --com-env
 ├── 📄 .env.sqlite             ← Configuração para modo SQLite
 ├── 📄 app.py                  ← Servidor Flask
 ├── 📄 index.html              ← Interface web
-├── 📄 iniciar_log.bat         ← Iniciar no Windows
-├── 📄 iniciar_log.sh          ← Iniciar no Linux/Mac
-├── 📄 construir.bat           ← Gerar executável Windows
-├── 📄 construir.sh            ← Gerar executável Linux/Mac
+├── 📄 scripts/iniciar_log.bat         ← Iniciar no Windows
+├── 📄 scripts/iniciar_log.sh          ← Iniciar no Linux/Mac
+├── 📄 scripts/construir.bat           ← Gerar executável Windows
+├── 📄 scripts/construir_macos.sh      ← Gerar executável Linux/Mac
 ├── 📄 financeiro.db           ← Banco SQLite (criado automaticamente)
 ├── 📂 specs/
 │   ├── schema-supabase.sql   ← Script de criação do banco
