@@ -138,7 +138,7 @@ body {
 }
 
 /* === Ícones Lucide === */
-.icon { width: 20px; height: 20px; flex-shrink: 0; vertical-align: -0.15em; display: inline-block; }
+.icon { width: 20px; height: 20px; flex-shrink: 0; vertical-align: middle; display: inline-block; }
 .icon-sm { width: 16px; height: 16px; }
 .icon-lg { width: 24px; height: 24px; }
 .icon-xl { width: 32px; height: 32px; }
