@@ -287,7 +287,7 @@ window.carregarTooltipDet = function(el, mes, cat, lastMod) {
         }
 
         let txt = cat === '__rec__' ? (r.descricao + (r.nota ? ` (${r.nota})` : '')) : r.nota;
-        if (r.ignorar_total) txt = window.iconSVG('credit-card', 'sm') + ' ' + (txt || 'Cartão');
+        if (r.ignorar_total) txt = '💳 ' + (txt || 'Cartão');
         
         return { valor: r.valor || 0, texto: txt };
       });

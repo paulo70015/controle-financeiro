@@ -9,6 +9,11 @@ window.iconSVG = function(name, size) {
   return '<svg class="' + cls + '" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-' + name + '"></use></svg>';
 };
 
+window.stripHtml = function(html) {
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+};
+
 window.BANK_ICONS_CFG = {
   '[BB]': { label: 'BB', bg: '#F9D342', color: '#003DA5', title: 'Banco do Brasil' },
   '[CX]': { label: 'CX', bg: '#005CA9', color: '#F28E13', title: 'Caixa Econômica' },
@@ -236,7 +241,7 @@ async function carregarTooltipCompleto(el, cacheKey, buildTooltip, errorMessage 
 
   const cached = tooltipCache.get(cacheKey);
   if (cached) {
-    el.setAttribute('title', cached);
+    el.setAttribute('title', window.stripHtml ? window.stripHtml(cached) : cached);
     el.dataset.tooltipLoadedKey = cacheKey;
     return cached;
   }
@@ -251,11 +256,12 @@ async function carregarTooltipCompleto(el, cacheKey, buildTooltip, errorMessage 
         .then(buildTooltip)
         .then(tooltip => {
           if (tooltip) {
+            const clean = window.stripHtml ? window.stripHtml(tooltip) : tooltip;
             if (tooltipCache.size >= TOOLTIP_CACHE_MAX) {
               const firstKey = tooltipCache.keys().next().value;
               tooltipCache.delete(firstKey);
             }
-            tooltipCache.set(cacheKey, tooltip);
+            tooltipCache.set(cacheKey, clean);
           }
           return tooltip;
         })
@@ -266,7 +272,7 @@ async function carregarTooltipCompleto(el, cacheKey, buildTooltip, errorMessage 
     const tooltip = await promise;
     if (el.dataset.tooltipRequestId !== requestId || !tooltip) return tooltip;
 
-    el.setAttribute('title', tooltip);
+    el.setAttribute('title', window.stripHtml ? window.stripHtml(tooltip) : tooltip);
     el.dataset.tooltipLoadedKey = cacheKey;
     return tooltip;
   } catch(e) {
