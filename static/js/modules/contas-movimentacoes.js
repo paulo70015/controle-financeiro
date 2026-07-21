@@ -461,7 +461,8 @@ function carregarMovLocal() {
     const nomeConta = conta ? conta.nome : '';
     const texto = nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || '');
     const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.nota || '') : (mv.nota || '').replace(/'/g, "\\'");
-    const tipoTag = mv.tipo === 'rendimento' ? ' <span style="font-size:0.7em;opacity:0.7;">[Rendimento]</span>' : '';
+    const tipoTagMap = {rendimento: 'Rendimento', aporte: 'Aporte', saque: 'Saque'};
+    const tipoTag = tipoTagMap[mv.tipo] ? ` <span style="font-size:0.7em;opacity:0.7;">[${tipoTagMap[mv.tipo]}]</span>` : '';
     const tipoEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.tipo || '') : (mv.tipo || '').replace(/'/g, "\\'");
     return buildRowDetalheHtml(
       BRL(mv.valor),

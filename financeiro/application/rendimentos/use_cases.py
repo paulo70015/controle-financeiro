@@ -99,8 +99,13 @@ class RendimentosUseCases:
             self._refletir_em_conta_vinculada(lanc)
 
     @staticmethod
-    def _nota_reflexo(local_nome: str) -> str:
-        return f"Rendimento de {local_nome or ''}".strip()
+    def _nota_reflexo(local_nome: str, tipo: str = "rendimento") -> str:
+        nome = local_nome or ""
+        if tipo == "aporte":
+            return f"Aporte em {nome}".strip()
+        if tipo == "saque":
+            return f"Saque de {nome}".strip()
+        return f"Rendimento de {nome}".strip()
 
     def _local_para_reflexo(self, lanc_tipo: str, lanc_nota: str, lanc_valor: float, local_id: int):
         """
@@ -110,7 +115,7 @@ class RendimentosUseCases:
         """
         if self.contas_repository is None:
             return None
-        if lanc_tipo != "rendimento":
+        if lanc_tipo not in ("aporte", "rendimento", "saque"):
             return None
         if (lanc_nota or "").strip() == "Projeção":
             return None
@@ -121,14 +126,16 @@ class RendimentosUseCases:
             return None
         return local
 
-    def _mes_destino_reflexo(self, ano: int, mes: int) -> tuple[int, int]:
+    def _mes_destino_reflexo(self, ano: int, mes: int, tipo: str = "rendimento") -> tuple[int, int]:
         """
         Retorna (ano, mes) onde a movimentacao reflexa deve ser gravada.
-        Regra: mes seguinte ao do rendimento. Em dezembro, rola para janeiro
-        do ano seguinte SE esse ano ja existir; caso contrario, mantem em
-        dezembro do mesmo ano para evitar criar o ano novo so por causa do
-        reflexo.
+        Para rendimento: mes seguinte (rendimentos caem no ultimo dia do mes).
+        Para aporte/saque: mesmo mes (transacoes imediatas).
+        Em dezembro, rola para janeiro do ano seguinte SE esse ano ja existir;
+        caso contrario, mantem em dezembro do mesmo ano.
         """
+        if tipo in ("aporte", "saque"):
+            return ano, mes
         if mes < 12:
             return ano, mes + 1
         if self.contas_repository is not None and hasattr(self.contas_repository, "ano_existe"):
@@ -138,14 +145,14 @@ class RendimentosUseCases:
 
     def _refletir_em_conta_vinculada(self, lanc: RendimentoLancamento) -> None:
         """
-        Cria uma movimentacao em movimentacoes_mensais com tipo='rendimento'
-        quando os critérios em `_local_para_reflexo` são satisfeitos E o mês do
-        rendimento é o corrente ou futuro. A movimentação é gravada no
-        MÊS SEGUINTE ao do rendimento (rendimentos geralmente caem no
-        último dia do mês, então o efeito em caixa fica no próximo mês).
-        Em dezembro, rola para janeiro do ano seguinte apenas se o ano
-        ja existir; caso contrario fica em dezembro do mesmo ano.
-        Lançamentos passados não são refletidos.
+        Cria uma movimentacao em movimentacoes_mensais refletindo o lancamento
+        na conta vinculada ao local de investimento.
+
+        - Rendimento: valor positivo, mes seguinte ao do lancamento.
+        - Aporte: valor negativo (dinheiro sai da conta), mesmo mes.
+        - Saque: valor positivo (dinheiro entra na conta), mesmo mes.
+
+        Lancamentos passados e projecoes nao sao refletidos.
         """
         local = self._local_para_reflexo(lanc.tipo, lanc.nota, lanc.valor, lanc.local_id)
         if not local:
@@ -155,14 +162,22 @@ class RendimentosUseCases:
         if (lanc.ano, lanc.mes) < (hoje.year, hoje.month):
             return
 
-        mov_ano, mov_mes = self._mes_destino_reflexo(lanc.ano, lanc.mes)
+        mov_ano, mov_mes = self._mes_destino_reflexo(lanc.ano, lanc.mes, lanc.tipo)
+
+        # Aporte reduz saldo da conta corrente (saida de dinheiro)
+        # Saque e rendimento aumentam saldo da conta corrente (entrada de dinheiro)
+        if lanc.tipo == "aporte":
+            valor_mov = -abs(float(lanc.valor))
+        else:
+            valor_mov = float(lanc.valor)
+
         movimentacao = MovimentacaoMensal(
             ano=mov_ano,
             mes=mov_mes,
             conta_id=int(local["conta_vinculada_id"]),
-            valor=float(lanc.valor),
-            nota=self._nota_reflexo(local.get("nome", "")),
-            tipo="rendimento",
+            valor=valor_mov,
+            nota=self._nota_reflexo(local.get("nome", ""), lanc.tipo),
+            tipo=lanc.tipo,
         )
         self.contas_repository.save_movimentacao(movimentacao)
 
@@ -195,27 +210,34 @@ class RendimentosUseCases:
     def _remover_reflexo_se_existir(self, lanc_dict: dict) -> None:
         """
         Reverte o reflexo criado pelo gatilho de _refletir_em_conta_vinculada,
-        casando exatamente (ano, mes, conta_id, valor, nota="Rendimento de {nome}").
-        A movimentação reflexa fica no MÊS SEGUINTE ao do rendimento.
+        casando exatamente (ano, mes, conta_id, valor, nota, tipo).
         Se o usuário editou a movimentação na conta, o match falha e ela
         permanece — consistente com "remover manualmente".
         """
+        tipo = lanc_dict.get("tipo", "")
         local = self._local_para_reflexo(
-            lanc_dict.get("tipo", ""),
+            tipo,
             lanc_dict.get("nota", ""),
             float(lanc_dict.get("valor") or 0),
             int(lanc_dict["local_id"]),
         )
         if not local:
             return
-        mov_ano, mov_mes = self._mes_destino_reflexo(int(lanc_dict["ano"]), int(lanc_dict["mes"]))
+        mov_ano, mov_mes = self._mes_destino_reflexo(int(lanc_dict["ano"]), int(lanc_dict["mes"]), tipo)
+
+        # O valor na movimentacao depende do tipo (aporte usa negativo)
+        if tipo == "aporte":
+            valor_mov = -abs(float(lanc_dict["valor"]))
+        else:
+            valor_mov = float(lanc_dict["valor"])
+
         self.contas_repository.delete_movimentacao_matching(
             ano=mov_ano,
             mes=mov_mes,
             conta_id=int(local["conta_vinculada_id"]),
-            valor=float(lanc_dict["valor"]),
-            nota=self._nota_reflexo(local.get("nome", "")),
-            tipo="rendimento",
+            valor=valor_mov,
+            nota=self._nota_reflexo(local.get("nome", ""), tipo),
+            tipo=tipo,
         )
 
     def definir_projecao(self, payload: dict) -> None:
