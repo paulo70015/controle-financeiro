@@ -28,6 +28,7 @@ Para mudancas relacionadas a Supabase, SQLite, schema, Flutter ou migracao, cons
 - Nao criar rotas de gravacao que alterem arquivos no `BASE_DIR` em producao.
 - Sempre verificar nulidade antes de manipular elementos DOM.
 - Aplicar DRY rigorosamente no backend e no frontend.
+- **NUNCA fazer commit ou push sem permissao explicita do usuario.** Antes de qualquer `git commit` ou `git push`, perguntar. Para commits, usar a skill `commit` do projeto (`/commit`), que revisa o diff antes de commitar.
 
 ## Fluxo Para Funcionalidades Backend
 
