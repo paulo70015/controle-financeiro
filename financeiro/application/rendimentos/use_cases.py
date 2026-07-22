@@ -113,6 +113,9 @@ class RendimentosUseCases:
         de reflexo na conta corrente; caso contrário, None.
         Centraliza a regra para evitar divergência entre criar e excluir.
         """
+        # Reflexo automático desativado — o usuário prefere controlar
+        # manualmente o saldo da conta corrente (modelo Nubank).
+        return None
         if self.contas_repository is None:
             return None
         if lanc_tipo not in ("aporte", "rendimento", "saque"):
