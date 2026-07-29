@@ -343,7 +343,6 @@ async function salvarDepositoEFechar() {
 
 window.delMovFromDep = async function(id) {
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado. Desbloqueie para alterar.');
-  if (!confirm('Excluir esta movimentação?')) return;
   try {
     await safeApiCall(`/api/movimentacao/${id}`, {method: 'DELETE'}, 'Falha ao excluir movimentação.');
     await debouncedLoad();

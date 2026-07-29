@@ -1,4 +1,6 @@
 ﻿var loteCtx = {};
+// Guarda contra dupla submissão (double-click / Enter duplicado)
+var _guardLote = criarGuardaSubmit();
 
 function abrirLote(tipo, catNome = '', catId = null) {
   loteCtx = {tipo, catNome, catId};
@@ -33,6 +35,7 @@ function atualizarLotePreview() {
 }
 
 async function salvarLote() {
+  if (!_guardLote.iniciar('#ovLote .ba', 'Salvando...')) return;
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado.');
 
   const v = parseVal(document.getElementById('ltV').value);
@@ -59,6 +62,8 @@ async function salvarLote() {
     debouncedLoad();
   } catch (error) {
     alert('Erro ao salvar em lote: ' + error.message);
+  } finally {
+    _guardLote.finalizar();
   }
 }
 

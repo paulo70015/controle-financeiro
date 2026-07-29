@@ -1,4 +1,7 @@
-﻿function popularSel() {
+﻿// Guarda contra dupla submissão (double-click / Enter duplicado)
+var _guardLanc = criarGuardaSubmit();
+
+function popularSel() {
   const cats = dados.categorias || [];
   document.getElementById('dC').innerHTML = cats.map(c => `<option value="${c.nome}" data-cartao="${c.is_cartao ? 1 : 0}">${c.nome}</option>`).join('');
   document.getElementById('dC').onchange = function() {
@@ -134,33 +137,43 @@ function abrirR() {
 }
 
 async function salvarD() {
-  if (typeof hideUndoCsvButton === 'function') hideUndoCsvButton();
-  const categoria = document.getElementById('dC').value;
-  const mes = parseInt(document.getElementById('dM').value);
-  const v = parseVal(document.getElementById('dV').value);
-  const n = document.getElementById('dN').value;
-  const ign = document.getElementById('dIgnorar') ? document.getElementById('dIgnorar').checked : false;
-  if (!categoria) return alert('Selecione uma categoria');
-  if (v === null && !n) return alert('Informe o valor ou a nota');
+  if (!_guardLanc.iniciar('#ovD .mb .bv', 'Salvando...')) return;
+  try {
+    if (typeof hideUndoCsvButton === 'function') hideUndoCsvButton();
+    const categoria = document.getElementById('dC').value;
+    const mes = parseInt(document.getElementById('dM').value);
+    const v = parseVal(document.getElementById('dV').value);
+    const n = document.getElementById('dN').value;
+    const ign = document.getElementById('dIgnorar') ? document.getElementById('dIgnorar').checked : false;
+    if (!categoria) return alert('Selecione uma categoria');
+    if (v === null && !n) return alert('Informe o valor ou a nota');
 
-  await enviarLancamentosMeses('/api/despesa', {ano, categoria, valor: v||0, nota: n, ignorar_total: ign}, mes);
-  document.getElementById('dV').value = '';
-  document.getElementById('dN').value = '';
-  if (document.getElementById('dIgnorar')) document.getElementById('dIgnorar').checked = false;
-  fecharModal('ovD');
-  debouncedLoad();
+    await enviarLancamentosMeses('/api/despesa', {ano, categoria, valor: v||0, nota: n, ignorar_total: ign}, mes);
+    document.getElementById('dV').value = '';
+    document.getElementById('dN').value = '';
+    if (document.getElementById('dIgnorar')) document.getElementById('dIgnorar').checked = false;
+    fecharModal('ovD');
+    debouncedLoad();
+  } finally {
+    _guardLanc.finalizar();
+  }
 }
 
 async function salvarR() {
-  if (typeof hideUndoCsvButton === 'function') hideUndoCsvButton();
-  const descricao = document.getElementById('rD').value.trim() || 'Receita';
-  const mes = parseInt(document.getElementById('rM').value);
-  const v = parseVal(document.getElementById('rV').value);
-  const n = document.getElementById('rN').value;
-  if (v === null) return alert('Informe o valor numérico');
-  await enviarLancamentosMeses('/api/receita', {ano, descricao, valor: v, nota: n}, mes);
-  fecharModal('ovR');
-  debouncedLoad();
+  if (!_guardLanc.iniciar('#ovR .bv', 'Salvando...')) return;
+  try {
+    if (typeof hideUndoCsvButton === 'function') hideUndoCsvButton();
+    const descricao = document.getElementById('rD').value.trim() || 'Receita';
+    const mes = parseInt(document.getElementById('rM').value);
+    const v = parseVal(document.getElementById('rV').value);
+    const n = document.getElementById('rN').value;
+    if (v === null) return alert('Informe o valor numérico');
+    await enviarLancamentosMeses('/api/receita', {ano, descricao, valor: v, nota: n}, mes);
+    fecharModal('ovR');
+    debouncedLoad();
+  } finally {
+    _guardLanc.finalizar();
+  }
 }
 
 async function enviarLancamentosMeses(url, payloadBase, mesSelecionado) {

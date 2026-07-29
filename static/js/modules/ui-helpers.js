@@ -224,6 +224,33 @@ function debounce(func, wait) {
   };
 }
 
+// Guarda contra dupla submissão (DRY — usado por salvarD, salvarR, addLanc, addLancEFechar, salvarLote)
+function criarGuardaSubmit() {
+  let _submitting = false;
+  let _btn = null;
+  let _originalHTML = '';
+  return {
+    iniciar(buttonSelector, loadingText) {
+      if (_submitting) return false;
+      _submitting = true;
+      _btn = document.querySelector(buttonSelector);
+      if (_btn) {
+        _originalHTML = _btn.innerHTML;
+        _btn.disabled = true;
+        _btn.textContent = loadingText || 'Salvando...';
+      }
+      return true;
+    },
+    finalizar() {
+      _submitting = false;
+      if (_btn) {
+        _btn.disabled = false;
+        _btn.innerHTML = _originalHTML;
+      }
+    }
+  };
+}
+
 const tooltipCache = new Map();
 const tooltipInflight = new Map();
 let tooltipRequestSeq = 0;

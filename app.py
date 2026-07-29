@@ -119,7 +119,13 @@ if __name__ == "__main__":
     try:
         if args.show_console:
             if sys.stdin.isatty():
-                input()
+                try:
+                    input()
+                except (EOFError, OSError):
+                    # stdin fechado ou nao-interativo — manter vivo via sleep loop
+                    import time as _time
+                    while True:
+                        _time.sleep(1)
             else:
                 # Non-TTY (CI, tests): keep alive via sleep loop
                 import time as _time

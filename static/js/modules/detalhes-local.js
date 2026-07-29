@@ -6,6 +6,8 @@ var detOriginalData = null;
 var depOriginalData = null;
 var detDeleteQueue = [];
 var depDeleteQueue = [];
+// Guarda contra dupla submissão (double-click / Enter duplicado)
+var _guardDet = criarGuardaSubmit();
 
 const detUndoManager = new UndoManager('detBtnUndo', { get queue() { return detDeleteQueue; }, set queue(v) { detDeleteQueue = v; } });
 const depUndoManager = new UndoManager('depBtnUndo', { get queue() { return depDeleteQueue; }, set queue(v) { depDeleteQueue = v; } });
@@ -115,12 +117,17 @@ async function executarLancamentoDet() {
 }
 
 async function addLancEFechar() {
-  await executarLancamentoDet();
-  await flushDeleteQueue(detDeleteQueue, item => item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id);
-  detDeleteQueue = [];
-  detUndoManager.clear();
-  fecharModal('ovDet');
-  await debouncedLoad();
+  if (!_guardDet.iniciar('#ovDet .ba', 'Salvando...')) return;
+  try {
+    await executarLancamentoDet();
+    await flushDeleteQueue(detDeleteQueue, item => item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id);
+    detDeleteQueue = [];
+    detUndoManager.clear();
+    fecharModal('ovDet');
+    await debouncedLoad();
+  } finally {
+    _guardDet.finalizar();
+  }
 }
 
 async function carregarDetLocal() {
@@ -246,12 +253,17 @@ async function fecharEefetivarDet() {
 }
 
 async function addLanc() {
-  const sucesso = await executarLancamentoDet();
-  if (!sucesso) return;
-  document.getElementById('aV').value = '';
-  document.getElementById('aN').value = '';
-  if (document.getElementById('detMesEditar')) document.getElementById('detMesEditar').value = String(detCtx.mes || 1);
-  if (document.getElementById('detIgnorar')) document.getElementById('detIgnorar').checked = false;
-  await carregarDetLocal();
-  await debouncedLoad();
+  if (!_guardDet.iniciar('#ovDet .bv.bs', 'Salvando...')) return;
+  try {
+    const sucesso = await executarLancamentoDet();
+    if (!sucesso) return;
+    document.getElementById('aV').value = '';
+    document.getElementById('aN').value = '';
+    if (document.getElementById('detMesEditar')) document.getElementById('detMesEditar').value = String(detCtx.mes || 1);
+    if (document.getElementById('detIgnorar')) document.getElementById('detIgnorar').checked = false;
+    await carregarDetLocal();
+    await debouncedLoad();
+  } finally {
+    _guardDet.finalizar();
+  }
 }
