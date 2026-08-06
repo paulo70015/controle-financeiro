@@ -71,6 +71,7 @@ function renderTabela(){
     const fixaFlag=cat.inclui_fixas?1:0;
     const cnSafe = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(cat.nome) : cat.nome.replace(/'/g,"\\'");
     const catTooltipSafe = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(cat.tooltip || '') : (cat.tooltip || '').replace(/'/g,"\\'");
+    const catTooltipHtmlSafe = window.escapeAttr ? window.escapeAttr(cat.tooltip || '') : (cat.tooltip || '');
     const catNomeHtmlSafe = window.escapeAttr ? window.escapeAttr(cat.nome) : cat.nome;
     const fixasDaCatAll = (dados.fixas || []).filter(f => f.cat_id === cat.id || (cat.inclui_fixas && !f.cat_id));
     const totalFixasCatOriginal = fixasDaCatAll.reduce((s,f)=>s+f.valor, 0);
@@ -83,7 +84,7 @@ function renderTabela(){
       <a href="#" onclick="event.preventDefault(); abrirRen(${cat.id},'${cnSafe}',${fixaFlag},${cat.conta_vinculada_id||null},'${catTooltipSafe}')">${window.iconSVG('pencil', 'sm')} Configurar</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); apagarLinhaCat('${cnSafe}')">${window.iconSVG('trash-2', 'sm')} Remover lançamentos</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); excluirCategoriaMenu(${cat.id}, '${cnSafe}')">${window.iconSVG('trash-2', 'sm')} Remover categoria</a>`;
-    h+=`<tr draggable="true" data-cat-id="${cat.id}" class="cat-row" ondragstart="dragStart(event,${cat.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dragDrop(event,${cat.id})"><td class="cat-nome" title=""><div class="cc"><span title="${catNomeHtmlSafe}">${nomeFormatado}</span>${badge}${badgeConta}${window.buildKebabMenuHtml(linksCat, true)}</div></td>`;
+    h+=`<tr draggable="true" data-cat-id="${cat.id}" class="cat-row" ondragstart="dragStart(event,${cat.id})" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dragDrop(event,${cat.id})"><td class="cat-nome" title=""><div class="cc"><span title="${catTooltipHtmlSafe ? catNomeHtmlSafe + ': ' + catTooltipHtmlSafe : catNomeHtmlSafe}">${nomeFormatado}</span>${badge}${badgeConta}${window.buildKebabMenuHtml(linksCat, true)}</div></td>`;
     for(let m=1;m<=12;m++){
       const vLanc=d[m]?d[m].valor:0;
       const vIgnorado=d[m]?(d[m].valor_ignorado||0):0;
