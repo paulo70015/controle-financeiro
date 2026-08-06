@@ -48,6 +48,7 @@
   --txt-linha-total-desp: #EF4444;
   --bg-linha-rend-aportes: #D1FAE5;
   --bg-linha-rend-rend: #FEF3C7;
+  --bg-linha-rend-normal: #F3F4F6;
   --bg-linha-rend-total: #EEF2FF;
 
   /* === Status de Pagamento === */
@@ -99,6 +100,7 @@ html.dark-mode {
   --txt-linha-total-desp: #FCA5A5;
   --bg-linha-rend-aportes: #064E3B;
   --bg-linha-rend-rend: #78350F;
+  --bg-linha-rend-normal: #1F2937;
   --bg-linha-rend-total: #172554;
 
   --bg-st1: #78350F;
@@ -546,6 +548,8 @@ tr.tr-total-desp td { background: var(--bg-linha-total-desp); }
 tr.tr-rend-aportes td { background: var(--bg-linha-rend-aportes); }
 tr.tr-rend-rendimentos td { background: var(--bg-linha-rend-rend); font-weight: 600; }
 tr.tr-rend-total td { background: var(--bg-linha-rend-total); font-weight: 700; }
+
+tr.tr-rend-normal td { background: var(--bg-linha-rend-normal); font-weight: 600; }
 
 /* Células e Textos Internos */
 .vc {

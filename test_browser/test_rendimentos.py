@@ -320,3 +320,155 @@ class TestRendimentoPorDiferencaComAporte:
         assert "neg" not in classes_cel, (
             f"Celula do local '{local_nome}' em Fev nao deveria estar negativo. classes='{classes_cel}'"
         )
+
+
+class TestLinhaSaldoSemProjecoes:
+    """
+    Valida a linha 'Saldo' (tr-rend-normal) que fica entre 'Rendimentos' e
+    'Saldo acumulado'. Ela deve incluir rendimentos reais mas excluir projeções.
+
+    Fórmula: Saldo = Σ (Aportes + Rendimentos − Projeções − Saques) acumulado.
+
+    Cada teste usa um ano isolado diferente (ANO_TESTE + 50 + offset) para evitar
+    interferência entre testes da mesma classe.
+    """
+
+    _ano_offset = 0
+
+    @pytest.fixture(autouse=True)
+    def usar_ano_isolado(self, page: Page, server_url: str):
+        from test_browser.helpers import ANO_TESTE
+        ano_isolado = ANO_TESTE + 50 + TestLinhaSaldoSemProjecoes._ano_offset
+        TestLinhaSaldoSemProjecoes._ano_offset += 1
+        page.goto(f"{server_url}/?ano={ano_isolado}")
+        page.wait_for_function(
+            "() => window.CF_BOOT && (document.querySelector('#tw table') || document.querySelector('.view-tab'))"
+        )
+        page.wait_for_timeout(150)
+
+    def _criar_local_e_aporte(self, page: Page, nome: str, valor_aporte: str = "10000,00"):
+        """Cria um local e adiciona um aporte em Janeiro."""
+        alternar_visao(page, "rendimentos")
+        if page.locator(f"text={nome}").count() == 0:
+            page.click('button:has-text("+ Local")')
+            page.wait_for_selector("#ovRendLocal.show", timeout=3000)
+            fill_input(page, "#rendLocalNome", nome)
+            page.click("#ovRendLocal .btn.ba")
+            wait_for_load(page)
+            wait_for_table(page)
+
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", nome)
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", valor_aporte)
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+    def _valor_linha(self, page: Page, classe_css: str, coluna: int) -> str:
+        """Extrai o texto da célula na coluna (1-based) de uma linha de totais."""
+        cel = page.locator(f"#tw .{classe_css} td").nth(coluna)
+        return cel.inner_text().strip()
+
+    def _valor_numerico(self, texto: str) -> float:
+        """Converte 'R$ 10.000,00' → 10000.0"""
+        return float(texto.replace("R$", "").replace(".", "").replace(",", ".").strip())
+
+    def test_linha_saldo_aparece_entre_rendimentos_e_saldo_acumulado(self, page: Page):
+        """A linha 'Saldo' (tr-rend-normal) deve existir e estar na ordem correta."""
+        self._criar_local_e_aporte(page, "Conta Ordem")
+
+        expect(page.locator("#tw .tr-rend-rendimentos")).to_be_visible()
+        expect(page.locator("#tw .tr-rend-normal")).to_be_visible()
+        expect(page.locator("#tw .tr-rend-total")).to_be_visible()
+
+        linhas = page.locator("#tw tbody tr").all()
+        idx_rend = -1
+        idx_normal = -1
+        idx_total = -1
+        for i, row in enumerate(linhas):
+            classes = row.get_attribute("class") or ""
+            if "tr-rend-rendimentos" in classes:
+                idx_rend = i
+            elif "tr-rend-normal" in classes:
+                idx_normal = i
+            elif "tr-rend-total" in classes:
+                idx_total = i
+
+        assert idx_rend < idx_normal < idx_total, (
+            f"Ordem incorreta: Rendimentos={idx_rend}, Saldo={idx_normal}, Saldo acumulado={idx_total}"
+        )
+
+    def test_saldo_exclui_projecoes(self, page: Page):
+        """
+        Com projeção de 1% ao mês e sem rendimentos reais:
+        Saldo (sem projeções) < Saldo acumulado (com projeções).
+        Aporte 10.000 em Jan → Saldo Jan = 10.000, Saldo acum. Jan = 10.100.
+        """
+        local = "Conta Projecao"
+        self._criar_local_e_aporte(page, local)
+
+        # Configura projeção de 1%
+        kebabs = page.locator("#tw .btn-kebab")
+        assert kebabs.count() > 0, "Nenhum menu kebab encontrado"
+        kebabs.first.click(force=True)
+        page.wait_for_timeout(200)
+        link_proj = page.locator(".dropdown-content a:has-text('Projetar rendimentos'):visible")
+        assert link_proj.count() > 0, "Opção Projetar rendimentos não encontrada"
+        link_proj.first.click(force=True)
+        page.wait_for_selector("#ovRendProj.show", timeout=3000)
+        fill_input(page, "#rendProjPct", "1,00")
+        page.click("#ovRendProj .btn.ba")
+        wait_for_load(page)
+        wait_for_table(page)
+
+        saldo_jan = self._valor_numerico(self._valor_linha(page, "tr-rend-normal", 1))
+        saldo_acum_jan = self._valor_numerico(self._valor_linha(page, "tr-rend-total", 1))
+
+        assert saldo_jan == 10000.0, f"Saldo Jan esperado 10000, obtido: {saldo_jan}"
+        assert saldo_acum_jan == 10100.0, f"Saldo acumulado Jan esperado 10100, obtido: {saldo_acum_jan}"
+        assert saldo_jan < saldo_acum_jan, "Saldo deve ser menor que Saldo acumulado com projeção"
+
+        # Fevereiro: sem novos lançamentos
+        saldo_fev = self._valor_numerico(self._valor_linha(page, "tr-rend-normal", 2))
+        saldo_acum_fev = self._valor_numerico(self._valor_linha(page, "tr-rend-total", 2))
+
+        assert saldo_fev == 10000.0, f"Saldo Fev esperado 10000, obtido: {saldo_fev}"
+        assert saldo_acum_fev == 10201.0, f"Saldo acumulado Fev esperado 10201, obtido: {saldo_acum_fev}"
+
+    def test_saldo_inclui_rendimentos_reais(self, page: Page):
+        """
+        Sem projeção, com rendimento real lançado:
+        Saldo deve ser igual a Saldo acumulado (não há projeções para excluir).
+        """
+        local = "Conta Real"
+        self._criar_local_e_aporte(page, local)
+
+        # Lança rendimento real de 500 em Fev
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local)
+        select_option(page, "#rendAddTipo", "rendimento")
+        select_option(page, "#rendAddMes", "2")
+        fill_input(page, "#rendAddValor", "500,00")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        # Janeiro: sem rendimentos → Saldo = Saldo acumulado = 10.000
+        saldo_jan = self._valor_numerico(self._valor_linha(page, "tr-rend-normal", 1))
+        saldo_acum_jan = self._valor_numerico(self._valor_linha(page, "tr-rend-total", 1))
+        assert saldo_jan == saldo_acum_jan == 10000.0, (
+            f"Jan: Saldo={saldo_jan}, Saldo acumulado={saldo_acum_jan}"
+        )
+
+        # Fevereiro: com rendimento real de 500 → Saldo = Saldo acumulado = 10.500
+        saldo_fev = self._valor_numerico(self._valor_linha(page, "tr-rend-normal", 2))
+        saldo_acum_fev = self._valor_numerico(self._valor_linha(page, "tr-rend-total", 2))
+        assert saldo_fev == saldo_acum_fev == 10500.0, (
+            f"Fev: Saldo={saldo_fev}, Saldo acumulado={saldo_acum_fev}"
+        )

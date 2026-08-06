@@ -195,6 +195,7 @@ function renderRendimentos() {
   const totaisAporteMes = Array(13).fill(0);
   const totaisSaqueMes = Array(13).fill(0);
   const totaisRendimentoMes = Array(13).fill(0);
+  const totaisRendimentoProjecaoMes = Array(13).fill(0);
 
   locais.forEach(local => {
     const localLancs = lancs[String(local.id)] || {};
@@ -228,6 +229,7 @@ function renderRendimentos() {
       totaisAporteMes[m] += aporte;
       totaisSaqueMes[m] += saque;
       totaisRendimentoMes[m] += rendimentoDoMes;
+      if (isProjecao) totaisRendimentoProjecaoMes[m] += rendimentoDoMes;
 
       if (saldoLocal !== 0 || aporte !== 0 || saque !== 0 || rendimentoDoMes !== 0) {
         const linhasRend = [
@@ -277,6 +279,23 @@ function renderRendimentos() {
       tit = `Total de rendimentos no mês: ${BRL(totaisRendimentoMes[m])}\nTotal acumulado de rendimentos: ${BRL(saldoAcumuladoRendimentos)}`;
     }
     h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2 ' : ''}${classeValorRendimento(totaisRendimentoMes[m])}" title="${tit}">${totaisRendimentoMes[m] ? BRL(totaisRendimentoMes[m]) : ''}</td>`;
+  }
+  h += '</tr>';
+
+  // Saldo: inclui rendimentos reais, mas exclui projeções
+  h += '<tr class="tr-rend-normal"><td class="cat-nome"><div class="cc"><span>Saldo</span></div></td>';
+  let saldoSemProjecoes = 0;
+  for (let m = 1; m <= 12; m++) {
+    saldoSemProjecoes += totaisAporteMes[m] + totaisRendimentoMes[m] - totaisRendimentoProjecaoMes[m] - totaisSaqueMes[m];
+    let tit = '';
+    if (window.formatarLinhasTooltip) {
+      tit = window.formatarLinhasTooltip([
+        { valor: saldoSemProjecoes, texto: 'Saldo com rendimentos reais (sem projeções)' }
+      ]);
+    } else {
+      tit = `Saldo com rendimentos reais (sem projeções): ${BRL(saldoSemProjecoes)}`;
+    }
+    h += `<td class="td-num ${(rendimentosRealizados[m] || 0) > 0 ? 'pg-2 ' : ''}${classeValorRendimento(saldoSemProjecoes)}" title="${tit}">${saldoSemProjecoes ? BRL(saldoSemProjecoes) : ''}</td>`;
   }
   h += '</tr>';
 
