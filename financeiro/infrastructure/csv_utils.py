@@ -111,12 +111,14 @@ def montar_csv_exportacao(ano, meses, cats, despesas, receitas, fixas, metas,
     Retorna bytes UTF-8 com BOM. Fonte única de verdade para o formato exportado.
     """
     def _brl(val):
-        return str(val).replace(".", ",")
+        # Sempre 2 casas decimais, sem ruído de ponto flutuante (ex: 91424,40000000001)
+        return f"{round(float(val or 0), 2):.2f}".replace(".", ",")
 
     out = io.StringIO()
     writer = csv.writer(out, delimiter=";", quoting=csv.QUOTE_ALL)
     out.write("sep=;\r\n")
     writer.writerow([ano] + [""] * 13)
+    writer.writerow(["Despesas"] + [""] * 13)  # Título da seção de despesas
     writer.writerow([""] + meses + ["Total"])
 
     for cat in cats:
@@ -141,17 +143,20 @@ def montar_csv_exportacao(ano, meses, cats, despesas, receitas, fixas, metas,
         writer.writerow(row)
 
     writer.writerow([""] * 14)
+    writer.writerow([""] * 14)
     writer.writerow(["Despesas Fixas", "Dia", "Valor"] + [""] * 11)
     for f in fixas:
         writer.writerow([f["descricao"], f.get("dia", ""), _brl(f["valor"])] + [""] * 11)
     writer.writerow(["Total Fixas", "", _brl(sum(f["valor"] for f in fixas))] + [""] * 11)
 
     writer.writerow([""] * 14)
+    writer.writerow([""] * 14)
     writer.writerow(["Metas", "Valor Alvo", "Ano", "Status"] + [""] * 10)
     for mt in metas:
         status = "Concluida" if mt.get("concluida") else "Em andamento"
         writer.writerow([mt["descricao"], _brl(mt.get("valor", 0)), mt.get("ano_meta", ""), status] + [""] * 10)
 
+    writer.writerow([""] * 14)
     writer.writerow([""] * 14)
     writer.writerow(["Receitas"] + meses + ["Total"])
     row_rec = ["Receitas"]
@@ -163,6 +168,7 @@ def montar_csv_exportacao(ano, meses, cats, despesas, receitas, fixas, metas,
     row_rec.append(_brl(total_rec))
     writer.writerow(row_rec)
 
+    writer.writerow([""] * 14)
     writer.writerow([""] * 14)
     writer.writerow(["Rendimentos"] + meses + ["Total", "Conta Vinculada"])
     for rl in rend_locais:
@@ -201,6 +207,7 @@ def montar_csv_exportacao(ano, meses, cats, despesas, receitas, fixas, metas,
     # Movimentações Mensais (por conta)
     if movimentacoes:
         writer.writerow([""] * 14)
+        writer.writerow([""] * 14)
         writer.writerow(["Movimentações"] + meses + ["Total"])
         for conta_nome in sorted(movimentacoes.keys()):
             row = [conta_nome]
@@ -215,6 +222,7 @@ def montar_csv_exportacao(ano, meses, cats, despesas, receitas, fixas, metas,
     # Depósitos / Contas — Saldo Acumulado
     if depositos:
         writer.writerow([""] * 14)
+        writer.writerow([""] * 14)
         writer.writerow(["Contas Saldo Acumulado"] + meses + ["Total"])
         for conta_nome in sorted(depositos.keys()):
             row = [conta_nome]
@@ -223,7 +231,7 @@ def montar_csv_exportacao(ano, meses, cats, despesas, receitas, fixas, metas,
                 delta = depositos[conta_nome].get(m, 0) or 0
                 saldo_acumulado += delta
                 row.append(_brl(saldo_acumulado))
-            row.append("")
+            row.append(_brl(saldo_acumulado))
             writer.writerow(row)
 
     return ("\ufeff" + out.getvalue()).encode("utf-8")

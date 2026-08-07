@@ -4,7 +4,12 @@ class SQLiteAdminRepository:
 
     def save_config(self, payload: dict) -> None:
         conn = self.connection_factory(auto_sync=True)
+        # "chave" e "valor" são nomes das colunas da tabela config, nunca chaves
+        # de configuração reais. Ignorá-los evita gravar lixo quando o payload
+        # chega no formato {chave: ..., valor: ...} (ex: travar/desbloquear ano).
         for chave, valor in payload.items():
+            if chave in ("chave", "valor"):
+                continue
             conn.execute(
                 "INSERT INTO config(chave,valor) VALUES(?,?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor",
                 (chave, str(valor)),

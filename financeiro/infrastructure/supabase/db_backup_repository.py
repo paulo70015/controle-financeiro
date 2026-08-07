@@ -5,6 +5,9 @@ from financeiro.infrastructure.export_files import nome_arquivo_exportacao
 from financeiro.infrastructure.supabase.client import Client
 
 
+DUMP_VERSAO = 1
+
+
 TABLES = [
     {
         "name": "anos",
@@ -107,7 +110,7 @@ class SupabaseDBBackupRepository:
         client: Client = self.client_factory()
         data = {
             "tipo": "controle_financeiro_supabase_dump",
-            "versao": 1,
+            "versao": DUMP_VERSAO,
             "gerado_em": datetime.now(timezone.utc).isoformat(),
             "tabelas": {},
         }
@@ -123,7 +126,6 @@ class SupabaseDBBackupRepository:
         return (payload, 200, headers)
 
     def importar_txt(self, file_storage):
-        client: Client = self.client_factory()
         try:
             dump = json.loads(file_storage.read().decode("utf-8-sig"))
         except (UnicodeDecodeError, json.JSONDecodeError):
@@ -132,11 +134,20 @@ class SupabaseDBBackupRepository:
         if dump.get("tipo") != "controle_financeiro_supabase_dump":
             return ({"erro": "Arquivo TXT nao pertence ao backup do banco do Controle Financeiro."}, 400)
 
+        versao = dump.get("versao")
+        if versao != DUMP_VERSAO:
+            if versao is None:
+                msg = "Arquivo TXT sem versao informada. Versao suportada: %d. Exporte novamente pelo menu BD." % DUMP_VERSAO
+            else:
+                msg = "Arquivo TXT com versao %s incompativel. Versao suportada: %d. Exporte novamente pelo menu BD." % (versao, DUMP_VERSAO)
+            return ({"erro": msg}, 400)
+
         tabelas = dump.get("tabelas")
         if not isinstance(tabelas, dict):
             return ({"erro": "Arquivo TXT sem bloco de tabelas valido."}, 400)
 
         try:
+            client: Client = self.client_factory()
             self._limpar_tabelas(client)
             id_maps = {}
             importados = {}

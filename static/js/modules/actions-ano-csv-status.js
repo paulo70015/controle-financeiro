@@ -271,11 +271,7 @@ async function toggleTravarAno(e, anoAlvo) {
     const r = await fetch('/api/config', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ 
-        chave: chaveLock, 
-        valor: novoValor,
-        [chaveLock]: novoValor 
-      })
+      body: JSON.stringify({ [chaveLock]: novoValor })
     });
     const d = await r.json();
     if (d.ok) {

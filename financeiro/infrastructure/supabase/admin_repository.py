@@ -14,7 +14,12 @@ class SupabaseAdminRepository:
         """Salva configurações (upsert)"""
         client: Client = self.client_factory()
         
+        # "chave" e "valor" são nomes das colunas da tabela config, nunca chaves
+        # de configuração reais. Ignorá-los evita gravar lixo quando o payload
+        # chega no formato {chave: ..., valor: ...} (ex: travar/desbloquear ano).
         for chave, valor in payload.items():
+            if chave in ("chave", "valor"):
+                continue
             client.table("config").upsert({
                 "chave": chave,
                 "valor": str(valor)

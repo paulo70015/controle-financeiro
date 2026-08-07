@@ -12,6 +12,7 @@ Também valida a estrutura estática do Supabase (TABLES com todas as colunas).
 """
 
 import io
+import json
 import os
 import sys
 import shutil
@@ -74,11 +75,16 @@ def _exportar(repo):
     return result[0], result[1], {}
 
 
+class _FakeFile:
+    def __init__(self, conteudo_bytes):
+        self._conteudo = conteudo_bytes
+
+    def read(self):
+        return self._conteudo
+
+
 def _importar(repo, conteudo_bytes):
-    class _FakeFile:
-        def read(self):
-            return conteudo_bytes
-    return repo.importar_txt(_FakeFile())
+    return repo.importar_txt(_FakeFile(conteudo_bytes))
 
 
 def _resetar_banco():
@@ -436,6 +442,46 @@ class TestSupabaseTablesStructure:
         ]
         for nome in esperadas:
             assert nome in tables, f"Tabela '{nome}' ausente no backup Supabase!"
+
+
+class TestSupabaseImportVersao:
+    """Validação de versão no import do dump JSON do Supabase."""
+
+    def _repo_sem_client(self):
+        from financeiro.infrastructure.supabase.db_backup_repository import SupabaseDBBackupRepository
+
+        def factory_que_falha():
+            raise AssertionError("Client nao deveria ser chamado para dump rejeitado")
+
+        return SupabaseDBBackupRepository(factory_que_falha)
+
+    def _importar_dump(self, dump: dict):
+        repo = self._repo_sem_client()
+        conteudo = json.dumps(dump).encode("utf-8")
+        return repo.importar_txt(_FakeFile(conteudo))
+
+    def test_import_versao_desconhecida_rejeitada(self):
+        dump = {"tipo": "controle_financeiro_supabase_dump", "versao": 999, "tabelas": {}}
+        body, status = self._importar_dump(dump)
+        assert status == 400
+        assert "versao" in body["erro"].lower()
+        assert "999" in body["erro"]
+
+    def test_import_sem_versao_rejeitada(self):
+        dump = {"tipo": "controle_financeiro_supabase_dump", "tabelas": {}}
+        body, status = self._importar_dump(dump)
+        assert status == 400
+        assert "versao" in body["erro"].lower()
+
+    def test_import_versao_1_aceita_ate_tocar_o_client(self):
+        """Versao 1 passa da validacao e o client passa a ser usado (erro 500 do fake)."""
+        repo = self._repo_sem_client()
+        dump = {"tipo": "controle_financeiro_supabase_dump", "versao": 1, "tabelas": {}}
+        body, status = repo.importar_txt(_FakeFile(json.dumps(dump).encode("utf-8")))
+        # A validacao de versao passou (nao retornou 400 de versao); o client fake
+        # e que falha ao limpar tabelas — por isso 500.
+        assert status == 500
+        assert "Falha ao importar banco" in body["erro"]
 
 
 # ═══════════════════════════════════════════════════════════════════
