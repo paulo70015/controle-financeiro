@@ -157,11 +157,10 @@ class SupabaseDashboardRepository:
         
         # Calcular saldos acumulados
         saldos = {}
-        saldos_ini = {}
+        saldos_ini = self._saldos_iniciais(client, contas, ano)
         for conta in contas:
             cid = str(conta["id"])
-            si = self._saldo_inicial_conta(client, conta["id"], conta["saldo_inicial"], ano)
-            saldos_ini[cid] = si
+            si = saldos_ini[cid]
             mov = movimentos.get(cid, {})
             saldo = si
             saldos[cid] = {}
@@ -302,12 +301,23 @@ class SupabaseDashboardRepository:
         meses_realizados = self._meses_rendimentos_realizados(ano)
         data_alteracao = datetime.now().isoformat()
         try:
-            client.table("anos").upsert({"ano": ano}).execute()
+            # Hot path: evita escritas desnecessárias no GET quando já sincronizado
+            anos_response = client.table("anos").select("ano").eq("ano", ano).execute()
+            if not anos_response.data:
+                client.table("anos").upsert({"ano": ano}).execute()
+
             existentes_response = client.table("rendimentos_realizados") \
-                .select("mes") \
+                .select("mes, status") \
                 .eq("ano", ano) \
                 .execute()
-            meses_existentes = {int(r["mes"]) for r in (existentes_response.data or []) if r.get("mes") is not None}
+            atuais = {
+                int(r["mes"]): int(r["status"] or 0)
+                for r in (existentes_response.data or [])
+                if r.get("mes") is not None
+            }
+            esperados = {mes: 1 for mes in meses_realizados}
+            if atuais == esperados:
+                return True
 
             if meses_realizados:
                 client.table("rendimentos_realizados").upsert(
@@ -322,7 +332,7 @@ class SupabaseDashboardRepository:
                     ],
                     on_conflict="ano,mes",
                 ).execute()
-                meses_para_remover = sorted(meses_existentes - set(meses_realizados))
+                meses_para_remover = sorted(set(atuais) - set(meses_realizados))
                 if meses_para_remover:
                     client.table("rendimentos_realizados") \
                         .delete() \
@@ -345,52 +355,48 @@ class SupabaseDashboardRepository:
             return False
         return True
 
-    def _saldo_inicial_conta(self, client: Client, conta_id: int, saldo_inicial_config: float, ano_alvo: int) -> float:
-        """Calcula saldo inicial da conta considerando anos anteriores"""
-        # Buscar primeiro ano com depósitos
+    def _saldos_iniciais(self, client: Client, contas: list, ano_alvo: int) -> dict:
+        """Saldos iniciais de todas as contas em 2 requisições.
+
+        Antes: 4 requisições por conta (MIN/MIN/SUM/SUM) — N contas => 4N
+        round-trips de rede por carga do dashboard. Agora: 2 requisições
+        (uma por tabela) com agregação em memória.
+        """
         dep_response = client.table("depositos_conta") \
-            .select("ano") \
-            .eq("conta_id", conta_id) \
+            .select("conta_id, ano, valor") \
             .lt("ano", ano_alvo) \
-            .order("ano") \
-            .limit(1) \
             .execute()
-        primeiro = dep_response.data[0]["ano"] if dep_response.data else None
-        
-        # Buscar primeiro ano com movimentações
         mov_response = client.table("movimentacoes_mensais") \
-            .select("ano") \
-            .eq("conta_id", conta_id) \
-            .lt("ano", ano_alvo) \
-            .order("ano") \
-            .limit(1) \
-            .execute()
-        primeiro_mov = mov_response.data[0]["ano"] if mov_response.data else None
-        
-        anos_ant = [x for x in [primeiro, primeiro_mov] if x is not None]
-        if not anos_ant:
-            return saldo_inicial_config or 0.0
-        
-        saldo = saldo_inicial_config or 0.0
-        
-        # Somar depósitos de anos anteriores
-        dep_sum_response = client.table("depositos_conta") \
-            .select("valor") \
-            .eq("conta_id", conta_id) \
+            .select("conta_id, ano, valor") \
             .lt("ano", ano_alvo) \
             .execute()
-        t_dep = sum(r["valor"] for r in dep_sum_response.data)
-        
-        # Somar movimentações de anos anteriores
-        mov_sum_response = client.table("movimentacoes_mensais") \
-            .select("valor") \
-            .eq("conta_id", conta_id) \
-            .lt("ano", ano_alvo) \
-            .execute()
-        t_mov = sum(r["valor"] for r in mov_sum_response.data)
-        
-        saldo += t_dep + t_mov
-        return round(saldo, 2)
+
+        def _agregar(rows):
+            por_conta = {}
+            for r in rows:
+                item = por_conta.setdefault(r["conta_id"], {"primeiro": None, "total": 0.0})
+                item["total"] += r["valor"] or 0
+                if item["primeiro"] is None or r["ano"] < item["primeiro"]:
+                    item["primeiro"] = r["ano"]
+            return por_conta
+
+        dep = _agregar(dep_response.data or [])
+        mov = _agregar(mov_response.data or [])
+
+        saldos_ini = {}
+        for conta in contas:
+            cid = str(conta["id"])
+            d = dep.get(conta["id"])
+            m = mov.get(conta["id"])
+            anos_ant = [
+                x for x in (d["primeiro"] if d else None, m["primeiro"] if m else None)
+                if x is not None
+            ]
+            saldo = conta.get("saldo_inicial") or 0.0
+            if anos_ant:
+                saldo += (d["total"] if d else 0) + (m["total"] if m else 0)
+            saldos_ini[cid] = round(saldo, 2)
+        return saldos_ini
 
     def is_ano_bloqueado(self, ano: int) -> bool:
         """Verifica se o ano está bloqueado"""

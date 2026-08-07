@@ -45,6 +45,9 @@ def init_db(connection_factory):
     # 5c. Adicionar coluna tipo em movimentacoes_mensais (idempotente).
     _migrate_movimentacoes_tipo(cur)
 
+    # 5d. Índices para consultas frequentes (idempotente).
+    _migrate_indexes(cur)
+
     # 6. Atualizar schema_version para a versão corrente (1 = schema unificado)
     _update_schema_version(cur, 1)
 
@@ -569,6 +572,46 @@ def _migrate_movimentacoes_tipo(cur):
         logging.info("Coluna 'tipo' adicionada em movimentacoes_mensais.")
     except Exception:
         pass  # Coluna já existe — ignorar
+
+
+def _migrate_indexes(cur):
+    """
+    Cria índices para as consultas mais frequentes (hot path do dashboard,
+    detalhe de despesas/receitas/rendimentos e cálculo de saldos iniciais).
+    Idempotente — CREATE INDEX IF NOT EXISTS — e seguro para bancos novos
+    e legados (roda no init_db após os upgrades de schema).
+    """
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_despesas_ano_mes_cat ON despesas(ano, mes, categoria)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_receitas_ano_mes ON receitas(ano, mes)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_depositos_ano_conta ON depositos_conta(ano, conta_id)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_depositos_conta_ano ON depositos_conta(conta_id, ano)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_movimentacoes_conta_ano ON movimentacoes_mensais(conta_id, ano)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_rendimentos_lanc_ano ON rendimentos_lancamentos(ano, mes, local_id)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_categorias_ano ON categorias(ano)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fixas_ano ON despesas_fixas_cartao(ano)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_rendimentos_locais_ano ON rendimentos_locais(ano)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_metas_anos ON metas(ano_criacao, ano_meta)"
+    )
+    logging.info("Índices de consulta garantidos (idempotente).")
 
 
 # ---------------------------------------------------------------------------

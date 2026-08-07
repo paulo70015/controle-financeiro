@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from financeiro.infrastructure.sqlite.anos_utils import descobrir_anos
+
 
 class SQLiteDashboardRepository:
     def __init__(self, connection_factory, meses):
@@ -91,11 +93,10 @@ class SQLiteDashboardRepository:
                 movimentos[cid][mes] = movimentos[cid].get(mes, 0) + item["valor"]
 
         saldos = {}
-        saldos_ini = {}
+        saldos_ini = self._saldos_iniciais(conn, contas, ano)
         for conta in contas:
             cid = str(conta["id"])
-            si = self._saldo_inicial_conta(conn, conta["id"], conta["saldo_inicial"], ano)
-            saldos_ini[cid] = si
+            si = saldos_ini[cid]
             mov = movimentos.get(cid, {})
             saldo = si
             saldos[cid] = {}
@@ -151,33 +152,8 @@ class SQLiteDashboardRepository:
                 "last_modified": r["last_modified"],
             }
 
-        # Descobre todos os anos com dados de todas as tabelas
-        anos_set = set()
-        tabelas = [
-            "anos", "categorias", "despesas", "receitas",
-            "despesas_fixas_cartao", "fixas_excecoes", "fixas_aplicadas_manual",
-            "pagamento_status", "rendimentos_realizados", "depositos_conta", "movimentacoes_mensais",
-            "rendimentos_locais", "rendimentos_lancamentos",
-        ]
-        # AVISO: Os nomes de tabela abaixo são hardcoded — seguro contra SQL injection.
-        # Se esta lista se tornar dinâmica no futuro, use aspas duplas com identificadores
-        # escapados (ex: conn.execute(f'SELECT ... FROM "{tabela}"')).
-        for tabela in tabelas:
-            try:
-                for r in conn.execute(f"SELECT DISTINCT ano FROM {tabela}"):
-                    if r[0] is not None:
-                        anos_set.add(int(r[0]))
-            except Exception:
-                pass
-        # Metas: ano_criacao e ano_meta
-        try:
-            for r in conn.execute("SELECT DISTINCT ano_criacao, ano_meta FROM metas"):
-                for val in (r[0], r[1]):
-                    if val is not None:
-                        anos_set.add(int(val))
-        except Exception:
-            pass
-        anos_list = sorted(anos_set, reverse=True)
+        # Descobre todos os anos com dados de todas as tabelas (1 consulta UNION)
+        anos_list = sorted(descobrir_anos(conn), reverse=True)
 
         conn.close()
         return {
@@ -214,7 +190,25 @@ class SQLiteDashboardRepository:
 
     def _sync_rendimentos_realizados(self, conn, ano: int) -> None:
         meses_realizados = self._meses_rendimentos_realizados(ano)
-        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
+
+        # Garante que o ano exista na tabela `anos` (evita escrita se já existe)
+        existe_ano = conn.execute(
+            "SELECT 1 FROM anos WHERE ano=?", (ano,)
+        ).fetchone()
+        if not existe_ano:
+            conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (ano,))
+            conn.commit()
+
+        # Hot path: se já está sincronizado, não escreve nada no GET
+        atuais = {
+            int(r["mes"]): int(r["status"] or 0)
+            for r in conn.execute(
+                "SELECT mes, status FROM rendimentos_realizados WHERE ano=?", (ano,)
+            ).fetchall()
+        }
+        esperados = {mes: 1 for mes in meses_realizados}
+        if atuais == esperados:
+            return
 
         if meses_realizados:
             conn.executemany(
@@ -232,25 +226,39 @@ class SQLiteDashboardRepository:
 
         conn.commit()
 
-    def _saldo_inicial_conta(self, conn, conta_id, saldo_inicial_config, ano_alvo):
-        primeiro = conn.execute(
-            "SELECT MIN(ano) as a FROM depositos_conta WHERE conta_id=? AND ano<?",
-            (conta_id, ano_alvo),
-        ).fetchone()["a"]
-        primeiro_mov = conn.execute(
-            "SELECT MIN(ano) as a FROM movimentacoes_mensais WHERE conta_id=? AND ano<?",
-            (conta_id, ano_alvo),
-        ).fetchone()["a"]
-        anos_ant = [x for x in [primeiro, primeiro_mov] if x is not None]
-        if not anos_ant:
-            return saldo_inicial_config or 0.0
-        saldo = saldo_inicial_config or 0.0
-        
-        t_dep = conn.execute("SELECT COALESCE(SUM(valor),0) as t FROM depositos_conta WHERE conta_id=? AND ano<?", (conta_id, ano_alvo)).fetchone()["t"]
-        t_mov = conn.execute("SELECT COALESCE(SUM(valor),0) as t FROM movimentacoes_mensais WHERE conta_id=? AND ano<?", (conta_id, ano_alvo)).fetchone()["t"]
-        
-        saldo += t_dep + t_mov
-        return round(saldo, 2)
+    def _saldos_iniciais(self, conn, contas, ano_alvo):
+        """Saldos iniciais de todas as contas em 2 consultas agrupadas.
+
+        Antes: 4 consultas por conta (MIN/MIN/SUM/SUM) — N contas => 4N queries
+        por carga do dashboard. Agora: 1 consulta GROUP BY por tabela.
+        """
+        dep_rows = conn.execute(
+            "SELECT conta_id, MIN(ano) as primeiro, COALESCE(SUM(valor),0) as total "
+            "FROM depositos_conta WHERE ano<? GROUP BY conta_id",
+            (ano_alvo,),
+        ).fetchall()
+        mov_rows = conn.execute(
+            "SELECT conta_id, MIN(ano) as primeiro, COALESCE(SUM(valor),0) as total "
+            "FROM movimentacoes_mensais WHERE ano<? GROUP BY conta_id",
+            (ano_alvo,),
+        ).fetchall()
+        dep = {r["conta_id"]: r for r in dep_rows}
+        mov = {r["conta_id"]: r for r in mov_rows}
+
+        saldos_ini = {}
+        for conta in contas:
+            cid = str(conta["id"])
+            d = dep.get(conta["id"])
+            m = mov.get(conta["id"])
+            anos_ant = [
+                x for x in (d["primeiro"] if d else None, m["primeiro"] if m else None)
+                if x is not None
+            ]
+            saldo = conta["saldo_inicial"] or 0.0
+            if anos_ant:
+                saldo += (d["total"] if d else 0) + (m["total"] if m else 0)
+            saldos_ini[cid] = round(saldo, 2)
+        return saldos_ini
 
     def is_ano_bloqueado(self, ano: int) -> bool:
         conn = self.connection_factory()
