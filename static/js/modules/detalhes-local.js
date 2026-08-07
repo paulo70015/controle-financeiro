@@ -46,7 +46,7 @@ window.editarDet = function(id, tipo, valor, nota, ignorar = false, notaOriginal
         : { valor, nota, ignorar_total: ignorar, descricao: nota };
     },
     campos: [
-      { id: 'aV', valor: valor, formatar: v => (v !== undefined && v !== null && v !== '') ? parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '' },
+      { id: 'aV', valor: valor, formatar: v => fmtNum(v) },
       { id: 'aN', valor: nota },
       { id: 'detIgnorar', valor: ignorar, type: 'checkbox' },
       { id: 'detMesEditar', valor: detCtx.mes }
@@ -64,7 +64,7 @@ window.editarDep = function(id, valor, nota) {
       depOriginalData = { valor, nota };
     },
     campos: [
-      { id: 'depV', valor: valor, formatar: v => (v !== undefined && v !== null && v !== '') ? parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '' },
+      { id: 'depV', valor: valor, formatar: v => fmtNum(v) },
       { id: 'depN', valor: nota }
     ],
     toggleFn: isEdit => toggleEditUiDet(isEdit, true),

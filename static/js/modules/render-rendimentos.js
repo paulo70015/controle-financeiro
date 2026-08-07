@@ -71,7 +71,7 @@ window.editarRend = function(id, tipo, valor, nota) {
     },
     campos: [
       { id: 'rendLancTipo', valor: tipo || 'aporte' },
-      { id: 'rendLancValor', valor: valor, formatar: v => (v !== undefined && v !== null && v !== '') ? parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '' },
+      { id: 'rendLancValor', valor: valor, formatar: v => fmtNum(v) },
       { id: 'rendLancNota', valor: nota }
     ],
     toggleFn: isEdit => toggleEditUiRend(isEdit),

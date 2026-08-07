@@ -84,7 +84,7 @@ async function confirmarDelConta(id) {
 function abrirEditConta(id, nome, saldoIni) {
   editContaCtx = {id};
   document.getElementById('ecN').value = nome;
-  document.getElementById('ecSI').value = saldoIni ? parseFloat(saldoIni).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '';
+  document.getElementById('ecSI').value = saldoIni ? fmtNum(saldoIni) : '';
   abrirModal('ovEditConta');
   setTimeout(() => document.getElementById('ecN').focus(), 200);
 }
@@ -428,7 +428,7 @@ window.editarMov = function(id, conta_id, valor, nota, tipo) {
   movEditando = true;
   movOriginalData = { id, conta_id, valor, nota, tipo: tipo || '' };
   document.getElementById('movConta').value = conta_id;
-  document.getElementById('movValor').value = (valor !== undefined && valor !== null && valor !== '') ? parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '';
+  document.getElementById('movValor').value = fmtNum(valor);
   document.getElementById('movNota').value = nota || '';
   const selTipo = document.getElementById('movTipo');
   if (selTipo) selTipo.value = tipo || '';

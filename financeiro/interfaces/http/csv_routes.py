@@ -4,7 +4,7 @@ from financeiro.application.csv.use_cases import CSVUseCases
 from financeiro.infrastructure.repository_factory import get_csv_repository
 
 
-def create_csv_blueprint(client_factory=None, meses=None):
+def create_csv_blueprint(client_factory=None):
     bp = Blueprint("csv", __name__)
     use_cases = CSVUseCases(get_csv_repository())
 

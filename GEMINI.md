@@ -24,7 +24,7 @@ Sempre que for criar ou alterar lógicas de negócio, respeite a seguinte separa
 
 1.  **`financeiro/domain/`**: Entidades e regras de domínio puras.
 2.  **`financeiro/application/`**: Casos de uso (`use_cases.py`). Aqui fica a orquestração da regra de negócio.
-3.  **`financeiro/infrastructure/`**: Acesso a dados (ex: `sqlite/*_repository.py`) e integrações externas (ex: `sync/drive_sync.py`).
+3.  **`financeiro/infrastructure/`**: Acesso a dados (ex: `sqlite/*_repository.py`) e integrações externas.
 4.  **`financeiro/interfaces/`**: Rotas HTTP / Blueprints do Flask (`http/*_routes.py`). Nenhuma regra de negócio deve ficar diretamente nas rotas.
 
 No **Frontend**:
@@ -37,7 +37,7 @@ No **Frontend**:
     1.  *Despesas* (fluxo de caixa diário, metas, contas).
     2.  *Rendimentos* (consolidação de patrimônio, aportes, projeções).
 - **Anos:** O sistema é particionado por abas de "Ano". Categorias, fixas e locais de rendimentos são vinculados a um ano específico. Lembre-se do remapeamento de `cat_id` ao transitar ou duplicar anos.
-- **Sincronização:** O banco `financas.db` pode ser sincronizado com o Google Drive a cada operação de escrita. Evite bloquear a thread principal com operações de sync síncronas pesadas nas rotas.
+- **Sincronização:** Não há sincronização externa do banco; backups são feitos via exportação/importação (CSV ou arquivo `.db`).
 - **PyInstaller Safe:** Lembre-se que em produção (`.exe`), os arquivos lidos (DB, config.json) ficam no `DATA_DIR` (pasta do executável) e os arquivos servidos (HTML, CSS) ficam em `BASE_DIR` (`sys._MEIPASS`). NUNCA crie rotas de gravação que alterem arquivos no `BASE_DIR`.
 
 ## 🛠️ Padrão de Evolução (Workflow)

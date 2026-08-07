@@ -3,7 +3,6 @@ import os
 import sys
 import atexit
 import threading
-import json
 
 from version import get_version_full
 
@@ -58,9 +57,6 @@ if sys.platform == 'darwin':
         return [r for r in res if r[0] == socket.AF_INET]
     socket.getaddrinfo = new_getaddrinfo
 
-MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-"Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
-
 def register_blueprints(flask_app):
     flask_app.register_blueprint(create_despesas_blueprint())
     flask_app.register_blueprint(create_receitas_blueprint())
@@ -68,10 +64,10 @@ def register_blueprints(flask_app):
     flask_app.register_blueprint(create_contas_blueprint())
     flask_app.register_blueprint(create_planejamento_blueprint())
     flask_app.register_blueprint(create_admin_blueprint())
-    flask_app.register_blueprint(create_csv_blueprint(meses=MESES))
+    flask_app.register_blueprint(create_csv_blueprint())
     flask_app.register_blueprint(create_db_backup_blueprint())
-    flask_app.register_blueprint(create_dashboard_blueprint(meses=MESES))
-    flask_app.register_blueprint(create_home_blueprint(meses=MESES))
+    flask_app.register_blueprint(create_dashboard_blueprint())
+    flask_app.register_blueprint(create_home_blueprint())
     flask_app.register_blueprint(create_rendimentos_blueprint())
 
 
@@ -94,13 +90,6 @@ if __name__ == "__main__":
         os.environ["DB_MODE"] = "sqlite"
 
     db_mode = get_db_mode()
-
-    if db_mode == 'sqlite':
-        try:
-            from financeiro.infrastructure.sqlite.database import setup_database
-            setup_database()
-        except ImportError:
-            pass
 
     port = int(os.environ.get("PORT", 8080))
 

@@ -53,6 +53,8 @@ function parseVal(s) {
   return neg ? -v : v;
 }
 const BRL = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+// Formata número como moeda sem o prefixo "R$" (inputs e células); vazio para valores nulos
+const fmtNum = v => (v === undefined || v === null || v === '') ? '' : parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 function focarCampo(id, delay = 50) {
   setTimeout(() => { const el = document.getElementById(id); if (el) { el.focus(); el.select(); } }, delay);

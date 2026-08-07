@@ -36,7 +36,6 @@ function fecharDrawer(resetAtivo = true) {
 
 var _cfgLinhas = parseInt(localStorage.getItem('cfgLinhas') || '15');
 var _cfgTemaEscuro = localStorage.getItem('cfTemaEscuro') === 'true';
-var _cfgDiaInicioMesFiscal = parseInt(localStorage.getItem('cfgDiaInicioMesFiscal') || '25');
 
 // Aplica o tema na tag <html> imediatamente ao carregar o script para evitar tela piscando
 if (_cfgTemaEscuro) document.documentElement.classList.add('dark-mode');

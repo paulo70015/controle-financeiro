@@ -5,8 +5,11 @@ Migrado de SQLite para PostgreSQL via Supabase
 
 import csv
 import io
-import re
-from financeiro.infrastructure.csv_utils import linha_tem_mes_csv, mes_por_cabecalho_csv
+from financeiro.infrastructure.csv_utils import (
+    detectar_cabecalho_csv,
+    montar_csv_exportacao,
+    parse_valor_csv,
+)
 from financeiro.infrastructure.export_files import nome_arquivo_exportacao
 from financeiro.infrastructure.supabase.client import Client
 
@@ -56,50 +59,7 @@ class SupabaseCSVRepository:
         # Garante que o ano fique registrado na tabela `anos`
         client.table("anos").upsert({"ano": ano}).execute()
 
-        nomes_m = [
-            "janeiro", "fevereiro", "marco", "abril", "maio", "junho",
-            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-        ]
-
-        header = []
-        linha_cabecalho = 1
-        for i, r in enumerate(rows[:5]):
-            if any(h.lower().strip().replace("ç", "c") in nomes_m for h in r):
-                linha_cabecalho = i
-                break
-
-        for c in rows[linha_cabecalho]:
-            norm = c.strip().lower().replace("\u00e7", "c").replace("\u00e3", "a").replace("\u00e2", "a")
-            header.append(norm)
-
-        col_to_mes = {}
-        for i, h in enumerate(header):
-            if h in nomes_m:
-                col_to_mes[i] = nomes_m.index(h) + 1
-        if not col_to_mes:
-            for i, r in enumerate(rows[:5]):
-                if linha_tem_mes_csv(r):
-                    linha_cabecalho = i
-                    break
-            for i, h in enumerate(rows[linha_cabecalho]):
-                mes = mes_por_cabecalho_csv(h)
-                if mes:
-                    col_to_mes[i] = mes
-
-        def parse_valor(s):
-            s = s.strip()
-            if not s:
-                return None
-            neg = "-" in s
-            s = re.sub(r"[^\d,.]", "", s)
-            if not s:
-                return None
-            s = s.replace(".", "").replace(",", ".")
-            try:
-                v = float(s)
-                return -v if neg else v
-            except ValueError:
-                return None
+        linha_cabecalho, col_to_mes = detectar_cabecalho_csv(rows)
 
         # Deletar dados do ano
         client.table("despesas").delete().eq("ano", ano).execute()
@@ -171,7 +131,7 @@ class SupabaseCSVRepository:
                         modo_lateral = None
                     else:
                         if modo_lateral == "fixas":
-                            val = parse_valor(val_lat)
+                            val = parse_valor_csv(val_lat)
                             if val is not None and val != 0:
                                 try:
                                     client.table("despesas_fixas_cartao").delete().eq("descricao", nome_lat).eq("ano", ano).execute()
@@ -185,7 +145,7 @@ class SupabaseCSVRepository:
                                 except Exception as e:
                                     erros.append(f"Fixa {nome_lat}: {str(e)}")
                         elif modo_lateral == "metas":
-                            val = parse_valor(val_lat)
+                            val = parse_valor_csv(val_lat)
                             ano_meta = None
                             try:
                                 ano_meta = int(ano_lat) if ano_lat else None
@@ -232,7 +192,7 @@ class SupabaseCSVRepository:
             if modo_vertical == "fixas":
                 dia_str = row[1].strip() if len(row) > 1 else "1"
                 val_str = row[2].strip() if len(row) > 2 else ""
-                val = parse_valor(val_str)
+                val = parse_valor_csv(val_str)
                 dia = int(dia_str) if dia_str.isdigit() else 1
                 if val is not None and val != 0:
                     try:
@@ -251,7 +211,7 @@ class SupabaseCSVRepository:
                 val_str = row[1].strip() if len(row) > 1 else ""
                 ano_str = row[2].strip() if len(row) > 2 else ""
                 status_str = row[3].strip().lower() if len(row) > 3 else ""
-                val = parse_valor(val_str)
+                val = parse_valor_csv(val_str)
                 ano_meta = int(ano_str) if ano_str.isdigit() else None
                 concluida = 1 if status_str == "concluida" else 0  # INTEGER: 0=false, 1=true
                 if val is not None and val != 0:
@@ -290,7 +250,7 @@ class SupabaseCSVRepository:
 
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None and val != 0:
                             if tipo_forcado:
                                 tipo = tipo_forcado
@@ -316,7 +276,7 @@ class SupabaseCSVRepository:
                 # Label é ignorado — usamos "Receitas" como descrição
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None and val != 0:
                             try:
                                 client.table("receitas").insert({
@@ -334,7 +294,7 @@ class SupabaseCSVRepository:
                 conta_id = get_or_create_conta(label)
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None and val != 0:
                             try:
                                 client.table("movimentacoes_mensais").insert({
@@ -355,7 +315,7 @@ class SupabaseCSVRepository:
                 saldos_mes = {}
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None:
                             saldos_mes[mes] = val
                 meses_ord = sorted(saldos_mes.keys())
@@ -382,7 +342,7 @@ class SupabaseCSVRepository:
                 local_id = get_or_create_local_rendimento("Rendimento")
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None and val != 0:
                             tipo = 'saque' if val < 0 else 'aporte'
                             valor_abs = abs(val)
@@ -405,7 +365,7 @@ class SupabaseCSVRepository:
                 conta_id = get_or_create_conta("NuConta")
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None and val != 0:
                             try:
                                 client.table("movimentacoes_mensais").insert({
@@ -426,7 +386,7 @@ class SupabaseCSVRepository:
                 saldos_mes = {}
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None:
                             saldos_mes[mes] = val
                 meses_ord = sorted(saldos_mes.keys())
@@ -451,7 +411,7 @@ class SupabaseCSVRepository:
             if not is_exported and ("receitas" in label.lower() or "salario" in label.lower()):
                 for col, mes in col_to_mes.items():
                     if col < len(row):
-                        val = parse_valor(row[col])
+                        val = parse_valor_csv(row[col])
                         if val is not None and val != 0:
                             try:
                                 client.table("receitas").insert({
@@ -471,7 +431,7 @@ class SupabaseCSVRepository:
 
             for col, mes in col_to_mes.items():
                 if col < len(row):
-                    val = parse_valor(row[col])
+                    val = parse_valor_csv(row[col])
                     if val is not None and val != 0:
                         try:
                             client.table("despesas").insert({
@@ -585,125 +545,11 @@ class SupabaseCSVRepository:
         fixas_excecoes_response = client.table("fixas_excecoes").select("mes, cat_id").eq("ano", ano).execute()
         fixas_excecoes = {f"{r['cat_id']}_{r['mes']}": True for r in fixas_excecoes_response.data}
         
-        total_fixas = sum(f["valor"] for f in fixas)
-
-        def _brl(val):
-            return str(val).replace(".", ",")
-
-        out = io.StringIO()
-        writer = csv.writer(out, delimiter=";", quoting=csv.QUOTE_ALL)
-        out.write("sep=;\r\n")
-        writer.writerow([ano] + [""] * 13)
-        writer.writerow([""] + self.meses + ["Total"])
-
-        for cat in cats:
-            row = [cat["nome"]]
-            tot = 0
-            for m in range(1, 13):
-                d_info = despesas.get(cat["nome"], {}).get(m, {})
-                vlanc = d_info.get("v", 0) or 0
-                notas = d_info.get("notas", "")
-                vfixas = 0
-                if f"{cat['id']}_{m}" not in fixas_excecoes:
-                    vfixas += sum(f["valor"] for f in fixas if f.get("cat_id") == cat["id"])
-                    if cat["inclui_fixas"]:
-                        vfixas += sum(f["valor"] for f in fixas if not f.get("cat_id"))
-                v = vlanc + vfixas
-                if v == 0 and notas:
-                    row.append(notas)
-                else:
-                    row.append(_brl(v))
-                tot += v
-            row.append(_brl(tot))
-            writer.writerow(row)
-
-        writer.writerow([""] * 14)
-        writer.writerow(["Despesas Fixas", "Dia", "Valor"] + [""] * 11)
-        for f in fixas:
-            writer.writerow([f["descricao"], f.get("dia", ""), _brl(f["valor"])] + [""] * 11)
-        writer.writerow(["Total Fixas", "", _brl(total_fixas)] + [""] * 11)
-
-        writer.writerow([""] * 14)
-        writer.writerow(["Metas", "Valor Alvo", "Ano", "Status"] + [""] * 10)
-        for mt in metas:
-            status = "Concluida" if mt.get("concluida") else "Em andamento"
-            writer.writerow([mt["descricao"], _brl(mt.get("valor", 0)), mt.get("ano_meta", ""), status] + [""] * 10)
-
-        writer.writerow([""] * 14)
-        writer.writerow(["Receitas", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
-        row_rec = ["Receitas"]
-        total_rec = 0
-        for m in range(1, 13):
-            v = receitas.get(m, 0) or 0
-            total_rec += v
-            row_rec.append(_brl(v) if v else "")
-        row_rec.append(_brl(total_rec))
-        writer.writerow(row_rec)
-
-        writer.writerow([""] * 14)
-        writer.writerow(["Rendimentos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total", "Conta Vinculada"])
-        for rl in rend_locais:
-            conta_vinculada_nome = rl.get("conta_vinculada_nome") or ""
-            tipos = sorted(rend_tipos_por_local.get(rl["id"], set()))
-            if not tipos:
-                # Local sem lançamentos: exporta linha vazia com nome
-                row = [rl["nome"]] + [""] * 13 + [conta_vinculada_nome]
-                writer.writerow(row)
-            elif len(tipos) == 1:
-                # Um único tipo: exporta sem sufixo (compatível com versões anteriores)
-                tipo_unico = tipos[0]
-                row = [rl["nome"]]
-                total_linha = 0.0
-                for m in range(1, 13):
-                    v = float((rendimentos.get((rl["id"], tipo_unico), {}) or {}).get(m, 0) or 0)
-                    total_linha += v
-                    row.append(_brl(v) if v != 0 else "")
-                row.append(_brl(total_linha))
-                row.append(conta_vinculada_nome)
-                writer.writerow(row)
-            else:
-                # Múltiplos tipos: uma linha por tipo com sufixo " - tipo"
-                for tipo in tipos:
-                    sub_row = [f"{rl['nome']} - {tipo}"]
-                    sub_total = 0.0
-                    for m in range(1, 13):
-                        v = float((rendimentos.get((rl["id"], tipo), {}) or {}).get(m, 0) or 0)
-                        sub_total += v
-                        sub_row.append(_brl(v) if v != 0 else "")
-                    sub_row.append(_brl(sub_total))
-                    # Conta vinculada só na primeira linha do grupo
-                    sub_row.append(conta_vinculada_nome if tipo == tipos[0] else "")
-                    writer.writerow(sub_row)
-
-        # Movimentações Mensais (por conta)
-        if movimentacoes:
-            writer.writerow([""] * 14)
-            writer.writerow(["Movimentações", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
-            for conta_nome in sorted(movimentacoes.keys()):
-                row = [conta_nome]
-                total_linha = 0
-                for m in range(1, 13):
-                    v = movimentacoes[conta_nome].get(m, 0) or 0
-                    total_linha += v
-                    row.append(_brl(v) if v != 0 else "")
-                row.append(_brl(total_linha))
-                writer.writerow(row)
-
-        # Depósitos / Contas — Saldo Acumulado
-        if depositos:
-            writer.writerow([""] * 14)
-            writer.writerow(["Contas Saldo Acumulado", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez", "Total"])
-            for conta_nome in sorted(depositos.keys()):
-                row = [conta_nome]
-                saldo_acumulado = 0.0
-                for m in range(1, 13):
-                    delta = depositos[conta_nome].get(m, 0) or 0
-                    saldo_acumulado += delta
-                    row.append(_brl(saldo_acumulado))
-                row.append("")
-                writer.writerow(row)
-
-        csv_bytes = ("\ufeff" + out.getvalue()).encode("utf-8")
+        csv_bytes = montar_csv_exportacao(
+            ano, self.meses, cats, despesas, receitas, fixas, metas,
+            rend_locais, rendimentos, rend_tipos_por_local,
+            movimentacoes, depositos, fixas_excecoes,
+        )
         headers = {
             "Content-Type": "text/csv; charset=utf-8",
             "Content-Disposition": f"attachment; filename={nome_arquivo_exportacao(f'despesas-{ano}', 'csv')}",

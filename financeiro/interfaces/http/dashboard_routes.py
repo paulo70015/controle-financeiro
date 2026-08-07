@@ -4,7 +4,7 @@ from financeiro.application.dashboard.use_cases import DashboardUseCases
 from financeiro.infrastructure.repository_factory import get_dashboard_repository
 
 
-def create_dashboard_blueprint(client_factory=None, meses=None):
+def create_dashboard_blueprint(client_factory=None):
     bp = Blueprint("dashboard", __name__)
     use_cases = DashboardUseCases(get_dashboard_repository())
 

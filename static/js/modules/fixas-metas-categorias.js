@@ -142,7 +142,7 @@ function buildFormEditFixaHtml(f) {
   const fId = isEdit ? f.id : 'null';
   const d = isEdit ? f.descricao : '';
   const di = isEdit ? (f.dia || '') : '';
-  const v = isEdit ? parseFloat(f.valor).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '';
+  const v = isEdit ? fmtNum(f.valor) : '';
   return `
     <div class="inline-edit-box">
       <div class="inline-edit-row">

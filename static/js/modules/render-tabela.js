@@ -242,7 +242,7 @@ window.formatarLinhasTooltip = function(linhas) {
 
   let maxStr = '';
   const formatados = linhasValidas.map(r => {
-    const vStr = (r.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const vStr = fmtNum(r.valor || 0);
     if (vStr.length > maxStr.length) maxStr = vStr;
     return { vStr, texto: r.texto || '' };
   });

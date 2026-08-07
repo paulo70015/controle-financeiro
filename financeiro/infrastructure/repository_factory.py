@@ -3,14 +3,13 @@ Factory de Repositórios - Suporta Supabase e SQLite
 Detecta o modo baseado em variável de ambiente DB_MODE
 """
 
+import importlib
 import os
 import sqlite3
 import threading
 from pathlib import Path
 
-
-# Constante de meses (usada por alguns repositórios)
-MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+from financeiro.infrastructure.constantes import MESES
 
 # Flag para evitar múltiplas inicializações do SQLite por processo
 _sqlite_initialized = False
@@ -80,133 +79,76 @@ def _ensure_sqlite_initialized():
 # Factories de Repositórios
 # ============================================
 
-def get_despesas_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
+# Nome da classe -> módulo onde ela vive (convenção SQLite/Supabase<nome>Repository)
+_MODULO_REPOSITORIO = {
+    "Admin": "admin_repository",
+    "Categorias": "categorias_repository",
+    "Contas": "contas_repository",
+    "CSV": "csv_repository",
+    "Dashboard": "dashboard_repository",
+    "DBBackup": "db_backup_repository",
+    "Despesas": "despesas_repository",
+    "Home": "home_repository",
+    "Planejamento": "planejamento_repository",
+    "Receitas": "receitas_repository",
+    "Rendimentos": "rendimentos_repository",
+}
+
+
+def _get_repository(classe_nome: str, *args):
+    """Instancia o repositório do modo ativo (sqlite/supabase) por convenção de nomes."""
+    modo = get_db_mode()
+    prefixo = "SQLite" if modo == "sqlite" else "Supabase"
+    if modo == "sqlite":
         _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.despesas_repository import SQLiteDespesasRepository
-        return SQLiteDespesasRepository(_get_sqlite_connection)
+        factory = _get_sqlite_connection
     else:
-        from financeiro.infrastructure.supabase.despesas_repository import SupabaseDespesasRepository
-        return SupabaseDespesasRepository(_get_supabase_client)
+        factory = _get_supabase_client
+    modulo = importlib.import_module(
+        f"financeiro.infrastructure.{modo}.{_MODULO_REPOSITORIO[classe_nome]}"
+    )
+    return getattr(modulo, f"{prefixo}{classe_nome}Repository")(factory, *args)
+
+
+def get_despesas_repository():
+    return _get_repository("Despesas")
 
 
 def get_receitas_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.receitas_repository import SQLiteReceitasRepository
-        return SQLiteReceitasRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.receitas_repository import SupabaseReceitasRepository
-        return SupabaseReceitasRepository(_get_supabase_client)
+    return _get_repository("Receitas")
 
 
 def get_categorias_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.categorias_repository import SQLiteCategoriasRepository
-        return SQLiteCategoriasRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.categorias_repository import SupabaseCategoriasRepository
-        return SupabaseCategoriasRepository(_get_supabase_client)
+    return _get_repository("Categorias")
 
 
 def get_contas_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.contas_repository import SQLiteContasRepository
-        return SQLiteContasRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.contas_repository import SupabaseContasRepository
-        return SupabaseContasRepository(_get_supabase_client)
+    return _get_repository("Contas")
 
 
 def get_planejamento_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.planejamento_repository import SQLitePlanejamentoRepository
-        return SQLitePlanejamentoRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.planejamento_repository import SupabasePlanejamentoRepository
-        return SupabasePlanejamentoRepository(_get_supabase_client)
+    return _get_repository("Planejamento")
 
 
 def get_rendimentos_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.rendimentos_repository import SQLiteRendimentosRepository
-        return SQLiteRendimentosRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.rendimentos_repository import SupabaseRendimentosRepository
-        return SupabaseRendimentosRepository(_get_supabase_client)
+    return _get_repository("Rendimentos")
 
 
 def get_dashboard_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.dashboard_repository import SQLiteDashboardRepository
-        return SQLiteDashboardRepository(_get_sqlite_connection, MESES)
-    else:
-        from financeiro.infrastructure.supabase.dashboard_repository import SupabaseDashboardRepository
-        return SupabaseDashboardRepository(_get_supabase_client, MESES)
+    return _get_repository("Dashboard", MESES)
 
 
 def get_admin_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.admin_repository import SQLiteAdminRepository
-        return SQLiteAdminRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.admin_repository import SupabaseAdminRepository
-        return SupabaseAdminRepository(_get_supabase_client)
+    return _get_repository("Admin")
 
 
 def get_home_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.home_repository import SQLiteHomeRepository
-        return SQLiteHomeRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.home_repository import SupabaseHomeRepository
-        return SupabaseHomeRepository(_get_supabase_client)
+    return _get_repository("Home")
 
 
 def get_csv_repository():
-    mode = get_db_mode()
-    
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.csv_repository import SQLiteCSVRepository
-        return SQLiteCSVRepository(_get_sqlite_connection, MESES)
-    else:
-        from financeiro.infrastructure.supabase.csv_repository import SupabaseCSVRepository
-        return SupabaseCSVRepository(_get_supabase_client, MESES)
+    return _get_repository("CSV", MESES)
 
 
 def get_db_backup_repository():
-    mode = get_db_mode()
-
-    if mode == 'sqlite':
-        _ensure_sqlite_initialized()
-        from financeiro.infrastructure.sqlite.db_backup_repository import SQLiteDBBackupRepository
-        return SQLiteDBBackupRepository(_get_sqlite_connection)
-    else:
-        from financeiro.infrastructure.supabase.db_backup_repository import SupabaseDBBackupRepository
-        return SupabaseDBBackupRepository(_get_supabase_client)
+    return _get_repository("DBBackup")

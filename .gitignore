@@ -44,3 +44,6 @@ ENV/
 reasonix.toml
 specs/dados-supabase.sql
 .env_embutido
+
+# Artefatos internos do Reasonix
+.reasonix/tasks/
