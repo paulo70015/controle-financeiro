@@ -96,7 +96,8 @@ class SupabaseDashboardRepository:
             .execute()
         fixas = fixas_response.data
         
-        # Metas
+        # Metas — aparecem nos anos criados entre ano_criacao e ano_meta
+        # (ano informativo: a meta nao cria ano; so aparece onde ele existe)
         metas_response = client.table("metas") \
             .select("*") \
             .lte("ano_criacao", ano) \

@@ -36,6 +36,10 @@ def init_db(connection_factory):
         _upgrade_to_anos(cur)
         logging.info("Upgrade para FKs `anos` concluído.")
 
+    # 4b. Metas vivem independentes do ciclo de anos (ano_meta/ano_criacao
+    #     são informativos). Remove FKs de `metas -> anos` em bancos antigos.
+    _migrate_metas_sem_fk_ano(cur)
+
     # 5. Remover unique legada de movimentações para permitir múltiplos lançamentos por mês.
     _migrate_movimentacoes_multiplas(cur)
 
@@ -126,17 +130,16 @@ def _create_schema(cur):
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
     )
 
-    # --- metas ---
+    # --- metas (ano_meta/ano_criacao sao informativos — sem FK para `anos`;
+    # a meta existe por si propria e aparece nos anos criados ate o ano_meta) ---
     cur.execute(
         """CREATE TABLE IF NOT EXISTS metas(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         descricao TEXT NOT NULL,
         valor REAL NOT NULL,
-        ano_meta INTEGER NOT NULL,
+        ano_meta INTEGER,
         concluida INTEGER DEFAULT 0,
-        ano_criacao INTEGER NOT NULL,
-        FOREIGN KEY(ano_meta) REFERENCES anos(ano) ON DELETE CASCADE,
-        FOREIGN KEY(ano_criacao) REFERENCES anos(ano) ON DELETE CASCADE)"""
+        ano_criacao INTEGER NOT NULL)"""
     )
 
     # --- contas_correntes (sem FK para anos — não tem coluna ano) ---
@@ -293,8 +296,6 @@ def _upgrade_to_anos(cur):
         UNION SELECT DISTINCT ano FROM fixas_excecoes
         UNION SELECT DISTINCT ano FROM pagamento_status
         UNION SELECT DISTINCT ano FROM rendimentos_realizados
-        UNION SELECT DISTINCT ano_meta FROM metas
-        UNION SELECT DISTINCT ano_criacao FROM metas
         UNION SELECT DISTINCT ano FROM depositos_conta
         UNION SELECT DISTINCT ano FROM movimentacoes_mensais
         UNION SELECT DISTINCT ano FROM rendimentos_locais
@@ -366,11 +367,9 @@ def _upgrade_to_anos(cur):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         descricao TEXT NOT NULL,
         valor REAL NOT NULL,
-        ano_meta INTEGER NOT NULL,
+        ano_meta INTEGER,
         concluida INTEGER DEFAULT 0,
-        ano_criacao INTEGER NOT NULL,
-        FOREIGN KEY(ano_meta) REFERENCES anos(ano) ON DELETE CASCADE,
-        FOREIGN KEY(ano_criacao) REFERENCES anos(ano) ON DELETE CASCADE)""",
+        ano_criacao INTEGER NOT NULL)""",
     )
 
     _recreate_with_fk(
@@ -495,7 +494,33 @@ def _recreate_with_fk(cur, table: str, create_sql: str, columns: list[str] | Non
     else:
         cur.execute(f"INSERT INTO {table} SELECT * FROM {old}")
     cur.execute(f"DROP TABLE {old}")
-    logging.info("Tabela %s recriada com FK para `anos`.", table)
+    logging.info("Tabela %s recriada.", table)
+
+
+def _migrate_metas_sem_fk_ano(cur):
+    """
+    Remove as FKs de `metas -> anos` e o NOT NULL de `ano_meta`
+    (ano_meta/ano_criacao são informativos: a meta existe por si própria
+    e aparece nos anos criados até o ano_meta). Recria a tabela preservando
+    os dados — idempotente.
+    """
+    fks = cur.execute("PRAGMA foreign_key_list(metas)").fetchall()
+    cols = {row[1]: row for row in cur.execute("PRAGMA table_info('metas')").fetchall()}
+    tem_fk = any(fk[2] == "anos" for fk in fks)
+    ano_meta_notnull = bool(cols.get("ano_meta") and cols["ano_meta"][3])
+    if not tem_fk and not ano_meta_notnull:
+        return
+    _recreate_with_fk(
+        cur, "metas",
+        """CREATE TABLE metas(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        descricao TEXT NOT NULL,
+        valor REAL NOT NULL,
+        ano_meta INTEGER,
+        concluida INTEGER DEFAULT 0,
+        ano_criacao INTEGER NOT NULL)""",
+    )
+    logging.info("Tabela metas migrada: FKs para `anos` removidas e ano_meta sem NOT NULL (ano informativo).")
 
 
 def _migrate_rendimentos_locais_conta_vinculada(cur):

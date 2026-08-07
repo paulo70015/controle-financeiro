@@ -28,9 +28,6 @@ def descobrir_anos(conn) -> set[int]:
         ).fetchall()
     }
     partes = [f"SELECT DISTINCT ano FROM {t}" for t in _TABELAS_COM_ANO if t in existentes]
-    if "metas" in existentes:
-        partes.append("SELECT ano_criacao FROM metas")
-        partes.append("SELECT ano_meta FROM metas")
     if not partes:
         return set()
     query = " UNION ".join(partes)

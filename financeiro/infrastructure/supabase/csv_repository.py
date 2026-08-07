@@ -484,7 +484,7 @@ class SupabaseCSVRepository:
         fixas_response = client.table("despesas_fixas_cartao").select("*").eq("ativa", 1).eq("ano", ano).order("dia").execute()
         fixas = fixas_response.data
         
-        # Metas
+        # Metas — aparecem nos anos criados entre ano_criacao e ano_meta (ano informativo)
         metas_response = client.table("metas").select("*").lte("ano_criacao", ano).gte("ano_meta", ano).order("concluida").order("ano_meta").execute()
         metas = metas_response.data
         

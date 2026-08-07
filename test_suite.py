@@ -376,6 +376,74 @@ def test_ddd_categoria_cartao(r):
     requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/Cat Cartao Teste")
 
 # ============================================================================
+# BACKEND - METAS (ano informativo)
+# ============================================================================
+
+@runner.test("Backend: Meta nao cria ano e aparece nos anos ate o alvo")
+def test_meta_ano_informativo(r):
+    import random as _random
+
+    ano_fantasma = ANO_TESTE + 40 + _random.randint(0, 5)
+    descricao = f"Meta ano informativo {ano_fantasma}"
+
+    # 1. Criar meta com ano_meta em ano INEXISTENTE
+    resp = requests.post(f"{BASE_URL}/api/meta", json={
+        "descricao": descricao,
+        "valor": 9999.00,
+        "ano_meta": ano_fantasma,
+        "ano_criacao": ANO_TESTE
+    })
+    assert resp.status_code == 200, f"Criar meta: {resp.status_code} {resp.text}"
+
+    # 2. O ano fantasma NAO deve existir na lista de anos (meta nao cria ano)
+    dados = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}").json()
+    assert ano_fantasma not in dados["anos"], \
+        f"Ano fantasma {ano_fantasma} nao deveria ser criado pela meta"
+
+    # 3. A meta JA aparece no ano atual (faixa: ano_criacao <= ano <= ano_meta)
+    metas_ano_atual = [m for m in dados["metas"] if m.get("descricao") == descricao]
+    assert len(metas_ano_atual) == 1, "Meta deveria aparecer no ano atual (dentro da faixa)"
+
+    # 4. Criar o ano de verdade
+    resp = requests.post(f"{BASE_URL}/api/ano", json={"ano": ano_fantasma})
+    assert resp.status_code == 200, f"Criar ano: {resp.status_code} {resp.text}"
+
+    # 5. A meta e puxada para o ano recém-criado
+    dados_fantasma = requests.get(f"{BASE_URL}/api/dados/{ano_fantasma}").json()
+    metas_alvo = [m for m in dados_fantasma["metas"] if m.get("descricao") == descricao]
+    assert len(metas_alvo) == 1, "Meta deveria aparecer no ano-alvo apos ele ser criado"
+    meta_id = metas_alvo[0]["id"]
+
+    print(f"    Meta ano_meta={ano_fantasma}: aparece no ano atual e no ano-alvo; ano so existiu apos POST /api/ano")
+
+    # 6. Limpeza: excluir meta e ano
+    requests.delete(f"{BASE_URL}/api/meta/{meta_id}")
+    requests.delete(f"{BASE_URL}/api/ano/{ano_fantasma}")
+
+@runner.test("Backend: Meta sem ano alvo aparece no ano de criacao")
+def test_meta_sem_ano_alvo(r):
+    import random as _random
+
+    descricao = f"Meta sem ano alvo {_random.randint(0, 9999)}"
+
+    resp = requests.post(f"{BASE_URL}/api/meta", json={
+        "descricao": descricao,
+        "valor": 123.45,
+        "ano_meta": None,
+        "ano_criacao": ANO_TESTE
+    })
+    assert resp.status_code == 200, f"Criar meta: {resp.status_code} {resp.text}"
+
+    dados = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}").json()
+    metas = [m for m in dados["metas"] if m.get("descricao") == descricao]
+    assert len(metas) == 1, "Meta sem ano_meta deveria casar com o ano de criacao"
+    meta_id = metas[0]["id"]
+
+    # Limpeza
+    requests.delete(f"{BASE_URL}/api/meta/{meta_id}")
+    print("    Meta sem ano_meta aparece no ano_criacao")
+
+# ============================================================================
 # EXECUÇÃO
 # ============================================================================
 

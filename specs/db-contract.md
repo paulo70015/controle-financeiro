@@ -6,6 +6,7 @@ Este documento define as regras canônicas para a estrutura e evolução do banc
 - **Proibido** renomear tabelas ou colunas em uso pelo app legado.
 - O padrão real do banco utiliza `_` (snake_case). O Flutter deve mapear as chaves exatamente neste formato.
 - **Tabelas/Colunas fixadas:** `rendimentos_locais`, `rendimentos_lancamentos`, `cat_id`, `local_id`, `ano_meta`, `ano_criacao`, `projecao_taxa`, `data_alteracao`.
+- **Metas × Anos:** em `metas`, `ano_meta` (ano alvo) e `ano_criacao` (ano de criação) são **informativos** — NÃO possuem FK para `anos` e NÃO criam anos na tabela `anos`. A meta aparece em todos os anos criados com `ano_criacao <= ano <= ano_meta` (e em todos os anos a partir de `ano_criacao` quando `ano_meta` é nulo). Criar/editar meta nunca deve inserir registro em `anos`.
 
 ## 2. Versionamento do Schema
 - O arquivo `.db` atua como um contrato compartilhado.

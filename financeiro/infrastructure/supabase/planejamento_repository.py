@@ -107,7 +107,7 @@ class SupabasePlanejamentoRepository:
     def add_meta(self, meta: Meta) -> None:
         """Adiciona meta"""
         client: Client = self.client_factory()
-        
+
         client.table("metas").insert({
             "descricao": meta.descricao,
             "valor": meta.valor,

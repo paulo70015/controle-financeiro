@@ -1465,10 +1465,6 @@ tr.drag-over td { border-top: 2px solid var(--azul); }
 
 .mi.done { opacity: 0.5; text-decoration: line-through; }
 
-.mn { flex: 1; }
-.ma { color: var(--text-muted); font-size: 11px; }
-.mv { color: var(--azul); font-weight: 600; white-space: nowrap; }
-
 .sidebar {
   display: flex;
   flex-direction: column;

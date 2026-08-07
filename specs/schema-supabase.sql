@@ -174,16 +174,18 @@ CREATE INDEX IF NOT EXISTS idx_rendimentos_realizados_ano_mes ON rendimentos_rea
 -- ============================================
 -- Tabela: metas
 -- Metas financeiras
+-- ano_meta/ano_criacao sao INFORMATIVOS (sem FK para `anos`): a meta
+-- existe por si propria e aparece nos anos criados entre ano_criacao
+-- e ano_meta (e em todos os anos a partir de ano_criacao quando
+-- ano_meta e nulo).
 -- ============================================
 CREATE TABLE IF NOT EXISTS metas (
     id SERIAL PRIMARY KEY,
     descricao TEXT NOT NULL,
     valor NUMERIC(10,2) NOT NULL,
-    ano_meta INTEGER NOT NULL,
+    ano_meta INTEGER,
     concluida INTEGER DEFAULT 0,
-    ano_criacao INTEGER NOT NULL,
-    FOREIGN KEY (ano_meta) REFERENCES anos(ano) ON DELETE CASCADE,
-    FOREIGN KEY (ano_criacao) REFERENCES anos(ano) ON DELETE CASCADE
+    ano_criacao INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_metas_ano_meta ON metas(ano_meta);

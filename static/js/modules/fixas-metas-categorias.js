@@ -1,5 +1,65 @@
 ﻿﻿var renCtx = {};
 
+// ═══════════════════════════════════════════════════════════════
+// DRY — estrutura visual compartilhada (Drawer de Fixas e de Metas)
+// ═══════════════════════════════════════════════════════════════
+
+function btnAcaoItem(classe, onclick, titulo, icone) {
+  return `<button class="${classe}" onclick="${onclick}" title="${titulo}">${window.iconSVG(icone, 'sm')}</button>`;
+}
+
+function itemDrawerHtml(opts) {
+  const {itemClass, itemId, valorHtml, valorStyle = 'color:var(--text-main)', descricaoHtml, acoesHtml = '', extraHtml = '', styleExtra = ''} = opts;
+  return `<div class="${itemClass}" id="${itemId}"${styleExtra ? ` style="${styleExtra}"` : ''}>
+    ${extraHtml}
+    <div style="flex:1;display:flex;flex-direction:column;gap:0">
+      <span style="font-weight:600;font-size:12px;${valorStyle}">${valorHtml}</span>
+      <span style="color:var(--text-muted);font-size:11px">${descricaoHtml}</span>
+    </div>
+    ${acoesHtml}
+  </div>`;
+}
+
+function totaisDrawerHtml(total, rotuloSecundario, valorSecundario) {
+  return `Total: ${BRL(total)} <br><span style="font-size:12px;color:var(--text-muted);font-weight:normal">${rotuloSecundario}: <b style="color:var(--text-main)">${BRL(valorSecundario)}</b></span>`;
+}
+
+function inlineEditBoxHtml(linhasHtml, onCancel, onSave, labelSalvar = 'Salvar') {
+  return `
+    <div class="inline-edit-box">
+      ${linhasHtml}
+      <div class="inline-edit-actions">
+        <button class="btn bs inline-edit-btn" onclick="${onCancel}">Cancelar</button>
+        <button class="btn bv bs inline-edit-btn" onclick="${onSave}">${labelSalvar}</button>
+      </div>
+    </div>`;
+}
+
+function abrirInlineEdit({tipo, containerId, builder, focusId}) {
+  resetEditInline(tipo);
+  const ul = document.getElementById(containerId);
+  if (!ul) return;
+  const div = document.createElement('div');
+  div.className = `${tipo}-edit-row`;
+  div.innerHTML = builder(null);
+  ul.insertBefore(div, ul.firstChild);
+  setTimeout(() => document.getElementById(focusId).focus(), 50);
+}
+
+function editarInlineEdit({tipo, id, lista, itemIdPrefix, builder, focusId}) {
+  resetEditInline(tipo);
+  const item = lista.find(x => x.id === id);
+  if (!item) return;
+  const li = document.getElementById(itemIdPrefix + id);
+  if (!li) return;
+  li.classList.add(`${tipo}-editing`);
+  const div = document.createElement('div');
+  div.className = `${tipo}-edit-row`;
+  div.innerHTML = builder(item);
+  li.insertAdjacentElement('afterend', div);
+  setTimeout(() => document.getElementById(focusId).select(), 50);
+}
+
 function renderFixas() {
   const ulLf = document.getElementById('lf');
   if (!ulLf) return;
@@ -59,38 +119,54 @@ function renderFixas() {
           ? '' 
           : `<button class="btn-aplicar-fixa" onclick="toggleFixaAplicadaManual(${f.id}, ${mesAtualNum}, true)" title="Marcar como aplicada">✓</button>`);
 
-    return `<div class="di" id="fxli-${f.id}" style="padding:4px 0">
-      <div style="flex:1;display:flex;flex-direction:column;gap:0">
-        <span style="font-weight:600;font-size:12px;${expStyle}">${BRL(f.valor)}${expLabel}</span>
-        <span style="color:var(--text-muted);font-size:11px">${descFormatada} (Dia ${f.dia||'?'})</span>
-      </div>
-      ${btnAplicar}
-      <button class="btn-edit" onclick="editarFxInline(${f.id})" title="Editar">${window.iconSVG('pencil', 'sm')}</button>
-      <button class="btn-delete" onclick="delFx(${f.id})" title="Excluir">${window.iconSVG('trash-2', 'sm')}</button>
-    </div>`;
+    return itemDrawerHtml({
+      itemClass: 'di',
+      itemId: `fxli-${f.id}`,
+      styleExtra: 'padding:4px 0',
+      valorHtml: `${BRL(f.valor)}${expLabel}`,
+      valorStyle: expStyle,
+      descricaoHtml: `${descFormatada} (Dia ${f.dia||'?'})`,
+      acoesHtml: btnAplicar
+        + btnAcaoItem('btn-edit', `editarFxInline(${f.id})`, 'Editar', 'pencil')
+        + btnAcaoItem('btn-delete', `delFx(${f.id})`, 'Excluir', 'trash-2')
+    });
   }).join('');
   
   const elTf = document.getElementById('tf');
   if (elTf) {
-    elTf.innerHTML = `Total: ${BRL(somaTotal)} <br><span style="font-size:12px;color:var(--text-muted);font-weight:normal">Restante no mês: <b style="color:var(--text-main)">${BRL(somaRestante)}</b></span>`;
+    elTf.innerHTML = totaisDrawerHtml(somaTotal, 'Restante no mês', somaRestante);
   }
 }
 
 function renderMetas() {
   const divLm = document.getElementById('lm');
   if (!divLm) return;
+
+  let somaTotal = 0;
+  let somaPendente = 0;
+
   divLm.innerHTML = (dados.metas || []).map(m => {
     const descFormatada = window.formatBankIcons ? window.formatBankIcons(m.descricao) : m.descricao;
-    return `
-    <div class="mi ${m.concluida?'done':''}" id="mli-${m.id}">
-      <input type="checkbox" ${m.concluida?'checked':''} onchange="togMeta(${m.id},this.checked)">
-      <span class="mn">${descFormatada}</span>
-      <span class="mv">${m.valor?BRL(m.valor):''}</span>
-      <span class="ma" style="margin-right:4px">${m.ano_meta||'N/A'}</span>
-      <button class="btn-edit" onclick="editarMInline(${m.id})" title="Editar">${window.iconSVG('pencil', 'sm')}</button>
-      <button class="btn-delete" onclick="delMeta(${m.id})" title="Excluir">${window.iconSVG('trash-2', 'sm')}</button>
-    </div>`
+    const valor = m.valor || 0;
+    somaTotal += valor;
+    if (!m.concluida) somaPendente += valor;
+    const valStyle = m.concluida ? 'color:var(--text-muted)' : 'color:var(--text-main)';
+    return itemDrawerHtml({
+      itemClass: `mi ${m.concluida?'done':''}`,
+      itemId: `mli-${m.id}`,
+      valorHtml: BRL(valor),
+      valorStyle: valStyle,
+      descricaoHtml: `${descFormatada} (${m.ano_meta||'sem ano'})`,
+      extraHtml: `<input type="checkbox" ${m.concluida?'checked':''} onchange="togMeta(${m.id},this.checked)">`,
+      acoesHtml: btnAcaoItem('btn-edit', `editarMInline(${m.id})`, 'Editar', 'pencil')
+        + btnAcaoItem('btn-delete', `delMeta(${m.id})`, 'Excluir', 'trash-2')
+    });
   }).join('');
+
+  const elTm = document.getElementById('tm');
+  if (elTm) {
+    elTm.innerHTML = totaisDrawerHtml(somaTotal, 'Pendentes', somaPendente);
+  }
 }
 
 function abrirRen(id, nome, fixaFlag = 0, contaVinculadaId = null, tooltip = '') {
@@ -143,18 +219,16 @@ function buildFormEditFixaHtml(f) {
   const d = isEdit ? f.descricao : '';
   const di = isEdit ? (f.dia || '') : '';
   const v = isEdit ? fmtNum(f.valor) : '';
-  return `
-    <div class="inline-edit-box">
-      <div class="inline-edit-row">
-        <input id="fxeV" type="text" inputmode="decimal" class="inline-edit-input" value="${v}" placeholder="Valor (R$)">
-        <input id="fxeDi" type="number" inputmode="numeric" class="inline-edit-input short" value="${di}" placeholder="Dia" min="1" max="31">
-      </div>
-      <input id="fxeD" type="text" class="inline-edit-input" value="${d}" placeholder="Descrição">
-      <div class="inline-edit-actions">
-        <button class="btn bs inline-edit-btn" onclick="cancelarFxInline()">Cancelar</button>
-        <button class="btn bv bs inline-edit-btn" onclick="salvarFxInline(${fId})">${isEdit ? 'Alterar' : '+ Lançar'}</button>
-      </div>
-    </div>`;
+  return inlineEditBoxHtml(
+    `<div class="inline-edit-row">
+      <input id="fxeV" type="text" inputmode="decimal" class="inline-edit-input" value="${v}" placeholder="Valor (R$)">
+      <input id="fxeDi" type="number" inputmode="numeric" class="inline-edit-input short" value="${di}" placeholder="Dia" min="1" max="31">
+    </div>
+    <input id="fxeD" type="text" class="inline-edit-input" value="${d}" placeholder="Descrição">`,
+    'cancelarFxInline()',
+    `salvarFxInline(${fId})`,
+    isEdit ? 'Alterar' : '+ Lançar'
+  );
 }
 
 function resetEditInline(tipo) {
@@ -164,30 +238,18 @@ function resetEditInline(tipo) {
 }
 
 function abrirF() {
-  resetEditInline('fx');
-
-  const ul = document.getElementById('lf');
-  const div = document.createElement('div');
-  div.className = 'fx-edit-row';
-  div.innerHTML = buildFormEditFixaHtml(null);
-  ul.insertBefore(div, ul.firstChild);
-  setTimeout(() => document.getElementById('fxeD').focus(), 50);
+  abrirInlineEdit({tipo: 'fx', containerId: 'lf', builder: (item) => buildFormEditFixaHtml(item), focusId: 'fxeD'});
 }
 
 function editarFxInline(id) {
-  resetEditInline('fx');
-
-  const f = dados.fixas.find(x => x.id === id);
-  if (!f) return;
-  const li = document.getElementById('fxli-' + id);
-  if (!li) return;
-  li.classList.add('fx-editing');
-
-  const div = document.createElement('div');
-  div.className = 'fx-edit-row';
-  div.innerHTML = buildFormEditFixaHtml(f);
-  li.insertAdjacentElement('afterend', div);
-  setTimeout(() => document.getElementById('fxeD').select(), 50);
+  editarInlineEdit({
+    tipo: 'fx',
+    id: id,
+    lista: dados.fixas || [],
+    itemIdPrefix: 'fxli-',
+    builder: (item) => buildFormEditFixaHtml(item),
+    focusId: 'fxeD'
+  });
 }
 
 function cancelarFxInline() {
@@ -246,45 +308,30 @@ function buildFormEditMetaHtml(m, anoAtual) {
   const d = isEdit ? m.descricao : '';
   const a = isEdit ? (m.ano_meta || '') : anoAtual;
   const v = isEdit ? (m.valor || '') : '';
-  return `
-    <div class="inline-edit-box" style="background:var(--bg-linha-total-contas);">
-      <input id="m-exeD" type="text" class="inline-edit-input" value="${d}" placeholder="Descrição">
-      <div class="inline-edit-row">
-        <input id="m-exeA" type="number" inputmode="numeric" class="inline-edit-input short" style="width:70px" value="${a}" placeholder="Ano alvo" title="Ano sugerido para concluir">
-        <input id="m-exeV" type="text" inputmode="decimal" class="inline-edit-input" value="${v}" placeholder="Valor alvo">
-      </div>
-      <div class="inline-edit-actions">
-        <button class="btn bs inline-edit-btn" onclick="cancelarMInline()">Cancelar</button>
-        <button class="btn bv bs inline-edit-btn" onclick="salvarMInline(${mId})">Salvar</button>
-      </div>
-    </div>`;
+  return inlineEditBoxHtml(
+    `<input id="m-exeD" type="text" class="inline-edit-input" value="${d}" placeholder="Descrição">
+    <div class="inline-edit-row">
+      <input id="m-exeA" type="number" inputmode="numeric" class="inline-edit-input short" style="width:70px" value="${a}" placeholder="Ano alvo" title="Ano sugerido para concluir">
+      <input id="m-exeV" type="text" inputmode="decimal" class="inline-edit-input" value="${v}" placeholder="Valor alvo">
+    </div>`,
+    'cancelarMInline()',
+    `salvarMInline(${mId})`
+  );
 }
 
 function abrirM() {
-  resetEditInline('m');
-
-  const div = document.createElement('div');
-  div.className = 'm-edit-row';
-  div.innerHTML = buildFormEditMetaHtml(null, ano);
-  const lm = document.getElementById('lm');
-  lm.insertBefore(div, lm.firstChild);
-  setTimeout(() => document.getElementById('m-exeD').focus(), 50);
+  abrirInlineEdit({tipo: 'm', containerId: 'lm', builder: (item) => buildFormEditMetaHtml(item, ano), focusId: 'm-exeD'});
 }
 
 function editarMInline(id) {
-  resetEditInline('m');
-
-  const m = dados.metas.find(x => x.id === id);
-  if (!m) return;
-  const divMi = document.getElementById('mli-' + id);
-  if (!divMi) return;
-  divMi.classList.add('m-editing');
-
-  const div = document.createElement('div');
-  div.className = 'm-edit-row';
-  div.innerHTML = buildFormEditMetaHtml(m, ano);
-  divMi.insertAdjacentElement('afterend', div);
-  setTimeout(() => document.getElementById('m-exeD').select(), 50);
+  editarInlineEdit({
+    tipo: 'm',
+    id: id,
+    lista: dados.metas || [],
+    itemIdPrefix: 'mli-',
+    builder: (item) => buildFormEditMetaHtml(item, ano),
+    focusId: 'm-exeD'
+  });
 }
 
 function cancelarMInline() {
