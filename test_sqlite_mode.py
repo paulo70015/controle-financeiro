@@ -5,6 +5,7 @@ Valida que todos os repositórios podem ser instanciados
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -12,11 +13,17 @@ from pathlib import Path
 # VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
 # ═══════════════════════════════════════════════════════════════════
 sys.path.insert(0, str(Path(__file__).parent))
+from test_browser.processos_util import limpar_banco_teste
 from test_browser.verificar_ambiente import verificar as _verificar_supabase
 _verificar_supabase()
 
 # Forçar modo SQLite
 os.environ['DB_MODE'] = 'sqlite'
+
+# Isolamento: banco de teste em TEMP (fora do OneDrive) — NUNCA toca/apaga o
+# financeiro.db real do usuário.
+DB_TESTE = Path(tempfile.gettempdir()) / "controle_financeiro_sqlite_mode" / "financeiro.db"
+os.environ['SQLITE_DB_PATH'] = str(DB_TESTE)
 
 def test_sqlite_repositories():
     """Testa se todos os repositórios SQLite podem ser criados"""
@@ -26,11 +33,17 @@ def test_sqlite_repositories():
     print("=" * 60)
     print()
     
-    # Limpar banco de teste se existir
-    db_path = Path("financeiro.db")
-    if db_path.exists():
-        db_path.unlink()
+    # Limpar banco de teste anterior (se existir), incluindo WAL/SHM
+    DB_TESTE.parent.mkdir(parents=True, exist_ok=True)
+    limpar_banco_teste(DB_TESTE)
+    if not DB_TESTE.exists():
         print("✓ Banco de teste anterior removido")
+    else:
+        try:
+            DB_TESTE.unlink()
+            print("✓ Banco de teste anterior removido")
+        except OSError:
+            print("⚠ Não foi possível remover banco de teste anterior")
     
     try:
         from financeiro.infrastructure.repository_factory import (
@@ -79,10 +92,10 @@ def test_sqlite_repositories():
         print()
         print("-" * 60)
         
-        # Verificar se o banco foi criado
-        if db_path.exists():
-            size = db_path.stat().st_size
-            print(f"✓ Banco SQLite criado: {db_path.absolute()}")
+        # Verificar se o banco foi criado (em TEMP, nunca no financeiro.db real)
+        if DB_TESTE.exists():
+            size = DB_TESTE.stat().st_size
+            print(f"✓ Banco SQLite criado: {DB_TESTE.absolute()}")
             print(f"  Tamanho: {size:,} bytes")
         else:
             print("✗ Banco SQLite não foi criado")
@@ -95,7 +108,14 @@ def test_sqlite_repositories():
         print()
         print("O modo SQLite está funcionando corretamente!")
         print("Você pode usar 'scripts\construir.bat --com-sqlite' para gerar o executável.")
-        
+
+        # Limpar banco de teste do TEMP
+        limpar_banco_teste(DB_TESTE)
+        try:
+            DB_TESTE.parent.rmdir()
+        except OSError:
+            pass
+
         return True
         
     except Exception as e:

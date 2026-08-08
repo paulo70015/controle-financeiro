@@ -8,9 +8,9 @@ from financeiro.infrastructure.export_files import nome_arquivo_exportacao
 class SQLiteDBBackupRepository:
     def __init__(self, connection_factory):
         self.connection_factory = connection_factory
-        from financeiro.infrastructure.runtime.paths import get_data_dir
-        self.db_path = os.path.join(get_data_dir(), "financeiro.db")
-        self.bak_path = os.path.join(get_data_dir(), "financeiro.db.bak")
+        from financeiro.infrastructure.runtime.paths import get_db_backup_path, get_db_path
+        self.db_path = get_db_path()
+        self.bak_path = get_db_backup_path()
 
     def exportar_txt(self):
         """Exporta o banco SQLite como arquivo binário (.db)."""

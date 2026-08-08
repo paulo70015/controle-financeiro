@@ -1,16 +1,18 @@
 """
 Fixtures globais para testes E2E com Playwright.
 
-- flask_server (session): Sobe o servidor Flask com SQLite temporário.
-- page (function): Abre navegador Chromium, navega para a URL base.
+- flask_server (session): Sobe o servidor Flask com SQLite e banco em diretório
+  temporário FORA do OneDrive (isolamento físico — ver docs/plano-infra-e2e-timeout.md).
+- page (function): Abre navegador Chromium, navega para a URL base com retry.
 - server_url (session): Retorna a URL base do servidor.
 """
 
 import os
 import sys
 import time
-import shutil
 import subprocess
+import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -20,66 +22,60 @@ from playwright.sync_api import sync_playwright
 # ═══════════════════════════════════════════════════════════════════
 # VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
 # ═══════════════════════════════════════════════════════════════════
+from test_browser.processos_util import kill_arvore as _kill_arvore
+from test_browser.processos_util import limpar_banco_teste as _limpar_db_teste
+from test_browser.processos_util import matar_servidores_na_porta as _matar_servidores_na_porta
 from test_browser.verificar_ambiente import verificar as _verificar_supabase
 _verificar_supabase()
 
 
 # ── Constantes ─────────────────────────────────────────────────
 PROJETO_RAIZ = Path(__file__).parent.parent
-DB_REAL = PROJETO_RAIZ / "financeiro.db"
-DB_BACKUP = PROJETO_RAIZ / "financeiro.db.bak_tests"
-DB_TESTE = PROJETO_RAIZ / "test_financeiro.db"
-PORTA = 8085
+
+# Suporte a execução paralela (pytest-xdist): cada worker usa porta e banco
+# próprios. Sem xdist (worker "master") o comportamento é o histórico: porta 8085.
+_worker = os.environ.get("PYTEST_XDIST_WORKER", "master")
+_worker_idx = 0 if _worker == "master" else int(_worker.replace("gw", "") or 0)
+PORTA = 8085 + _worker_idx
 BASE_URL = f"http://127.0.0.1:{PORTA}"
 
+# Banco de teste em TEMP (fora do OneDrive) — isolamento físico: o app recebe
+# SQLITE_DB_PATH via env e NUNCA toca no financeiro.db real do usuário.
+# Cada worker tem diretório próprio para não limpar o banco dos demais.
+TMP_E2E = Path(tempfile.gettempdir()) / ("controle_financeiro_e2e" if _worker_idx == 0 else f"controle_financeiro_e2e_{_worker}")
+DB_TESTE = TMP_E2E / "financeiro.db"
 
-def _limpar_wal_shm(db_path: Path):
-    """Remove arquivos WAL/SHM associados a um banco SQLite."""
-    for suffix in ("-wal", "-shm"):
-        aux = Path(str(db_path) + suffix)
-        if aux.exists():
-            aux.unlink()
-
-
-def _backup_db():
-    """Faz backup do banco real e prepara ambiente limpo para testes.
-
-    O .env NAO e manipulado — o DB_MODE=sqlite e forçado
-    exclusivamente via variavel de ambiente no subprocesso Flask.
-    """
-    # Remove DB de teste residual de execucoes anteriores
-    if DB_TESTE.exists():
-        DB_TESTE.unlink()
-        _limpar_wal_shm(DB_TESTE)
-
-    # Se ja existe backup do DB de crash anterior, restaura primeiro
-    if DB_BACKUP.exists():
-        _limpar_wal_shm(DB_REAL)
-        if DB_REAL.exists():
-            DB_REAL.unlink()
-        shutil.move(str(DB_BACKUP), str(DB_REAL))
-
-    # Faz backup do DB real (se existir)
-    if DB_REAL.exists():
-        _limpar_wal_shm(DB_REAL)
-        shutil.move(str(DB_REAL), str(DB_BACKUP))
+# Diagnóstico do goto da fixture (critério de aceite: tempo registrado em log)
+LOG_GOTO = PROJETO_RAIZ / "test_browser" / "artefatos" / "e2e-goto.log"
+GOTO_TIMEOUT_MS = 60_000
+GOTO_TENTATIVAS = 2
 
 
-def _restore_db():
-    """Restaura o banco real e limpa arquivos de teste."""
-    # Remove o DB de teste criado pelo servidor
-    _limpar_wal_shm(DB_REAL)
-    if DB_REAL.exists():
-        DB_REAL.unlink()
+def _log_goto(msg: str):
+    """Registra tempo/evento do goto em arquivo de log (persiste mesmo sem -s)."""
+    try:
+        LOG_GOTO.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_GOTO, "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
+    except OSError:
+        pass
 
-    # Restaura backup do DB
-    if DB_BACKUP.exists():
-        shutil.move(str(DB_BACKUP), str(DB_REAL))
 
-    # Limpa DB de teste se existir
-    if DB_TESTE.exists():
-        _limpar_wal_shm(DB_TESTE)
-        DB_TESTE.unlink()
+def _salvar_diagnostico(page_obj, url: str):
+    """Salva screenshot + HTML truncado quando o load da página estoura o timeout."""
+    artefatos = LOG_GOTO.parent
+    artefatos.mkdir(parents=True, exist_ok=True)
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    try:
+        page_obj.screenshot(path=str(artefatos / f"timeout-{ts}.png"), full_page=True)
+    except Exception:
+        pass
+    try:
+        content = page_obj.content()
+        (artefatos / f"timeout-{ts}.html").write_text(content[:200_000], encoding="utf-8")
+    except Exception:
+        pass
+    _log_goto(f"DIAGNOSTICO salvo em test_browser/artefatos/timeout-{ts}.{{png,html}} (url={url})")
 
 
 @pytest.fixture(scope="session")
@@ -90,12 +86,15 @@ def server_url():
 
 @pytest.fixture(scope="session")
 def flask_server():
-    """Sobe o servidor Flask em background com SQLite e banco temporario."""
-    _backup_db()
+    """Sobe o servidor Flask em background com SQLite e banco em TEMP (fora do OneDrive)."""
+    _matar_servidores_na_porta(PORTA)
+    _limpar_db_teste(DB_TESTE)
+    TMP_E2E.mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
     env["DB_MODE"] = "sqlite"
     env["PORT"] = str(PORTA)
+    env["SQLITE_DB_PATH"] = str(DB_TESTE)
     env["PYTHONPATH"] = str(PROJETO_RAIZ)
 
     # FLASK_SKIP_BROWSER evita que o app.py abra o navegador padrão
@@ -111,7 +110,7 @@ def flask_server():
     ready = False
     for _ in range(timeout * 4):
         if proc.poll() is not None:
-            _restore_db()
+            _limpar_db_teste(DB_TESTE)
             raise RuntimeError("Servidor morreu ao iniciar (processo encerrado)")
 
         try:
@@ -124,21 +123,19 @@ def flask_server():
             time.sleep(0.25)
 
     if not ready:
-        proc.kill()
-        _restore_db()
+        _kill_arvore(proc)
+        _limpar_db_teste(DB_TESTE)
         raise RuntimeError(f"Servidor nao iniciou em {timeout}s")
 
     yield BASE_URL
 
     # Teardown
-    proc.terminate()
+    _kill_arvore(proc)
+    _limpar_db_teste(DB_TESTE)
     try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
-
-    _restore_db()
+        TMP_E2E.rmdir()
+    except OSError:
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -167,6 +164,37 @@ def context(browser):
     ctx.close()
 
 
+def _abrir_pagina_com_retry(page_obj, url: str):
+    """Abre a página com retry e registra o tempo do goto em log.
+
+    Mitiga lentidão de primeiro load (OneDrive/antivírus) sem mudar a semântica
+    dos testes: apenas o setup da fixture ganha robustez. Em falha final, salva
+    screenshot + HTML para diagnóstico.
+    """
+    for tentativa in range(1, GOTO_TENTATIVAS + 1):
+        inicio = time.monotonic()
+        try:
+            page_obj.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="load")
+            page_obj.wait_for_function(
+                "() => window.CF_BOOT && "
+                "(document.querySelector('#tw table') || document.querySelector('.view-tab'))",
+                timeout=GOTO_TIMEOUT_MS,
+            )
+            duracao = time.monotonic() - inicio
+            _log_goto(f"goto OK ({duracao:.1f}s, tentativa {tentativa}) {url}")
+            print(f"[e2e] goto OK ({duracao:.1f}s, tentativa {tentativa}) {url}")
+            page_obj.wait_for_timeout(100)
+            return
+        except Exception as exc:
+            duracao = time.monotonic() - inicio
+            _log_goto(f"goto FALHOU ({duracao:.1f}s, tentativa {tentativa}) {url} -> {type(exc).__name__}")
+            print(f"[e2e] goto FALHOU ({duracao:.1f}s, tentativa {tentativa}) {url} -> {type(exc).__name__}")
+            if tentativa == GOTO_TENTATIVAS:
+                _salvar_diagnostico(page_obj, url)
+                raise
+            page_obj.wait_for_timeout(1500)
+
+
 @pytest.fixture(scope="function")
 def page(context, flask_server):
     """Nova aba no navegador compartilhado, com contexto limpo a cada teste.
@@ -177,14 +205,7 @@ def page(context, flask_server):
 
     page_obj = context.new_page()
     page_obj.add_init_script("sessionStorage.removeItem('cfViewAtiva');")
-    page_obj.goto(f"{flask_server}/?ano={ANO_TESTE}")
-
-    # Aguardar a SPA carregar completamente
-    page_obj.wait_for_function(
-        "() => window.CF_BOOT && "
-        "(document.querySelector('#tw table') || document.querySelector('.view-tab'))"
-    )
-    page_obj.wait_for_timeout(100)
+    _abrir_pagina_com_retry(page_obj, f"{flask_server}/?ano={ANO_TESTE}")
 
     yield page_obj
 

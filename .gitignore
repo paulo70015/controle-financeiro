@@ -47,3 +47,6 @@ specs/dados-supabase.sql
 
 # Artefatos internos do Reasonix
 .reasonix/tasks/
+
+# Artefatos de diagnostico dos testes E2E (screenshots/logs de timeout)
+test_browser/artefatos/

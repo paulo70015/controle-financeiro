@@ -13,11 +13,11 @@ from financeiro.infrastructure.export_files import nome_arquivo_exportacao
 
 class SQLiteCSVRepository:
     def __init__(self, connection_factory, meses):
-        from financeiro.infrastructure.runtime.paths import get_data_dir
+        from financeiro.infrastructure.runtime.paths import get_db_backup_path, get_db_path
         self.connection_factory = connection_factory
         self.meses = meses
-        self.db_path = os.path.join(get_data_dir(), "financeiro.db")
-        self.bak_path = os.path.join(get_data_dir(), "financeiro.db.bak")
+        self.db_path = get_db_path()
+        self.bak_path = get_db_backup_path()
 
     def desfazer_importacao(self):
         if not os.path.exists(self.bak_path):

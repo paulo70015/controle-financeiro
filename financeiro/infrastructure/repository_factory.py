@@ -46,9 +46,9 @@ def get_db_mode() -> str:
 
 def _get_sqlite_connection(**kwargs):
     """Factory de conexão SQLite"""
-    from financeiro.infrastructure.runtime.paths import get_data_dir
-    
-    db_path = Path(get_data_dir()) / "financeiro.db"
+    from financeiro.infrastructure.runtime.paths import get_db_path
+
+    db_path = Path(get_db_path())
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')

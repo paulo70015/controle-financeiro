@@ -7,11 +7,14 @@ Valida todas as refatorações DRY/DDD implementadas
 
 import os
 import sys
+import tempfile
+from pathlib import Path
 
 # ═══════════════════════════════════════════════════════════════════
 # VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
 # ═══════════════════════════════════════════════════════════════════
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_browser.processos_util import kill_arvore, limpar_banco_teste, matar_servidores_na_porta
 from test_browser.verificar_ambiente import verificar as _verificar_supabase
 _verificar_supabase()
 
@@ -452,10 +455,18 @@ if __name__ == "__main__":
     import time
     import atexit
 
+    # ── Isolamento: banco de teste em TEMP (fora do OneDrive) — não toca no
+    #    financeiro.db real do usuário. Porta 8086 limpa de órfãos.
+    matar_servidores_na_porta(8086)
+    db_teste = Path(tempfile.gettempdir()) / "controle_financeiro_unit" / "financeiro.db"
+    db_teste.parent.mkdir(parents=True, exist_ok=True)
+    limpar_banco_teste(db_teste)
+
     # ── Iniciar servidor Flask em modo SQLite (protege contra Supabase) ──
     env = os.environ.copy()
     env["DB_MODE"] = "sqlite"
     env["PORT"] = "8086"
+    env["SQLITE_DB_PATH"] = str(db_teste)
     env["FLASK_SKIP_BROWSER"] = "1"
     env["PYTHONPATH"] = os.path.dirname(os.path.abspath(__file__))
 
@@ -467,7 +478,7 @@ if __name__ == "__main__":
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    atexit.register(lambda: proc.kill() if proc.poll() is None else None)
+    atexit.register(lambda: kill_arvore(proc) if proc.poll() is None else None)
 
     # Aguardar servidor ficar pronto
     timeout = 15
@@ -484,7 +495,7 @@ if __name__ == "__main__":
             time.sleep(0.25)
 
     if not ready:
-        proc.kill()
+        kill_arvore(proc)
         print(f"{Colors.RED}✗ Servidor não iniciou em {timeout}s{Colors.RESET}")
         sys.exit(1)
 
@@ -492,12 +503,14 @@ if __name__ == "__main__":
 
     success = runner.run()
 
-    # Desligar servidor
-    proc.terminate()
+    # Desligar servidor (kill da árvore: terminate não mata o filho no Windows)
+    kill_arvore(proc)
+
+    # Limpar banco de teste do TEMP (inclui WAL/SHM)
+    limpar_banco_teste(db_teste)
     try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
+        db_teste.parent.rmdir()
+    except OSError:
+        pass
 
     sys.exit(0 if success else 1)
