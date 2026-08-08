@@ -49,6 +49,10 @@ $PYTHON_CMD -c "import playwright" 2>/dev/null || {
     echo "  Instalando playwright..."
     $PYTHON_CMD -m pip install playwright --break-system-packages -q
 }
+$PYTHON_CMD -c "import xdist" 2>/dev/null || {
+    echo "  Instalando pytest-xdist..."
+    $PYTHON_CMD -m pip install pytest-xdist --break-system-packages -q
+}
 
 # Instalar Chromium se necessario
 echo ""
@@ -65,12 +69,12 @@ except Exception:
     subprocess.run([sys.executable, '-m', 'playwright', 'install', 'chromium'], check=True)
 " 2>/dev/null || $PYTHON_CMD -m playwright install chromium
 
-# Rodar testes
+# Rodar testes (paralelo: 4 workers)
 echo ""
-echo -e "${AZUL}[3/3] Executando testes em test_browser/...${SEM_COR}"
+echo -e "${AZUL}[3/3] Executando testes em test_browser/ (paralelo: 4 workers)...${SEM_COR}"
 echo ""
 cd ..  # Volta para raiz do projeto (conftest.py usa caminhos relativos)
-$PYTHON_CMD -m pytest test_browser/ "$@" -v --tb=short
+$PYTHON_CMD -m pytest test_browser/ "$@" -n 4 --dist loadfile -v --tb=short
 EXIT_CODE=$?
 cd - > /dev/null
 

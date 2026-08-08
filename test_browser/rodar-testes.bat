@@ -42,6 +42,11 @@ if %ERRORLEVEL% NEQ 0 (
     echo   Instalando playwright...
     python -m pip install playwright -q
 )
+python -c "import xdist" 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo   Instalando pytest-xdist...
+    python -m pip install pytest-xdist -q
+)
 
 echo.
 echo [2/3] Verificando navegador Chromium...
@@ -54,10 +59,10 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo(
-echo [3/3] Executando testes em test_browser/...
+echo [3/3] Executando testes em test_browser/ (paralelo: 4 workers)...
 echo(
 cd /d "%~dp0.."
-python -u -m pytest test_browser/ %* -v --tb=short
+python -u -m pytest test_browser/ %* -n 4 --dist loadfile -v --tb=short
 set EXIT_CODE=%ERRORLEVEL%
 cd /d "%~dp0"
 
