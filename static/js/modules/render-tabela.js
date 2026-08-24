@@ -123,11 +123,6 @@ function renderTabela(){
         if(totalFixasCatOriginal&&!fixaExcluida){
           txt+=`<br><small class="txt-fixas-ativas">(${BRL(vFixasAtivas)} fixas)</small>`;
         }
-        if(totalFixasCatOriginal&&fixaExcluida){
-          txt+=`<br><small class="txt-fixas-removidas">fixas removidas
-            <span onclick="event.stopPropagation();toggleFixaExcecao(${cat.id},${m},false)"
-              title="Restaurar fixas neste mês" class="btn-restore-fixa">↩</span></small>`;
-        }
         const stUI = buildCellStatusUI(cat.nome, m, dados);
         h+=`<td class="${stUI.pgClass} td-status-cell">
           <span class="vc vc-multiline ${vTotalDisplay<0?'neg':''} ${nota_class}" onclick="abrirDet(${m},'${cnSafe}','${tit_onclick}')" onmouseenter="carregarTooltipDet(this, ${m}, '${cnSafe}', '${lastMod||''}')" title="${tit}">${txt}</span>

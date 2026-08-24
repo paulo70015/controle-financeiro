@@ -126,16 +126,21 @@
 
 <div class="ov" id="ovDet"><div class="mo">
   <div class="modal-top-bar">
-    <h3 id="detT">Detalhes</h3>
-    <select id="detStatus" onchange="mudarStatusDet(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:13px;display:none;background:var(--bg-card);color:var(--text-main);font-weight:500;outline:none;font-family:var(--font-body)">
-      <option value="0">Em aberto</option>
-      <option value="1">Agendado</option>
-      <option value="2">Pago</option>
-    </select>
-    <select id="detRecStatus" onchange="mudarStatusRec(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:13px;display:none;background:var(--bg-card);color:var(--text-main);font-weight:500;outline:none;font-family:var(--font-body)">
-      <option value="2">Realizado</option>
-      <option value="1">Previsto</option>
-    </select>
+    <div class="mtb-title-row">
+      <h3 id="detT">Detalhes</h3>
+    </div>
+    <div class="mtb-summary-row">
+      <span id="detTotal" class="det-total" style="display:none"></span>
+      <select id="detStatus" onchange="mudarStatusDet(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:13px;display:none;background:var(--bg-card);color:var(--text-main);font-weight:500;outline:none;font-family:var(--font-body)">
+        <option value="0">Em aberto</option>
+        <option value="1">Agendado</option>
+        <option value="2">Pago</option>
+      </select>
+      <select id="detRecStatus" onchange="mudarStatusRec(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);font-size:13px;display:none;background:var(--bg-card);color:var(--text-main);font-weight:500;outline:none;font-family:var(--font-body)">
+        <option value="2">Realizado</option>
+        <option value="1">Previsto</option>
+      </select>
+    </div>
   </div>
   <div class="dl" id="detL"></div>
   <div id="detMesContainer" class="fr" style="display:none; margin-bottom:8px;">

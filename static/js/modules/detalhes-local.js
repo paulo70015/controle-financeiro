@@ -130,6 +130,14 @@ async function addLancEFechar() {
   }
 }
 
+function setDetTotal(total, isReceita) {
+  const el = document.getElementById('detTotal');
+  if (!el) return;
+  el.style.display = '';
+  el.className = 'det-total' + (isReceita ? ' det-total-rec' : '');
+  el.textContent = BRL(total);
+}
+
 async function carregarDetLocal() {
   const cat = detCtx.cat;
   const mes = detCtx.mes;
@@ -144,7 +152,8 @@ async function carregarDetLocal() {
     
     const total = visiveis.reduce((s, r) => s + (r.valor || 0), 0);
     const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(detCtx.tit || '') : (detCtx.tit || '');
-    document.getElementById('detT').innerHTML = `${tituloFormatado} <span style="font-size:13px; font-weight:bold; color:var(--txt-st2); background:var(--bg-st2); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
+    document.getElementById('detT').innerHTML = tituloFormatado;
+    setDetTotal(total, true);
 
     if (!visiveis.length) { el.innerHTML = '<p class="empty-state">Nenhuma receita.</p>'; return; }
     
@@ -199,7 +208,8 @@ async function carregarDetLocal() {
 
     const total = visiveis.reduce((s, r) => s + (r.valor || 0), 0) + totalFixas;
     const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(detCtx.tit || '') : (detCtx.tit || '');
-    document.getElementById('detT').innerHTML = `${tituloFormatado} <span style="font-size:13px; font-weight:bold; color:var(--text-main); background:var(--borda); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
+    document.getElementById('detT').innerHTML = tituloFormatado;
+    setDetTotal(total, false);
 
     if (!visiveis.length && !htmlFixas) { el.innerHTML = '<p class="empty-state">Nenhum lançamento.</p>'; return; }
     const htmlDesp = visiveis.map(r => {

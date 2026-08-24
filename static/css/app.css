@@ -1266,22 +1266,64 @@ td.cat-nome:hover .eb { opacity: 1; visibility: visible; }
   letter-spacing: -0.03em;
   margin-bottom: 16px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Badges e valores do título (ex: "R$ 4.178,00", "NU") nunca encolhem
+   nem quebram no meio — quando não cabem, descem inteiros p/ próxima linha */
+.mo h3 > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .modal-top-bar {
-  align-items: center;
   border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 12px;
   padding-bottom: 8px;
+}
+
+/* Linha 1: apenas o título (Nome - Mês), alinhado à esquerda */
+.mtb-title-row {
+  display: flex;
+  min-width: 0;
+}
+
+/* Linha 2: valor total à esquerda e situação à direita */
+.mtb-summary-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.det-total {
+  background: var(--borda);
+  border-radius: 12px;
+  color: var(--text-main);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.det-total-rec {
+  background: var(--bg-st2);
+  color: var(--txt-st2);
 }
 
 .modal-top-bar h3 {
   border: none;
   margin-bottom: 0;
+  min-width: 0;
   padding: 0;
 }
 
