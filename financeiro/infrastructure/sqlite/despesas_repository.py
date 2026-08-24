@@ -1,4 +1,5 @@
 from financeiro.domain.despesas.entities import Despesa, DespesaLote
+from financeiro.infrastructure.fixas_utils import eh_soma_fixas, excluir_soma_fixas_ocultas
 
 
 class SQLiteDespesasRepository:
@@ -136,6 +137,22 @@ class SQLiteDespesasRepository:
                 (ano, mes, categoria),
             ).fetchall()
         ]
+
+        # Se houver lançamentos "Soma das Despesas Fixas", aplica a regra de
+        # ocultação quando a fixa da célula está excluída (ver
+        # financeiro/infrastructure/fixas_utils.py).
+        if rows and any(eh_soma_fixas(r["nota"]) for r in rows):
+            cat_id = conn.execute(
+                "SELECT id FROM categorias WHERE ano=? AND nome=?",
+                (ano, categoria),
+            ).fetchone()
+            if cat_id is not None:
+                exc = conn.execute(
+                    "SELECT 1 FROM fixas_excecoes WHERE ano=? AND mes=? AND cat_id=?",
+                    (ano, mes, cat_id["id"]),
+                ).fetchone()
+                fixas_excecoes = {f"{cat_id['id']}_{mes}": True} if exc else {}
+                rows = excluir_soma_fixas_ocultas(rows, mes, cat_id["id"], fixas_excecoes)
         conn.close()
         return rows
 

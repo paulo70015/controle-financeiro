@@ -5,6 +5,7 @@ Migrado de SQLite para PostgreSQL via Supabase
 
 from financeiro.infrastructure.supabase.client import Client
 from financeiro.domain.despesas.entities import Despesa, DespesaLote
+from financeiro.infrastructure.fixas_utils import eh_soma_fixas, excluir_soma_fixas_ocultas
 
 
 class SupabaseDespesasRepository:
@@ -152,15 +153,39 @@ class SupabaseDespesasRepository:
     def get_despesas_detalhe(self, ano: int, mes: int, categoria: str) -> list[dict]:
         """Retorna todas as despesas de uma célula (ano × mes × categoria)"""
         client: Client = self.client_factory()
-        
+
         response = client.table("despesas") \
             .select("*") \
             .eq("ano", ano) \
             .eq("mes", mes) \
             .eq("categoria", categoria) \
             .execute()
-        
-        return response.data
+
+        rows = response.data
+
+        # Se houver lançamentos "Soma das Despesas Fixas", aplica a regra de
+        # ocultação quando a fixa da célula está excluída (ver
+        # financeiro/infrastructure/fixas_utils.py).
+        if rows and any(eh_soma_fixas(r.get("nota")) for r in rows):
+            cat_response = client.table("categorias") \
+                .select("id") \
+                .eq("ano", ano) \
+                .eq("nome", categoria) \
+                .limit(1) \
+                .execute()
+            if cat_response.data:
+                cat_id = cat_response.data[0]["id"]
+                exc_response = client.table("fixas_excecoes") \
+                    .select("id") \
+                    .eq("ano", ano) \
+                    .eq("mes", mes) \
+                    .eq("cat_id", cat_id) \
+                    .limit(1) \
+                    .execute()
+                fixas_excecoes = {f"{cat_id}_{mes}": True} if exc_response.data else {}
+                rows = excluir_soma_fixas_ocultas(rows, mes, cat_id, fixas_excecoes)
+
+        return rows
 
     def delete_despesas_da_categoria_no_ano(self, ano: int, categoria: str) -> None:
         """Deleta todas as despesas de uma categoria em um ano"""

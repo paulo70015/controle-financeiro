@@ -188,10 +188,10 @@ async function carregarDetLocal() {
         } else {
           htmlFixas = `<div class="di" style="opacity:0.6; background:var(--cinza)">
             <div class="di-texts">
-              <span class="di-val" style="color:var(--text-muted); text-decoration:line-through">' + window.iconSVG('pin', 'sm') + ' ${BRL(somaFixasOriginal)}</span>
+              <span class="di-val" style="color:var(--text-muted); text-decoration:line-through">${window.iconSVG('pin', 'sm')} ${BRL(somaFixasOriginal)}</span>
               <span class="di-desc" style="color:var(--text-muted)">Despesas Fixas (Removidas)</span>
             </div>
-            ${locked ? '' : `<button class="btn-restore" onclick="toggleFixaExcecaoModal(${catObj.id}, ${mes}, false)" title="Restaurar fixas neste mês">' + window.iconSVG('undo-2', 'sm') + '</button>`}
+            ${locked ? '' : `<button class="btn-restore" onclick="toggleFixaExcecaoModal(${catObj.id}, ${mes}, false)" title="Restaurar fixas neste mês">${window.iconSVG('undo-2', 'sm')}</button>`}
           </div>`;
         }
       }

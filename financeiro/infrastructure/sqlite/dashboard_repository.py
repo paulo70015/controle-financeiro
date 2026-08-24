@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from financeiro.infrastructure.fixas_utils import subtrair_soma_fixas_ocultas
 from financeiro.infrastructure.sqlite.anos_utils import descobrir_anos
 
 
@@ -108,6 +109,24 @@ class SQLiteDashboardRepository:
         config = {r["chave"]: r["valor"] for r in cfg_rows}
         exc_rows = conn.execute("SELECT mes, cat_id FROM fixas_excecoes WHERE ano=?", (ano,)).fetchall()
         fixas_excecoes = {f"{r['cat_id']}_{r['mes']}": True for r in exc_rows}
+
+        # Lançamentos internos "Soma das Despesas Fixas" materializados pelo
+        # status de pagamento não devem ser contabilizados quando a fixa da
+        # célula está excluída (ver financeiro/infrastructure/fixas_utils.py).
+        soma_rows = [
+            dict(r)
+            for r in conn.execute(
+                """SELECT mes, categoria, SUM(valor) as total
+                   FROM despesas
+                   WHERE ano=? AND nota LIKE 'Soma das Despesas Fixas%'
+                   GROUP BY mes, categoria""",
+                (ano,),
+            ).fetchall()
+        ]
+        if soma_rows:
+            cat_id_por_nome = {c["nome"]: c["id"] for c in cats}
+            subtrair_soma_fixas_ocultas(despesas, soma_rows, fixas_excecoes, cat_id_por_nome)
+
         fixas_manual_rows = conn.execute("SELECT mes, fixa_id FROM fixas_aplicadas_manual WHERE ano=?", (ano,)).fetchall()
         fixas_aplicadas_manual = {f"{r['fixa_id']}_{r['mes']}": True for r in fixas_manual_rows}
         pg_rows = conn.execute("SELECT mes, categoria, status FROM pagamento_status WHERE ano=?", (ano,)).fetchall()

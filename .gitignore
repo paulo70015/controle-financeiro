@@ -19,6 +19,8 @@ credentials.json
 *.sqlite
 *.sqlite3
 *.csv
+# Dumps/exportações do banco (dados pessoais sensíveis)
+controle-financeiro-bd_*.txt
 
 # Compilações do PyInstaller (Binários pesados)
 dist/

@@ -378,6 +378,76 @@ def test_ddd_categoria_cartao(r):
     # Limpar
     requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/Cat Cartao Teste")
 
+@runner.test("Fixas: lancamento 'Soma' oculto quando celula excluida")
+def test_fixa_soma_oculta_quando_celula_excluida(r):
+    # Categoria que agrega fixas orfas (inclui_fixas)
+    cat_nome = "Cat Soma Fixas Teste"
+    resp = requests.post(f"{BASE_URL}/api/categoria", json={
+        "ano": ANO_TESTE,
+        "nome": cat_nome,
+        "ordem": 997,
+        "inclui_fixas": True
+    })
+    assert resp.status_code == 200
+
+    # Buscar cat_id criado
+    resp = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}")
+    dados = resp.json()
+    cat = next((c for c in dados.get("categorias", []) if c["nome"] == cat_nome), None)
+    assert cat is not None, "Categoria não criada"
+    cat_id = cat["id"]
+
+    # Criar fixa de 856,90
+    resp = requests.post(f"{BASE_URL}/api/fixa", json={
+        "ano": ANO_TESTE,
+        "descricao": "Fixa Soma",
+        "valor": 856.90,
+        "dia": 10,
+        "cat_id": cat_id
+    })
+    assert resp.status_code == 200
+
+    # Despesa manual para diferenciar do lançamento 'Soma'
+    resp = requests.post(f"{BASE_URL}/api/despesa", json={
+        "ano": ANO_TESTE,
+        "mes": MES_TESTE,
+        "categoria": cat_nome,
+        "valor": 14148.84,
+        "nota": "Gasto manual"
+    })
+    assert resp.status_code == 200
+
+    # Marcar como paga → materializa 'Soma das Despesas Fixas' + cria exceção
+    resp = requests.post(f"{BASE_URL}/api/pagamento_status", json={
+        "ano": ANO_TESTE,
+        "mes": MES_TESTE,
+        "categoria": cat_nome,
+        "status": 2
+    })
+    assert resp.status_code == 200
+
+    # Modal (/api/despesas_detalhe) não deve conter o lançamento 'Soma'
+    resp = requests.get(f"{BASE_URL}/api/despesas_detalhe/{ANO_TESTE}/{MES_TESTE}/{cat_nome}")
+    itens = resp.json()
+    soma_itens = [i for i in itens if str(i.get("nota", "")).startswith("Soma das Despesas Fixas")]
+    assert len(soma_itens) == 0, f"Lançamento 'Soma' ainda presente no modal: {soma_itens}"
+    assert abs(sum(i.get("valor") or 0 for i in itens) - 14148.84) < 0.01, \
+        f"Total do modal deveria ser só o manual (14148.84), veio {itens}"
+
+    # Tabela (agregado /api/dados) não deve somar o 'Soma'
+    resp = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}")
+    dados = resp.json()
+    cell = dados["despesas"][cat_nome].get(MES_TESTE) or dados["despesas"][cat_nome].get(str(MES_TESTE))
+    assert cell is not None, f"Célula não encontrada em {list(dados['despesas'][cat_nome].keys())}"
+    assert abs((cell.get("valor") or 0) - 14148.84) < 0.01, \
+        f"Valor da célula deveria ser 14148.84, veio {cell.get('valor')}"
+    print("    ✓ Lançamento 'Soma' oculto do modal e da tabela quando a célula está excluída")
+
+    # Limpar (remover despesa manual, categoria e ano-fixa se houver)
+    for item in itens:
+        requests.delete(f"{BASE_URL}/api/despesa/{item['id']}")
+    requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/{cat_nome}")
+
 # ============================================================================
 # BACKEND - METAS (ano informativo)
 # ============================================================================

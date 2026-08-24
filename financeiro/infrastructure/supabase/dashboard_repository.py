@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 
 from postgrest.exceptions import APIError
+from financeiro.infrastructure.fixas_utils import eh_soma_fixas, subtrair_soma_fixas_ocultas
 
 from financeiro.infrastructure.supabase.client import Client
 
@@ -190,7 +191,23 @@ class SupabaseDashboardRepository:
             .eq("ano", ano) \
             .execute()
         fixas_excecoes = {f"{r['cat_id']}_{r['mes']}": True for r in exc_response.data}
-        
+
+        # Lançamentos internos "Soma das Despesas Fixas" materializados pelo
+        # status de pagamento não devem ser contabilizados quando a fixa da
+        # célula está excluída (ver financeiro/infrastructure/fixas_utils.py).
+        if desp_response.data and cats:
+            cat_id_por_nome = {c["nome"]: c["id"] for c in cats}
+            somas_por_celula = {}
+            for r in desp_response.data:
+                if eh_soma_fixas(r.get("nota")) and not r.get("ignorar_total"):
+                    chave = (r["categoria"], r["mes"])
+                    somas_por_celula[chave] = somas_por_celula.get(chave, 0) + float(r["valor"] or 0)
+            somas = [
+                {"categoria": categoria, "mes": mes, "total": total}
+                for (categoria, mes), total in somas_por_celula.items()
+            ]
+            subtrair_soma_fixas_ocultas(despesas, somas, fixas_excecoes, cat_id_por_nome)
+
         # Fixas aplicadas manualmente
         fixas_manual_response = client.table("fixas_aplicadas_manual") \
             .select("mes, fixa_id") \
