@@ -71,7 +71,10 @@ window.editarRend = function(id, tipo, valor, nota) {
     },
     campos: [
       { id: 'rendLancTipo', valor: tipo || 'aporte' },
-      { id: 'rendLancValor', valor: valor, formatar: v => fmtNum(v) },
+      // Saque é armazenado positivo; exibir com sinal negativo para ficar
+      // consistente com a linha do modal ("-R$ 2.700,00"). O salvamento
+      // normaliza o sinal de volta.
+      { id: 'rendLancValor', valor: tipo === 'saque' ? -Math.abs(parseFloat(valor) || 0) : valor, formatar: v => fmtNum(v) },
       { id: 'rendLancNota', valor: nota }
     ],
     toggleFn: isEdit => toggleEditUiRend(isEdit),
@@ -397,14 +400,22 @@ function atualizarPreviewRendimentoProjecao() {
 
 async function salvarRendimentoAdd() {
   const local_id = parseInt(document.getElementById('rendAddLocal').value || '0');
-  const tipo = document.getElementById('rendAddTipo').value;
+  let tipo = document.getElementById('rendAddTipo').value;
   const mes = parseInt(document.getElementById('rendAddMes').value || '0');
-  const valor = parseVal(document.getElementById('rendAddValor').value);
+  let valor = parseVal(document.getElementById('rendAddValor').value);
   const nota = (document.getElementById('rendAddNota').value || '').trim();
 
   if (!local_id) return alert('Selecione o local');
   if (valor === null && !nota) return alert('Informe valor ou nota');
-  if (tipo === 'saque' && (valor === null || valor <= 0)) return alert('Informe um valor de saque maior que zero');
+  // Normalização de sinais: saque aceita valor positivo ou negativo; aporte negativo vira saque.
+  if (tipo === 'aporte' && valor !== null && valor < 0) {
+    tipo = 'saque';
+    valor = -valor;
+  }
+  if (tipo === 'saque') {
+    if (valor === null || valor === 0) return alert('Informe um valor de saque (use positivo ou negativo)');
+    if (valor < 0) valor = -valor;
+  }
 
   try {
     if (mes === 0) {
@@ -745,9 +756,10 @@ async function carregarRendimentoDetalhe() {
       let tipoColor = row.tipo === 'aporte' ? 'var(--azul)' : (row.tipo === 'saque' ? 'var(--vermelho)' : 'var(--text-main)');
       if (row.tipo === 'rendimento' && valor < 0) tipoColor = 'var(--vermelho)';
       const valorTxt = (row.tipo === 'saque' || valor < 0) ? `-${BRL(valor)}` : BRL(valor);
+      const notaExibicao = formatarValorMonetario(row.nota);
       const notaEscaped = (row.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
-      return buildRowDetalheHtml(`${tipoTxt}: ${valorTxt}`, tipoColor, row.nota, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);
+      return buildRowDetalheHtml(`${tipoTxt}: ${valorTxt}`, tipoColor, notaExibicao, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);
     }).join('');
   } catch (error) {
     el.innerHTML = `<p style="color:var(--vermelho);font-size:12px;padding:6px 0">Erro: ${error.message}</p>`;
@@ -758,9 +770,9 @@ async function salvarRendimentoLancamento() {
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return alert('Este ano está travado. Desbloqueie para alterar.');
   const local_id = parseInt(document.getElementById('rendLancLocalId').value || '0');
   const mes = parseInt(document.getElementById('rendLancMes').value || '0');
-  const tipo = document.getElementById('rendLancTipo').value;
-  const valor = parseVal(document.getElementById('rendLancValor').value);
-  const nota = (document.getElementById('rendLancNota').value || '').trim();
+  let tipo = document.getElementById('rendLancTipo').value;
+  let valor = parseVal(document.getElementById('rendLancValor').value);
+  let nota = (document.getElementById('rendLancNota').value || '').trim();
   const diffEl = document.getElementById('rendLancDiff');
   if (!local_id || !mes) {
     alert('Local/mês inválido');
@@ -770,9 +782,25 @@ async function salvarRendimentoLancamento() {
       alert('Informe valor ou nota');
       return false;
   }
-  if (tipo === 'saque' && (valor === null || valor <= 0)) {
-      alert('Informe um valor de saque maior que zero');
-      return false;
+  // Normalização de sinais: saque aceita valor positivo ou negativo (o saldo é
+  // calculado como saldo + aporte - saque); aporte negativo vira saque.
+  if (tipo === 'aporte' && valor !== null && valor < 0) {
+      tipo = 'saque';
+      valor = -valor;
+  }
+  if (tipo === 'saque') {
+      if (valor === null || valor === 0) {
+          alert('Informe um valor de saque (use positivo ou negativo)');
+          return false;
+      }
+      if (valor < 0) valor = -valor;
+  }
+  if (tipo === 'rendimento' && valor === null && nota && parseVal(nota) !== null) {
+      // Valor digitado no campo "Nota" (sem valor no campo "Valor (R$)"):
+      // tratar como o valor final informado, para que o diff considere
+      // aportes/saques do período e o rendimento (mesmo negativo) seja calculado.
+      valor = parseVal(nota);
+      nota = '';
   }
 
   try {

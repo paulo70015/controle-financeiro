@@ -56,8 +56,14 @@ class RendimentosUseCases:
             raise ValueError("Tipo inválido. Use 'aporte', 'rendimento' ou 'saque'")
         valor = float(payload.get("valor") or 0)
         nota = (payload.get("nota") or "").strip()
-        if tipo == "saque" and valor <= 0:
-            raise ValueError("Saque deve ter valor maior que zero")
+        # Normalização de sinais: o saldo é calculado como saldo + aporte - saque.
+        # Aporte negativo vira saque; saque negativo é normalizado para positivo.
+        if tipo == "aporte" and valor < 0:
+            tipo, valor = "saque", -valor
+        elif tipo == "saque" and valor < 0:
+            valor = -valor
+        if tipo == "saque" and valor == 0:
+            raise ValueError("Saque deve ter valor diferente de zero")
         if valor == 0 and not nota:
             raise ValueError("Informe um valor ou nota")
         return tipo, valor, nota

@@ -55,6 +55,14 @@ function parseVal(s) {
 const BRL = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 // Formata número como moeda sem o prefixo "R$" (inputs e células); vazio para valores nulos
 const fmtNum = v => (v === undefined || v === null || v === '') ? '' : parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+// Se o texto é um valor monetário puro (ex: "23691.55"), devolve formatado em reais; senão, devolve o texto original
+const formatarValorMonetario = texto => {
+  const t = String(texto ?? '').trim();
+  if (!t || !/^-?[\d.,]+$/.test(t)) return t;
+  const v = parseVal(t);
+  if (v === null) return t;
+  return v < 0 ? '-' + BRL(v) : BRL(v);
+};
 
 function focarCampo(id, delay = 50) {
   setTimeout(() => { const el = document.getElementById(id); if (el) { el.focus(); el.select(); } }, delay);

@@ -149,6 +149,82 @@ class TestSaqueRendimentos:
         modal_should_be_visible(page, "ovRendLanc")
 
 
+class TestNormalizacaoSinaisRendimentos:
+    def test_saque_negativo_aceito_e_aporte_negativo_vira_saque(self, page: Page):
+        """Saque aceita valor positivo ou negativo (normalizado internamente) e
+        aporte negativo vira saque automaticamente. A edição de saque exibe o
+        valor com sinal negativo, consistente com a linha do modal."""
+        alternar_visao(page, "rendimentos")
+        local_nome = "Carteira Sinais"
+        if page.locator(f"text={local_nome}").count() == 0:
+            page.click('button:has-text("+ Local")')
+            page.wait_for_selector("#ovRendLocal.show", timeout=3000)
+            fill_input(page, "#rendLocalNome", local_nome)
+            page.click("#ovRendLocal .btn.ba")
+            wait_for_load(page)
+            wait_for_table(page)
+
+        # Jan: aporte 1.000 positivo
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "1000,00")
+        fill_input(page, "#rendAddNota", "Aporte base")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        # Jan: saque digitado como negativo (-200) -> aceito e normalizado
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "saque")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "-200,00")
+        fill_input(page, "#rendAddNota", "Saque negativo digitado")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        # Jan: aporte negativo (-300) -> vira saque automaticamente
+        page.click('button:has-text("+ Lançamento")')
+        page.wait_for_selector("#ovRendAdd.show", timeout=3000)
+        select_option(page, "#rendAddLocal", local_nome)
+        select_option(page, "#rendAddTipo", "aporte")
+        select_option(page, "#rendAddMes", "1")
+        fill_input(page, "#rendAddValor", "-300,00")
+        fill_input(page, "#rendAddNota", "Aporte que vira saque")
+        page.click("#ovRendAdd .btn.ba")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovRendAdd")
+        wait_for_table(page)
+
+        # Saldo Jan = 1.000 - 200 - 300 = 500
+        linha_local = page.locator("#tw tbody tr").filter(has_text=local_nome).first
+        assert "500,00" in linha_local.locator("td").nth(1).inner_text()
+
+        # Abre o detalhe de Jan e confirma tipos e sinais
+        linha_local.locator("td").nth(1).click()
+        page.wait_for_selector("#ovRendLanc.show", timeout=3000)
+        lista = page.locator("#rendLancLista")
+        expect(lista).to_contain_text("Aporte: R$ 1.000,00")
+        expect(lista).to_contain_text("Saque: -R$ 200,00")
+        expect(lista).to_contain_text("Saque: -R$ 300,00")
+
+        # Edição de saque exibe o valor com sinal negativo (consistente com a linha)
+        linha_saque = page.locator("#rendLancLista .di").filter(has_text="Saque negativo digitado").first
+        linha_saque.locator(".btn-edit").click()
+        expect(page.locator("#rendLancValor")).to_have_value("-200,00")
+
+        # Fecha sem salvar a edição
+        page.locator("#ovRendLanc button:has-text('Fechar')").first.click()
+        wait_for_table(page)
+
+
 class TestProjecaoTaxa:
     def test_abrir_projecao(self, page: Page):
         alternar_visao(page, "rendimentos")
@@ -471,4 +547,53 @@ class TestLinhaSaldoSemProjecoes:
         saldo_acum_fev = self._valor_numerico(self._valor_linha(page, "tr-rend-total", 2))
         assert saldo_fev == saldo_acum_fev == 10500.0, (
             f"Fev: Saldo={saldo_fev}, Saldo acumulado={saldo_acum_fev}"
+        )
+
+
+class TestNotaNumericaComoValorFinal:
+    def test_nota_numerica_com_valor_vazio_vira_valor_final(self, page: Page):
+        """Nota numérica pura com campo Valor vazio (tipo rendimento) deve ser
+        tratada como o valor final informado: o diff calcula a diferença em
+        relação ao saldo anterior (considerando aportes/saques) e a célula
+        reflete o valor final."""
+        alternar_visao(page, "rendimentos")
+        local = "Conta Nota Fmt"
+        if page.locator(f"text={local}").count() == 0:
+            page.click('button:has-text("+ Local")')
+            page.wait_for_selector("#ovRendLocal.show", timeout=3000)
+            fill_input(page, "#rendLocalNome", local)
+            page.click("#ovRendLocal .btn.ba")
+            wait_for_load(page)
+        alternar_visao(page, "rendimentos")
+        wait_for_table(page)
+
+        # Abre o detalhe de Jan (célula 1) do local
+        linha_local = page.locator("#tw tbody tr").filter(has_text=local).first
+        linha_local.locator("td").nth(1).click()
+        page.wait_for_selector("#ovRendLanc.show", timeout=3000)
+
+        # Lança rendimento com valor vazio e nota numérica pura (como no bug relatado)
+        select_option(page, "#rendLancTipo", "rendimento")
+        fill_input(page, "#rendLancNota", "23691.55")
+        page.click("#ovRendLanc button:has-text('+ Lançar')")
+        wait_for_load(page)
+        page.wait_for_selector("#rendLancLista", timeout=3000)
+
+        lista = page.locator("#rendLancLista").inner_text()
+        # Local novo (saldo anterior 0): rendimento = 23.691,55 - 0 = 23.691,55
+        assert "Rendimento: R$ 23.691,55" in lista, (
+            f"Nota numérica deveria ser usada como valor final do rendimento; lista atual:\n{lista}"
+        )
+        assert "23691.55" not in lista, (
+            f"Valor cru não deveria aparecer; lista atual:\n{lista}"
+        )
+
+        # Fecha o modal e confirma na tabela: a célula de Jan reflete o valor final
+        page.locator("#ovRendLanc button:has-text('Fechar')").first.click()
+        wait_for_table(page)
+        linha_local = page.locator("#tw tbody tr").filter(has_text=local).first
+        cel_jan = linha_local.locator("td").nth(1)
+        texto_cel = cel_jan.inner_text()
+        assert "23.691,55" in texto_cel, (
+            f"Saldo do local '{local}' em Jan incorreto: '{texto_cel}' (esperado 23.691,55)"
         )

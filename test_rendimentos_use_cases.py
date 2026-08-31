@@ -1,3 +1,5 @@
+import pytest
+
 from financeiro.application.rendimentos.use_cases import RendimentosUseCases
 
 
@@ -53,6 +55,72 @@ def test_lancar_rendimento_negativo():
     assert lancamento_id == 1
     assert repository.lancamentos[0].tipo == "rendimento"
     assert repository.lancamentos[0].valor == -25.50
+
+
+def test_aporte_negativo_vira_saque():
+    repository = _RendimentosRepositoryFake()
+    use_cases = RendimentosUseCases(repository)
+
+    use_cases.lancar({
+        "ano": 2026,
+        "mes": 8,
+        "local_id": 13,
+        "tipo": "aporte",
+        "valor": -750,
+        "nota": "",
+    })
+
+    lanc = repository.lancamentos[0]
+    assert lanc.tipo == "saque"
+    assert lanc.valor == 750
+
+
+def test_saque_negativo_normaliza_para_positivo():
+    repository = _RendimentosRepositoryFake()
+    use_cases = RendimentosUseCases(repository)
+
+    use_cases.lancar({
+        "ano": 2026,
+        "mes": 8,
+        "local_id": 13,
+        "tipo": "saque",
+        "valor": -2700,
+        "nota": "",
+    })
+
+    lanc = repository.lancamentos[0]
+    assert lanc.tipo == "saque"
+    assert lanc.valor == 2700
+
+
+def test_saque_zero_rejeitado():
+    repository = _RendimentosRepositoryFake()
+    use_cases = RendimentosUseCases(repository)
+
+    with pytest.raises(ValueError, match="Saque deve ter valor diferente de zero"):
+        use_cases.lancar({
+            "ano": 2026,
+            "mes": 8,
+            "local_id": 13,
+            "tipo": "saque",
+            "valor": 0,
+            "nota": "sem valor",
+        })
+
+
+def test_editar_lancamento_tambem_normaliza_sinais():
+    repository = _RendimentosRepositoryFake()
+    use_cases = RendimentosUseCases(repository)
+
+    lanc_id = use_cases.lancar({
+        "ano": 2026, "mes": 8, "local_id": 13,
+        "tipo": "aporte", "valor": 100, "nota": "",
+    })
+    use_cases.editar_lancamento(lanc_id, {"tipo": "aporte", "valor": -50, "nota": ""})
+
+    lanc = repository._lancamentos_by_id[lanc_id]
+    assert lanc["tipo"] == "saque"
+    assert lanc["valor"] == 50
 
 
 def test_criar_local_aceita_conta_vinculada_id():
