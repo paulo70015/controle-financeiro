@@ -60,8 +60,18 @@ def test_dashboard_sincroniza_rendimentos_realizados(tmp_path):
 
 
 class _QueryRlsNegado:
-    def upsert(self, *args, **kwargs):
+    def _chain(self, *args, **kwargs):
         return self
+
+    # Operações encadeáveis do cliente (hot path do dashboard):
+    # select/eq/in_/delete/order/limit/upsert retornam a própria query.
+    select = _chain
+    eq = _chain
+    in_ = _chain
+    delete = _chain
+    order = _chain
+    limit = _chain
+    upsert = _chain
 
     def execute(self):
         raise APIError({

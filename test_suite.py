@@ -25,11 +25,24 @@ os.environ["DB_MODE"] = "sqlite"
 
 import requests
 import json
+import sqlite3
 from datetime import datetime
 
 BASE_URL = "http://127.0.0.1:8086"
 ANO_TESTE = datetime.now().year + 10
 MES_TESTE = 12  # Dezembro (evita conflitos com dados existentes)
+
+# Caminho do banco SQLite de teste (definido no __main__ antes de runner.run()).
+DB_TESTE_PATH = None
+
+
+def _query_db(sql, params=()):
+    """Executa consulta no banco SQLite de teste (para asserts de regressão)."""
+    conn = sqlite3.connect(DB_TESTE_PATH)
+    try:
+        return conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
 
 class Colors:
     GREEN = '\033[92m'
@@ -517,6 +530,310 @@ def test_meta_sem_ano_alvo(r):
     print("    Meta sem ano_meta aparece no ano_criacao")
 
 # ============================================================================
+# REGRESSÃO - BUGS DA CAÇADA (danpeg/bug-hunt)
+# ============================================================================
+
+def _criar_conta_e_categoria_vinculada(nome_categoria, ordem):
+    """Cria conta + categoria com conta vinculada; retorna (conta_id, cat_id)."""
+    resp = requests.post(f"{BASE_URL}/api/conta", json={"nome": "Conta Bugfix", "saldo_inicial": 0})
+    assert resp.status_code == 200, f"Criar conta: {resp.status_code} {resp.text}"
+
+    dados = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}").json()
+    contas = [c for c in dados.get("contas", []) if c.get("nome") == "Conta Bugfix"]
+    assert contas, "Conta Bugfix não encontrada em /api/dados"
+    conta_id = contas[0]["id"]
+
+    resp = requests.post(f"{BASE_URL}/api/categoria", json={
+        "ano": ANO_TESTE,
+        "nome": nome_categoria,
+        "ordem": ordem,
+        "inclui_fixas": False,
+        "conta_vinculada_id": conta_id,
+    })
+    assert resp.status_code == 200, f"Criar categoria: {resp.status_code} {resp.text}"
+
+    dados = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}").json()
+    cat = next((c for c in dados.get("categorias", []) if c["nome"] == nome_categoria), None)
+    assert cat is not None, "Categoria não encontrada"
+    return conta_id, cat["id"]
+
+
+@runner.test("BUG-2: Lote com mês de valor <= 0 vincula depósito ao mês certo")
+def test_regressao_bug2_lote_deposito_mes(r):
+    nome_cat = "Cat Lote Bug2"
+    conta_id, _ = _criar_conta_e_categoria_vinculada(nome_cat, 990)
+
+    try:
+        # valores: -50 (mês 1), -20 (mês 2), 10 (mês 3) → depósito só no mês 3
+        resp = requests.post(f"{BASE_URL}/api/despesa/lote", json={
+            "ano": ANO_TESTE,
+            "categoria": nome_cat,
+            "valor": -50,
+            "acrescimo": 30,
+            "meses": [1, 2, 3],
+            "nota": "Lote bug2",
+        })
+        assert resp.status_code == 200, f"Lote: {resp.status_code} {resp.text}"
+        ids = resp.json().get("ids", [])
+        assert len(ids) == 3, f"Esperado 3 despesas, veio {ids}"
+
+        # Cada depósito deve estar vinculado à despesa do MESMO mês
+        linhas = _query_db(
+            "SELECT d.mes, dep.mes FROM depositos_conta dep "
+            "JOIN despesas d ON d.id = dep.despesa_id "
+            "WHERE d.categoria=? AND d.ano=?",
+            (nome_cat, ANO_TESTE),
+        )
+        assert len(linhas) == 1, f"Esperado 1 depósito (mês 3), veio {linhas}"
+        for mes_despesa, mes_deposito in linhas:
+            assert mes_despesa == mes_deposito, \
+                f"Depósito do mês {mes_deposito} vinculado à despesa do mês {mes_despesa}"
+        print("    ✓ Depósito do mês 3 vinculado à despesa do mês 3")
+    finally:
+        ids = _query_db("SELECT id FROM despesas WHERE categoria=?", (nome_cat,))
+        for (did,) in ids:
+            requests.delete(f"{BASE_URL}/api/despesa/{did}")
+        requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/{nome_cat}")
+        requests.delete(f"{BASE_URL}/api/conta/{conta_id}")
+
+
+@runner.test("BUG-3: Editar despesa com payload parcial preserva valor e depósito")
+def test_regressao_bug3_edicao_parcial(r):
+    nome_cat = "Cat Edit Parcial Bug3"
+    conta_id, _ = _criar_conta_e_categoria_vinculada(nome_cat, 989)
+
+    try:
+        resp = requests.post(f"{BASE_URL}/api/despesa", json={
+            "ano": ANO_TESTE,
+            "mes": MES_TESTE,
+            "categoria": nome_cat,
+            "valor": 123.45,
+            "nota": "original",
+        })
+        assert resp.status_code == 200, f"Criar despesa: {resp.status_code} {resp.text}"
+        despesa_id = resp.json().get("id")
+
+        # Payload parcial: só a nota (sem "valor")
+        resp = requests.put(f"{BASE_URL}/api/despesa/{despesa_id}", json={"nota": "editada"})
+        assert resp.status_code == 200, f"Editar: {resp.status_code} {resp.text}"
+
+        valor = _query_db("SELECT valor FROM despesas WHERE id=?", (despesa_id,))
+        assert abs(valor[0][0] - 123.45) < 0.01, f"Valor deveria permanecer 123.45, veio {valor}"
+        dep = _query_db("SELECT 1 FROM depositos_conta WHERE despesa_id=?", (despesa_id,))
+        assert dep, "Depósito vinculado não deveria ser apagado na edição parcial"
+        print("    ✓ Valor e depósito preservados em edição parcial")
+    finally:
+        ids = _query_db("SELECT id FROM despesas WHERE categoria=?", (nome_cat,))
+        for (did,) in ids:
+            requests.delete(f"{BASE_URL}/api/despesa/{did}")
+        requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/{nome_cat}")
+        requests.delete(f"{BASE_URL}/api/conta/{conta_id}")
+
+
+@runner.test("BUG-5: Des-excluir fixa de célula PAGA re-materializa a soma")
+def test_regressao_bug5_desexcluir_fixa_paga(r):
+    nome_cat = "Cat Fixa Paga Bug5"
+    conta_id, _ = _criar_conta_e_categoria_vinculada(nome_cat, 988)
+
+    try:
+        # Criar fixa de 50,00 na categoria
+        resp = requests.post(f"{BASE_URL}/api/fixa", json={
+            "ano": ANO_TESTE,
+            "descricao": "Fixa Bug5",
+            "valor": 50.00,
+            "dia": 10,
+            "cat_id": None,  # fixa órfã: precisa inclui_fixas na categoria
+        })
+        # categoria não tem inclui_fixas; usar fixa com cat_id então
+        dados = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}").json()
+        cat = next((c for c in dados["categorias"] if c["nome"] == nome_cat), None)
+        resp = requests.post(f"{BASE_URL}/api/fixa", json={
+            "ano": ANO_TESTE,
+            "descricao": "Fixa Bug5",
+            "valor": 50.00,
+            "dia": 10,
+            "cat_id": cat["id"],
+        })
+        assert resp.status_code == 200, f"Criar fixa: {resp.status_code} {resp.text}"
+
+        # Marcar célula como PAGA → materializa 'Soma das Despesas Fixas'
+        resp = requests.post(f"{BASE_URL}/api/pagamento_status", json={
+            "ano": ANO_TESTE,
+            "mes": MES_TESTE,
+            "categoria": nome_cat,
+            "status": 2,
+        })
+        assert resp.status_code == 200, f"Status: {resp.status_code} {resp.text}"
+
+        soma = _query_db(
+            "SELECT id FROM despesas WHERE ano=? AND mes=? AND categoria=? AND nota LIKE 'Soma das Despesas Fixas%'",
+            (ANO_TESTE, MES_TESTE, nome_cat),
+        )
+        assert soma, "Soma não foi materializada ao marcar PAGA"
+
+        # Excluir a fixa da célula e depois des-excluir
+        resp = requests.delete(f"{BASE_URL}/api/fixa_excecao", json={
+            "ano": ANO_TESTE, "mes": MES_TESTE, "cat_id": cat["id"],
+        })
+        assert resp.status_code == 200, f"Des-excluir: {resp.status_code} {resp.text}"
+
+        # A soma (e seu depósito) deve ter sido re-materializada
+        soma2 = _query_db(
+            "SELECT id FROM despesas WHERE ano=? AND mes=? AND categoria=? AND nota LIKE 'Soma das Despesas Fixas%'",
+            (ANO_TESTE, MES_TESTE, nome_cat),
+        )
+        assert soma2, "Soma deveria ser re-materializada após des-excluir fixa PAGA"
+        dep = _query_db("SELECT 1 FROM depositos_conta WHERE despesa_id=?", (soma2[0][0],))
+        assert dep, "Depósito da soma deveria ser re-materializado"
+        print("    ✓ Soma e depósito re-materializados após des-excluir fixa PAGA")
+    finally:
+        ids = _query_db("SELECT id FROM despesas WHERE categoria=?", (nome_cat,))
+        for (did,) in ids:
+            requests.delete(f"{BASE_URL}/api/despesa/{did}")
+        fixas = _query_db("SELECT id FROM despesas_fixas_cartao WHERE ano=? AND cat_id=?", (ANO_TESTE, cat["id"]))
+        for (fid,) in fixas:
+            requests.delete(f"{BASE_URL}/api/fixa/{fid}")
+        requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/{nome_cat}")
+        requests.delete(f"{BASE_URL}/api/conta/{conta_id}")
+
+@runner.test("BUG-6: Lote de rendimentos rejeita mes_inicio inválido")
+def test_regressao_bug6_mes_inicio(r):
+    resp = requests.post(f"{BASE_URL}/api/rendimento/lancamento/lote", json={
+        "ano": ANO_TESTE,
+        "local_id": 1,
+        "tipo": "aporte",
+        "valor": 100,
+        "mes_inicio": 0,
+    })
+    assert resp.status_code == 400, f"mes_inicio=0 deveria dar 400, veio {resp.status_code}: {resp.text}"
+    resp = requests.post(f"{BASE_URL}/api/rendimento/lancamento/lote", json={
+        "ano": ANO_TESTE,
+        "local_id": 1,
+        "tipo": "aporte",
+        "valor": 100,
+        "mes_inicio": 13,
+    })
+    assert resp.status_code == 400, f"mes_inicio=13 deveria dar 400, veio {resp.status_code}: {resp.text}"
+    print("    ✓ mes_inicio fora de 1-12 rejeitado com 400")
+
+
+@runner.test("BUG-7: Valores NaN/Inf rejeitados nas despesas")
+def test_regressao_bug7_nan_inf(r):
+    resp = requests.post(f"{BASE_URL}/api/despesa", json={
+        "ano": ANO_TESTE, "mes": MES_TESTE, "categoria": "Cat NaN Teste",
+        "valor": "NaN", "nota": "bug7",
+    })
+    assert resp.status_code == 400, f"NaN deveria dar 400, veio {resp.status_code}: {resp.text}"
+    resp = requests.post(f"{BASE_URL}/api/despesa", json={
+        "ano": ANO_TESTE, "mes": MES_TESTE, "categoria": "Cat NaN Teste",
+        "valor": "Infinity", "nota": "bug7",
+    })
+    assert resp.status_code == 400, f"Infinity deveria dar 400, veio {resp.status_code}: {resp.text}"
+    print("    ✓ NaN/Infinity rejeitados com 400")
+
+
+@runner.test("BUG-8: Payload incompleto vira 400, não 500")
+def test_regressao_bug8_key_error_400(r):
+    resp = requests.post(f"{BASE_URL}/api/despesa", json={
+        "ano": ANO_TESTE,  # sem "mes" nem "categoria"
+    })
+    assert resp.status_code == 400, f"Payload incompleto deveria dar 400, veio {resp.status_code}: {resp.text}"
+    data = resp.json()
+    assert data.get("ok") is False, f"Resposta deveria ter ok=False: {data}"
+    print("    ✓ KeyError mapeado para 400 com corpo JSON")
+
+
+@runner.test("BUG-11: Edição de despesa honra categoria do payload")
+def test_regressao_bug11_categoria_edicao(r):
+    nome_cat_a = "Cat Edit A Bug11"
+    nome_cat_b = "Cat Edit B Bug11"
+    for nome in (nome_cat_a, nome_cat_b):
+        resp = requests.post(f"{BASE_URL}/api/categoria", json={
+            "ano": ANO_TESTE, "nome": nome, "ordem": 987, "inclui_fixas": False,
+        })
+        assert resp.status_code == 200, f"Criar {nome}: {resp.status_code} {resp.text}"
+
+    try:
+        resp = requests.post(f"{BASE_URL}/api/despesa", json={
+            "ano": ANO_TESTE, "mes": MES_TESTE, "categoria": nome_cat_a,
+            "valor": 77.00, "nota": "bug11",
+        })
+        despesa_id = resp.json()["id"]
+
+        resp = requests.put(f"{BASE_URL}/api/despesa/{despesa_id}", json={"categoria": nome_cat_b})
+        assert resp.status_code == 200, f"Editar: {resp.status_code} {resp.text}"
+
+        cat = _query_db("SELECT categoria FROM despesas WHERE id=?", (despesa_id,))
+        assert cat and cat[0][0] == nome_cat_b, f"Categoria deveria ser {nome_cat_b}, veio {cat}"
+        print("    ✓ Categoria atualizada na edição")
+    finally:
+        ids = _query_db("SELECT id FROM despesas WHERE categoria IN (?,?)", (nome_cat_a, nome_cat_b))
+        for (did,) in ids:
+            requests.delete(f"{BASE_URL}/api/despesa/{did}")
+        requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/{nome_cat_a}")
+        requests.delete(f"{BASE_URL}/api/categoria/{ANO_TESTE}/{nome_cat_b}")
+
+
+@runner.test("BUG-12: Categoria rejeita conta_vinculada_id inexistente")
+def test_regressao_bug12_conta_vinculada_invalida(r):
+    resp = requests.post(f"{BASE_URL}/api/categoria", json={
+        "ano": ANO_TESTE, "nome": "Cat Conta Invalida",
+        "ordem": 986, "inclui_fixas": False, "conta_vinculada_id": 999999,
+    })
+    assert resp.status_code == 400, f"Conta inexistente deveria dar 400, veio {resp.status_code}: {resp.text}"
+    print("    ✓ conta_vinculada_id inexistente rejeitado com 400")
+
+
+@runner.test("BUG-13: Excluir categoria remove pagamento_status órfão")
+def test_regressao_bug13_pagamento_status_orfao(r):
+    nome_cat = "Cat Status Orfao Bug13"
+    resp = requests.post(f"{BASE_URL}/api/categoria", json={
+        "ano": ANO_TESTE, "nome": nome_cat, "ordem": 985, "inclui_fixas": False,
+    })
+    assert resp.status_code == 200
+    resp = requests.post(f"{BASE_URL}/api/pagamento_status", json={
+        "ano": ANO_TESTE, "mes": MES_TESTE, "categoria": nome_cat, "status": 2,
+    })
+    assert resp.status_code == 200, f"Status: {resp.status_code} {resp.text}"
+
+    dados = requests.get(f"{BASE_URL}/api/dados/{ANO_TESTE}").json()
+    cat = next((c for c in dados["categorias"] if c["nome"] == nome_cat), None)
+    assert cat is not None
+
+    resp = requests.delete(f"{BASE_URL}/api/categoria/{cat['id']}")
+    assert resp.status_code == 200, f"Deletar categoria: {resp.status_code} {resp.text}"
+
+    orfaos = _query_db(
+        "SELECT 1 FROM pagamento_status WHERE categoria=? AND ano=?",
+        (nome_cat, ANO_TESTE),
+    )
+    assert not orfaos, "pagamento_status deveria ser removido com a categoria"
+    print("    ✓ pagamento_status removido junto com a categoria")
+
+
+@runner.test("BUG-16: Reordenar locais rejeita ids de anos diferentes")
+def test_regressao_bug16_reorder_cross_ano(r):
+    ano_outro = ANO_TESTE + 1
+    requests.post(f"{BASE_URL}/api/ano", json={"ano": ano_outro})
+    ids = []
+    for ano in (ANO_TESTE, ano_outro):
+        resp = requests.post(f"{BASE_URL}/api/rendimento/local", json={
+            "ano": ano, "nome": f"Local Reorder {ano}",
+        })
+        assert resp.status_code == 200, f"Criar local {ano}: {resp.status_code} {resp.text}"
+        ids.append(resp.json()["id"])
+
+    try:
+        resp = requests.post(f"{BASE_URL}/api/rendimentos/locais/reordenar", json={
+            "ordem_ids": ids,  # mistura anos diferentes
+        })
+        assert resp.status_code == 400, f"Reordenar anos mistos deveria dar 400, veio {resp.status_code}: {resp.text}"
+        print("    ✓ Reorder cross-ano rejeitado com 400")
+    finally:
+        for lid in ids:
+            requests.delete(f"{BASE_URL}/api/rendimento/local/{lid}")
+
+# ============================================================================
 # EXECUÇÃO
 # ============================================================================
 
@@ -571,6 +888,7 @@ if __name__ == "__main__":
 
     print(f"{Colors.GREEN}✓ Servidor SQLite respondendo em {BASE_URL}{Colors.RESET}")
 
+    DB_TESTE_PATH = str(db_teste)
     success = runner.run()
 
     # Desligar servidor (kill da árvore: terminate não mata o filho no Windows)
