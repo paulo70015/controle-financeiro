@@ -170,6 +170,8 @@ async function carregarDep(contaId, mes) {
     const visiveis = rows.filter(r => !depDeleteQueue.includes(r.id));
 
     const movsConta = getMovimentacoesMes(mes).filter(mov => String(mov.conta_id) === String(contaId));
+    const movsRefletidas = movsConta.filter(mov => mov.rendimento_lancamento_id);
+    const movsManuais = movsConta.filter(mov => !mov.rendimento_lancamento_id);
     const movValor = movsConta.reduce((s, mov) => s + (mov.valor || 0), 0);
 
     let despesasVincMes = 0;
@@ -212,7 +214,20 @@ async function carregarDep(contaId, mes) {
       htmlMovs = buildRowDetalheHtml(BRL(-despesasVincMes), 'var(--vermelho)', 'Despesas Vinculadas (Mês)') + htmlMovs;
     }
 
-    movsConta.slice().reverse().forEach(mov => {
+    // Reflexos da aba Rendimentos: seção própria, somente leitura (com tag).
+    if (movsRefletidas.length) {
+      const tagMap = {rendimento: 'Rendimento', aporte: 'Aporte', saque: 'Saque'};
+      const blocos = movsRefletidas.slice().reverse().map(mov => {
+        const tag = tagMap[mov.tipo] || 'Rendimento';
+        const movVal = mov.valor || 0;
+        const movColor = movVal < 0 ? 'var(--vermelho)' : 'var(--verde)';
+        const movValTxt = movVal < 0 ? `-${BRL(movVal)}` : BRL(movVal);
+        return buildRowDetalheHtml(movValTxt, movColor, `${mov.nota || 'Rendimento vinculado'} <span style="font-size:0.7em;opacity:0.7;">[${tag}]</span>`, '', '');
+      }).join('');
+      htmlMovs = `<p style="margin:6px 0 2px;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em">Rendimentos vinculados</p>` + blocos + htmlMovs;
+    }
+
+    movsManuais.slice().reverse().forEach(mov => {
       const movNota = mov.nota ? `Movimentação Geral: ${mov.nota}` : 'Movimentação Geral';
       const movVal = mov.valor || 0;
       const movColor = movVal < 0 ? 'var(--vermelho)' : 'var(--verde)';
@@ -458,17 +473,23 @@ function carregarMovLocal() {
   el.innerHTML = rows.map(mv => {
     const conta = (dados.contas || []).find(c => String(c.id) === String(mv.conta_id));
     const nomeConta = conta ? conta.nome : '';
-    const texto = nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || '');
+    const refletida = !!mv.rendimento_lancamento_id;
+    const texto = refletida
+      ? (mv.nota || 'Rendimento vinculado')
+      : (nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || ''));
     const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.nota || '') : (mv.nota || '').replace(/'/g, "\\'");
     const tipoTagMap = {rendimento: 'Rendimento', aporte: 'Aporte', saque: 'Saque'};
     const tipoTag = tipoTagMap[mv.tipo] ? ` <span style="font-size:0.7em;opacity:0.7;">[${tipoTagMap[mv.tipo]}]</span>` : '';
     const tipoEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.tipo || '') : (mv.tipo || '').replace(/'/g, "\\'");
+    // Linhas refletidas pela aba Rendimentos são somente leitura.
+    const onDel = refletida ? '' : `delMov(${mv.id})`;
+    const onEdit = refletida ? '' : `editarMov(${mv.id}, ${mv.conta_id}, ${mv.valor}, '${notaEscaped}', '${tipoEscaped}')`;
     return buildRowDetalheHtml(
       BRL(mv.valor),
       mv.valor < 0 ? 'var(--vermelho)' : 'var(--verde)',
       texto + tipoTag,
-      locked ? '' : `delMov(${mv.id})`,
-      locked ? '' : `editarMov(${mv.id}, ${mv.conta_id}, ${mv.valor}, '${notaEscaped}', '${tipoEscaped}')`
+      locked ? '' : onDel,
+      locked ? '' : onEdit
     );
   }).join('');
 }

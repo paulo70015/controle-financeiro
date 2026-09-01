@@ -232,6 +232,7 @@ CREATE TABLE IF NOT EXISTS movimentacoes_mensais (
     valor NUMERIC(10,2) NOT NULL DEFAULT 0,
     nota TEXT DEFAULT '',
     tipo TEXT DEFAULT '',
+    rendimento_lancamento_id INTEGER DEFAULT NULL,
     FOREIGN KEY (ano) REFERENCES anos(ano) ON DELETE CASCADE,
     FOREIGN KEY (conta_id) REFERENCES contas_correntes(id) ON DELETE CASCADE
 );

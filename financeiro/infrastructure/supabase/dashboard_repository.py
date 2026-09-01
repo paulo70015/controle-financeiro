@@ -117,7 +117,7 @@ class SupabaseDashboardRepository:
         
         # Movimentações mensais
         mov_response = client.table("movimentacoes_mensais") \
-            .select("id, mes, conta_id, valor, nota, tipo") \
+            .select("id, mes, conta_id, valor, nota, tipo, rendimento_lancamento_id") \
             .eq("ano", ano) \
             .order("id") \
             .execute()
@@ -130,6 +130,7 @@ class SupabaseDashboardRepository:
                 "valor": r["valor"],
                 "nota": r["nota"],
                 "tipo": r.get("tipo") or "",
+                "rendimento_lancamento_id": r.get("rendimento_lancamento_id"),
             }
             bucket = movimentacoes.setdefault(mes, {"valor": 0.0, "items": []})
             bucket["valor"] += item["valor"]

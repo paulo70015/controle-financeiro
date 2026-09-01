@@ -132,6 +132,25 @@ class SupabaseRendimentosRepository:
             .execute()
         return response.data[0] if response.data else None
 
+    def get_lancamentos_local_ano(self, ano: int, local_id: int) -> list[dict]:
+        """Retorna os lançamentos de um local em um ano (para reverter reflexos)."""
+        client: Client = self.client_factory()
+        response = client.table("rendimentos_lancamentos") \
+            .select("id, ano, mes, local_id, tipo, valor, nota") \
+            .eq("ano", ano) \
+            .eq("local_id", local_id) \
+            .execute()
+        return response.data
+
+    def get_lancamentos_local(self, local_id: int) -> list[dict]:
+        """Retorna os lançamentos de um local em TODOS os anos (BUG-9)."""
+        client: Client = self.client_factory()
+        response = client.table("rendimentos_lancamentos") \
+            .select("id, ano, mes, local_id, tipo, valor, nota") \
+            .eq("local_id", local_id) \
+            .execute()
+        return response.data
+
     def add_lancamento(self, lanc: RendimentoLancamento) -> int:
         """Adiciona lançamento de rendimento"""
         client: Client = self.client_factory()

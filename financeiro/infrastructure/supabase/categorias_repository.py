@@ -152,6 +152,18 @@ class SupabaseCategoriasRepository:
             .eq("ano", ano) \
             .execute()
         
+        # BUG-13: limpar status de pagamento e exceções de fixa da célula —
+        # antes ficavam órfãos (pagamento_status é chaveado por nome).
+        client.table("pagamento_status") \
+            .delete() \
+            .eq("categoria", nome) \
+            .eq("ano", ano) \
+            .execute()
+        client.table("fixas_excecoes") \
+            .delete() \
+            .eq("cat_id", categoria_id) \
+            .execute()
+        
         # Deletar categoria
         client.table("categorias") \
             .delete() \
@@ -232,3 +244,17 @@ class SupabaseCategoriasRepository:
         
         conta_id = response.data[0].get("conta_vinculada_id")
         return conta_id if conta_id else None
+
+    def conta_existe(self, conta_id) -> bool:
+        """True se a conta corrente existe (validação de conta_vinculada_id — BUG-12)."""
+        try:
+            conta_id = int(conta_id)
+        except (TypeError, ValueError):
+            return False
+        client: Client = self.client_factory()
+        response = client.table("contas_correntes") \
+            .select("id") \
+            .eq("id", conta_id) \
+            .limit(1) \
+            .execute()
+        return bool(response.data)

@@ -80,36 +80,6 @@ class SQLiteContasRepository:
         conn.commit()
         conn.close()
 
-    def delete_deposito_matching(
-        self,
-        ano: int,
-        mes: int,
-        conta_id: int,
-        valor: float,
-        nota: str,
-    ) -> int:
-        """
-        Apaga UM depósito que casa exatamente com (ano, mes, conta_id, valor, nota).
-        Usada para reverter o reflexo automático de um rendimento. Se o usuário
-        editou o depósito no modal de detalhes da conta, o match falha e nada
-        é removido (permanece para edição/remoção manual). Retorna a qtd
-        removida (0 ou 1).
-        """
-        conn = self.connection_factory(auto_sync=True)
-        row = conn.execute(
-            """SELECT id FROM depositos_conta
-               WHERE ano=? AND mes=? AND conta_id=? AND valor=? AND COALESCE(nota,'')=?
-               ORDER BY id DESC LIMIT 1""",
-            (ano, mes, conta_id, valor, nota or ""),
-        ).fetchone()
-        if not row:
-            conn.close()
-            return 0
-        conn.execute("DELETE FROM depositos_conta WHERE id=?", (row["id"],))
-        conn.commit()
-        conn.close()
-        return 1
-
     def get_depositos_detalhe(self, ano: int, mes: int, conta_id: int) -> list[dict]:
         conn = self.connection_factory()
         rows = [
@@ -122,41 +92,80 @@ class SQLiteContasRepository:
         conn.close()
         return rows
 
+    def _update_movimentacao(self, conn, movimentacao: MovimentacaoMensal, movimentacao_id: int) -> None:
+        conn.execute(
+            """UPDATE movimentacoes_mensais
+            SET ano=?, mes=?, conta_id=?, valor=?, nota=?, tipo=?
+            WHERE id=?""",
+            (
+                movimentacao.ano,
+                movimentacao.mes,
+                movimentacao.conta_id,
+                movimentacao.valor,
+                movimentacao.nota,
+                movimentacao.tipo or "",
+                movimentacao_id,
+            ),
+        )
+
+    def _insert_movimentacao(self, conn, movimentacao: MovimentacaoMensal, lancamento_id: int | None = None) -> int:
+        cur = conn.execute(
+            """INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota,tipo,rendimento_lancamento_id)
+            VALUES(?,?,?,?,?,?,?)""",
+            (
+                movimentacao.ano,
+                movimentacao.mes,
+                movimentacao.conta_id,
+                movimentacao.valor,
+                movimentacao.nota,
+                movimentacao.tipo or "",
+                lancamento_id,
+            ),
+        )
+        return cur.lastrowid
+
     def save_movimentacao(self, movimentacao: MovimentacaoMensal, movimentacao_id: int | None = None) -> int:
         conn = self.connection_factory(auto_sync=True)
         conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (movimentacao.ano,))
         if movimentacao_id:
-            conn.execute(
-                """UPDATE movimentacoes_mensais
-                SET ano=?, mes=?, conta_id=?, valor=?, nota=?, tipo=?
-                WHERE id=?""",
-                (
-                    movimentacao.ano,
-                    movimentacao.mes,
-                    movimentacao.conta_id,
-                    movimentacao.valor,
-                    movimentacao.nota,
-                    movimentacao.tipo or "",
-                    movimentacao_id,
-                ),
-            )
+            self._update_movimentacao(conn, movimentacao, movimentacao_id)
             saved_id = movimentacao_id
         else:
-            cur = conn.execute(
-                "INSERT INTO movimentacoes_mensais(ano,mes,conta_id,valor,nota,tipo) VALUES(?,?,?,?,?,?)",
-                (
-                    movimentacao.ano,
-                    movimentacao.mes,
-                    movimentacao.conta_id,
-                    movimentacao.valor,
-                    movimentacao.nota,
-                    movimentacao.tipo or "",
-                ),
-            )
-            saved_id = cur.lastrowid
+            saved_id = self._insert_movimentacao(conn, movimentacao)
         conn.commit()
         conn.close()
         return saved_id
+
+    def save_movimentacao_reflexo(self, lancamento_id: int, movimentacao: MovimentacaoMensal) -> int:
+        """
+        Insere ou atualiza a movimentação refletida de um lançamento da aba
+        Rendimentos, identificada por `rendimento_lancamento_id`. Upsert
+        idempotente: editar o lançamento apenas atualiza a movimentação.
+        """
+        conn = self.connection_factory(auto_sync=True)
+        conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (movimentacao.ano,))
+        row = conn.execute(
+            "SELECT id FROM movimentacoes_mensais WHERE rendimento_lancamento_id=?",
+            (lancamento_id,),
+        ).fetchone()
+        if row:
+            self._update_movimentacao(conn, movimentacao, row["id"])
+            saved_id = row["id"]
+        else:
+            saved_id = self._insert_movimentacao(conn, movimentacao, lancamento_id)
+        conn.commit()
+        conn.close()
+        return saved_id
+
+    def delete_movimentacao_reflexo(self, lancamento_id: int) -> None:
+        """Remove a movimentação refletida de um lançamento de rendimento."""
+        conn = self.connection_factory(auto_sync=True)
+        conn.execute(
+            "DELETE FROM movimentacoes_mensais WHERE rendimento_lancamento_id=?",
+            (lancamento_id,),
+        )
+        conn.commit()
+        conn.close()
 
     def delete_movimentacao(self, movimentacao_id: int) -> None:
         conn = self.connection_factory(auto_sync=True)

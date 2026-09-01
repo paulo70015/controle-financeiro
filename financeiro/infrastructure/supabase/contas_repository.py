@@ -126,39 +126,6 @@ class SupabaseContasRepository:
             .eq("id", deposito_id) \
             .execute()
 
-    def delete_deposito_matching(
-        self,
-        ano: int,
-        mes: int,
-        conta_id: int,
-        valor: float,
-        nota: str,
-    ) -> int:
-        """
-        Apaga UM depósito que casa exatamente com (ano, mes, conta_id, valor, nota).
-        Usada para reverter o reflexo automático de um rendimento. Se o usuário
-        editou o depósito, o match falha e nada é removido.
-        Retorna a qtd removida (0 ou 1).
-        """
-        client: Client = self.client_factory()
-        response = client.table("depositos_conta") \
-            .select("id") \
-            .eq("ano", ano) \
-            .eq("mes", mes) \
-            .eq("conta_id", conta_id) \
-            .eq("valor", valor) \
-            .eq("nota", nota or "") \
-            .order("id", desc=True) \
-            .limit(1) \
-            .execute()
-        if not response.data:
-            return 0
-        client.table("depositos_conta") \
-            .delete() \
-            .eq("id", response.data[0]["id"]) \
-            .execute()
-        return 1
-
     def get_depositos_detalhe(self, ano: int, mes: int, conta_id: int) -> list[dict]:
         """Retorna todos os depósitos de uma conta em um mês"""
         client: Client = self.client_factory()
@@ -172,18 +139,24 @@ class SupabaseContasRepository:
         
         return response.data
 
-    def save_movimentacao(self, movimentacao: MovimentacaoMensal, movimentacao_id: int | None = None) -> int:
-        """Insere ou atualiza uma movimentação mensal"""
-        client: Client = self.client_factory()
-
+    def _payload_movimentacao(self, movimentacao: MovimentacaoMensal, lancamento_id: int | None = None) -> dict:
         payload = {
             "ano": movimentacao.ano,
             "mes": movimentacao.mes,
             "conta_id": movimentacao.conta_id,
             "valor": movimentacao.valor,
             "nota": movimentacao.nota,
-            "tipo": movimentacao.tipo or ""
+            "tipo": movimentacao.tipo or "",
         }
+        if lancamento_id is not None:
+            payload["rendimento_lancamento_id"] = lancamento_id
+        return payload
+
+    def save_movimentacao(self, movimentacao: MovimentacaoMensal, movimentacao_id: int | None = None) -> int:
+        """Insere ou atualiza uma movimentação mensal"""
+        client: Client = self.client_factory()
+
+        payload = self._payload_movimentacao(movimentacao)
         if movimentacao_id:
             client.table("movimentacoes_mensais") \
                 .update(payload) \
@@ -193,6 +166,36 @@ class SupabaseContasRepository:
 
         response = client.table("movimentacoes_mensais").insert(payload).execute()
         return response.data[0]["id"]
+
+    def save_movimentacao_reflexo(self, lancamento_id: int, movimentacao: MovimentacaoMensal) -> int:
+        """
+        Insere ou atualiza a movimentação refletida de um lançamento da aba
+        Rendimentos, identificada por `rendimento_lancamento_id`. Upsert
+        idempotente: editar o lançamento apenas atualiza a movimentação.
+        """
+        client: Client = self.client_factory()
+        payload = self._payload_movimentacao(movimentacao, lancamento_id)
+        response = client.table("movimentacoes_mensais") \
+            .select("id") \
+            .eq("rendimento_lancamento_id", lancamento_id) \
+            .limit(1) \
+            .execute()
+        if response.data:
+            client.table("movimentacoes_mensais") \
+                .update(payload) \
+                .eq("id", response.data[0]["id"]) \
+                .execute()
+            return response.data[0]["id"]
+        inserted = client.table("movimentacoes_mensais").insert(payload).execute()
+        return inserted.data[0]["id"]
+
+    def delete_movimentacao_reflexo(self, lancamento_id: int) -> None:
+        """Remove a movimentação refletida de um lançamento de rendimento."""
+        client: Client = self.client_factory()
+        client.table("movimentacoes_mensais") \
+            .delete() \
+            .eq("rendimento_lancamento_id", lancamento_id) \
+            .execute()
 
     def delete_movimentacao(self, movimentacao_id: int) -> None:
         """Deleta uma movimentação mensal"""

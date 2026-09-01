@@ -270,7 +270,7 @@
     <select id="rendLocalConta">
       <option value="">— Sem vínculo de conta —</option>
     </select>
-    <small id="rendLocalContaInfo" style="display:none;color:var(--text-muted);font-size:12px">Cada novo lançamento de <b>rendimento</b> (não projeção) feito a partir do mês corrente criará automaticamente uma movimentação nesta conta. O lançamento gerado é independente — para removê-lo, apague-o nas Despesas.</small>
+    <small id="rendLocalContaInfo" style="display:none;color:var(--text-muted);font-size:12px">Cada lançamento de <b>aporte</b>, <b>saque</b> ou <b>rendimento</b> (exceto projeção) criará automaticamente uma movimentação nesta conta, no mesmo mês, com tag [Aporte]/[Saque]/[Rendimento]. A movimentação é somente leitura — altere ou exclua o lançamento na aba Rendimentos para ajustá-la.</small>
   </div>
   <div class="mb">
     <button class="btn br" id="rendLocalDelBtn" onclick="excluirRendimentoLocal()" style="margin-right:auto;display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-trash-2"></use></svg> Excluir</button>

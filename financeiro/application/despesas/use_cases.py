@@ -1,4 +1,5 @@
 from financeiro.domain.despesas.entities import Despesa, DespesaLote
+from financeiro.domain.validacao import parse_valor_finito
 
 
 class DespesasUseCases:
@@ -7,13 +8,13 @@ class DespesasUseCases:
         self.categorias_repository = categorias_repository
 
     def lancar(self, payload: dict) -> int:
-        # NOTA: float(payload.get("valor") or 0) trata ausência de "valor" como 0
-        # por design. O frontend sempre envia o campo; o fallback evita 500.
+        # NOTA: ausência de "valor" é tratada como 0 por design. O frontend
+        # sempre envia o campo; o fallback evita 500.
         despesa = Despesa(
             ano=int(payload["ano"]),
             mes=int(payload["mes"]),
             categoria=payload["categoria"],
-            valor=float(payload.get("valor") or 0),
+            valor=parse_valor_finito(payload.get("valor") or 0),
             nota=payload.get("nota", ""),
             ignorar_total=bool(payload.get("ignorar_total", False)),
         )
@@ -46,8 +47,8 @@ class DespesasUseCases:
         lote = DespesaLote(
             ano=int(payload["ano"]),
             categoria=payload["categoria"],
-            valor_base=float(payload.get("valor") or 0),
-            acrescimo=float(payload.get("acrescimo") or 0),
+            valor_base=parse_valor_finito(payload.get("valor") or 0),
+            acrescimo=parse_valor_finito(payload.get("acrescimo") or 0),
             nota=payload.get("nota", ""),
             ignorar_total=bool(payload.get("ignorar_total", False)),
         )
@@ -85,6 +86,11 @@ class DespesasUseCases:
                     'conta_id': conta_id,
                     'valor': -valor,  # Débito
                     'nota': lote.nota or lote.categoria,
+                    # Índice da despesa correspondente no lote: como depósitos
+                    # são criados condicionalmente (valor > 0), o vínculo
+                    # posicional (depositos_data[i] ↔ despesa_ids[i]) ficaria
+                    # errado quando algum mês do lote tem valor <= 0.
+                    'despesa_index': i,
                 })
         
         # Delegar ao repositório (transação atômica)
@@ -101,25 +107,33 @@ class DespesasUseCases:
         self.repository.delete_despesas_da_categoria_no_ano(ano=ano, categoria=categoria)
 
     def editar(self, despesa_id: int, payload: dict) -> None:
-        valor = float(payload.get("valor", 0))
-        nota = payload.get("nota", "")
-        ignorar_total = bool(payload.get("ignorar_total", False))
-        mes = payload.get("mes")
-        
-        # Buscar dados da despesa
+        # Buscar dados atuais da despesa primeiro: campos ausentes no payload
+        # devem preservar os valores existentes, não zerá-los (BUG-3).
         despesa_info = self.repository.get_despesa_by_id(despesa_id)
         if not despesa_info:
             return
+
+        valor_raw = payload.get("valor")
+        valor = parse_valor_finito(
+            valor_raw if valor_raw is not None else despesa_info["valor"]
+        )
+        nota = payload.get("nota", despesa_info["nota"])
+        ignorar_total = bool(payload.get("ignorar_total", despesa_info["ignorar_total"]))
+        mes = payload.get("mes")
+        # BUG-11: a categoria enviada no payload deve ser honrada (antes era
+        # silenciosamente ignorada, usando sempre a categoria original).
+        categoria = payload.get("categoria") or despesa_info["categoria"]
+
         mes_destino = int(mes) if mes is not None else int(despesa_info["mes"])
-        
-        # Buscar conta vinculada (se aplicável)
+
+        # Buscar conta vinculada (se aplicável) — da categoria de DESTINO
         conta_id = None
         if not ignorar_total and valor > 0:
             conta_id = self.categorias_repository.get_conta_vinculada(
-                despesa_info['categoria'],
+                categoria,
                 despesa_info['ano']
             )
-        
+
         # Delegar ao repositório (transação atômica)
         self.repository.update_despesa_com_deposito(
             despesa_id=despesa_id,
@@ -129,5 +143,5 @@ class DespesasUseCases:
             conta_id=conta_id,
             ano=despesa_info['ano'],
             mes=mes_destino,
-            categoria=despesa_info['categoria'],
+            categoria=categoria,
         )

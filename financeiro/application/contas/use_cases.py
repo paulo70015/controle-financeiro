@@ -1,4 +1,5 @@
 from financeiro.domain.contas.entities import Conta, DepositoConta, MovimentacaoMensal
+from financeiro.domain.validacao import parse_valor_finito
 
 
 class ContasUseCases:
@@ -8,7 +9,7 @@ class ContasUseCases:
     def criar_conta(self, payload: dict) -> None:
         conta = Conta(
             nome=payload["nome"],
-            saldo_inicial=float(payload.get("saldo_inicial", 0)),
+            saldo_inicial=parse_valor_finito(payload.get("saldo_inicial", 0), "saldo_inicial"),
         )
         self.repository.add_conta(conta)
 
@@ -23,7 +24,7 @@ class ContasUseCases:
             ano=int(payload["ano"]),
             mes=int(payload["mes"]),
             conta_id=int(payload["conta_id"]),
-            valor=float(payload["valor"]),
+            valor=parse_valor_finito(payload["valor"]),
             nota=payload.get("nota", ""),
         )
         return self.repository.add_deposito(deposito)
@@ -32,7 +33,7 @@ class ContasUseCases:
         self.repository.delete_deposito(deposito_id)
 
     def editar_deposito(self, deposito_id: int, payload: dict) -> None:
-        valor = float(payload.get("valor", 0))
+        valor = parse_valor_finito(payload.get("valor", 0))
         nota = payload.get("nota", "")
         self.repository.update_deposito(deposito_id, valor, nota)
 
@@ -46,7 +47,7 @@ class ContasUseCases:
             ano=int(payload["ano"]),
             mes=int(payload["mes"]),
             conta_id=int(payload["conta_id"]),
-            valor=float(payload["valor"]),
+            valor=parse_valor_finito(payload["valor"]),
             nota=payload.get("nota", ""),
             tipo=payload.get("tipo", ""),
         )

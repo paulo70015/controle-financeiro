@@ -101,6 +101,31 @@ class SQLiteRendimentosRepository:
         conn.close()
         return dict(row) if row else None
 
+    def get_lancamentos_local_ano(self, ano: int, local_id: int) -> list[dict]:
+        conn = self.connection_factory()
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT id,ano,mes,local_id,tipo,valor,nota FROM rendimentos_lancamentos WHERE ano=? AND local_id=?",
+                (ano, local_id),
+            ).fetchall()
+        ]
+        conn.close()
+        return rows
+
+    def get_lancamentos_local(self, local_id: int) -> list[dict]:
+        """Retorna os lançamentos de um local em TODOS os anos (BUG-9)."""
+        conn = self.connection_factory()
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT id,ano,mes,local_id,tipo,valor,nota FROM rendimentos_lancamentos WHERE local_id=?",
+                (local_id,),
+            ).fetchall()
+        ]
+        conn.close()
+        return rows
+
     def add_lancamento(self, lanc: RendimentoLancamento) -> int:
         conn = self.connection_factory(auto_sync=True)
         conn.execute("INSERT OR IGNORE INTO anos(ano) VALUES(?)", (lanc.ano,))

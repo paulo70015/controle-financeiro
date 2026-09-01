@@ -98,6 +98,16 @@ class SQLiteCategoriasRepository:
                 "UPDATE despesas_fixas_cartao SET cat_id=NULL WHERE cat_id=? AND ano=?",
                 (categoria_id, ano),
             )
+            # BUG-13: limpar status de pagamento e exceções de fixa da célula —
+            # antes ficavam órfãos (pagamento_status é chaveado por nome).
+            conn.execute(
+                "DELETE FROM pagamento_status WHERE categoria=? AND ano=?",
+                (nome, ano),
+            )
+            conn.execute(
+                "DELETE FROM fixas_excecoes WHERE cat_id=?",
+                (categoria_id,),
+            )
             conn.execute("DELETE FROM categorias WHERE id=?", (categoria_id,))
         conn.commit()
         conn.close()
@@ -146,3 +156,17 @@ class SQLiteCategoriasRepository:
         ).fetchone()
         conn.close()
         return row["conta_vinculada_id"] if row and row["conta_vinculada_id"] else None
+
+    def conta_existe(self, conta_id) -> bool:
+        """True se a conta corrente existe (validação de conta_vinculada_id — BUG-12)."""
+        conn = self.connection_factory()
+        try:
+            row = conn.execute(
+                "SELECT 1 FROM contas_correntes WHERE id=?",
+                (int(conta_id),),
+            ).fetchone()
+            return row is not None
+        except (TypeError, ValueError):
+            return False
+        finally:
+            conn.close()

@@ -69,7 +69,10 @@ class SupabaseDespesasRepository:
         response = client.table("despesas").insert(despesas_insert).execute()
         despesa_ids = [d["id"] for d in response.data]
         
-        # Inserir depósitos vinculados
+        # Inserir depósitos vinculados. O vínculo usa o índice explícito
+        # `despesa_index` (quando presente) em vez da posição na lista
+        # filtrada de depósitos, que fica desalinhada quando algum mês do
+        # lote tem valor <= 0 (BUG-2).
         if depositos_data:
             depositos_insert = [{
                 "ano": dep['ano'],
@@ -77,7 +80,7 @@ class SupabaseDespesasRepository:
                 "conta_id": dep['conta_id'],
                 "valor": dep['valor'],
                 "nota": dep['nota'],
-                "despesa_id": despesa_ids[i]
+                "despesa_id": despesa_ids[dep.get("despesa_index", i)]
             } for i, dep in enumerate(depositos_data)]
             
             client.table("depositos_conta").insert(depositos_insert).execute()
@@ -109,12 +112,13 @@ class SupabaseDespesasRepository:
         """Atualiza despesa e recria depósito vinculado se aplicável."""
         client: Client = self.client_factory()
         
-        # Atualizar despesa
+        # Atualizar despesa (categoria também é atualizada — BUG-11)
         client.table("despesas").update({
             "mes": mes,
             "valor": valor,
             "nota": nota,
-            "ignorar_total": ignorar_total
+            "ignorar_total": ignorar_total,
+            "categoria": categoria
         }).eq("id", despesa_id).execute()
         
         # Remover depósito antigo

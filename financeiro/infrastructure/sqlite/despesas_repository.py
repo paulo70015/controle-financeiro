@@ -58,11 +58,15 @@ class SQLiteDespesasRepository:
                 )
                 despesa_ids.append(cur.lastrowid)
             
-            # Inserir depósitos vinculados
+            # Inserir depósitos vinculados. O vínculo usa o índice explícito
+            # `despesa_index` (quando presente) em vez da posição na lista
+            # filtrada de depósitos, que fica desalinhada quando algum mês do
+            # lote tem valor <= 0 (BUG-2).
             for i, dep in enumerate(depositos_data):
+                idx = dep.get("despesa_index", i)
                 conn.execute(
                     "INSERT INTO depositos_conta(ano,mes,conta_id,valor,nota,despesa_id) VALUES(?,?,?,?,?,?)",
-                    (dep['ano'], dep['mes'], dep['conta_id'], dep['valor'], dep['nota'], despesa_ids[i]),
+                    (dep['ano'], dep['mes'], dep['conta_id'], dep['valor'], dep['nota'], despesa_ids[idx]),
                 )
             
             conn.commit()
@@ -98,10 +102,10 @@ class SQLiteDespesasRepository:
         conn = self.connection_factory(auto_sync=True)
         
         try:
-            # Atualizar despesa
+            # Atualizar despesa (categoria também é atualizada — BUG-11)
             conn.execute(
-                "UPDATE despesas SET mes=?, valor=?, nota=?, ignorar_total=?, data_alteracao=CURRENT_TIMESTAMP WHERE id=?",
-                (mes, valor, nota, ignorar_total, despesa_id),
+                "UPDATE despesas SET mes=?, valor=?, nota=?, ignorar_total=?, categoria=?, data_alteracao=CURRENT_TIMESTAMP WHERE id=?",
+                (mes, valor, nota, ignorar_total, categoria, despesa_id),
             )
             
             # Remover depósito antigo

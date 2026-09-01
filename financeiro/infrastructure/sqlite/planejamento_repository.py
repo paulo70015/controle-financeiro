@@ -119,30 +119,49 @@ class SQLitePlanejamentoRepository:
 
     def toggle_fixa_excecao(self, payload: dict, method: str) -> None:
         conn = self.connection_factory(auto_sync=True)
-        if method == "POST":
-            conn.execute(
-                "INSERT OR IGNORE INTO fixas_excecoes(ano,mes,cat_id) VALUES(?,?,?)",
-                (payload["ano"], payload["mes"], payload["cat_id"]),
-            )
-        else:
-            conn.execute(
-                "DELETE FROM fixas_excecoes WHERE ano=? AND mes=? AND cat_id=?",
-                (payload["ano"], payload["mes"], payload["cat_id"]),
-            )
-            cat = conn.execute("SELECT nome FROM categorias WHERE id=?", (payload["cat_id"],)).fetchone()
-            if cat:
-                ids = [
-                    r["id"]
-                    for r in conn.execute(
-                        "SELECT id FROM despesas WHERE ano=? AND mes=? AND categoria=? AND nota='Soma das Despesas Fixas\u200b'",
+        try:
+            if method == "POST":
+                conn.execute(
+                    "INSERT OR IGNORE INTO fixas_excecoes(ano,mes,cat_id) VALUES(?,?,?)",
+                    (payload["ano"], payload["mes"], payload["cat_id"]),
+                )
+            else:
+                conn.execute(
+                    "DELETE FROM fixas_excecoes WHERE ano=? AND mes=? AND cat_id=?",
+                    (payload["ano"], payload["mes"], payload["cat_id"]),
+                )
+                cat = conn.execute("SELECT nome FROM categorias WHERE id=?", (payload["cat_id"],)).fetchone()
+                if cat:
+                    ids = [
+                        r["id"]
+                        for r in conn.execute(
+                            "SELECT id FROM despesas WHERE ano=? AND mes=? AND categoria=? AND nota='Soma das Despesas Fixas\u200b'",
+                            (payload["ano"], payload["mes"], cat["nome"]),
+                        ).fetchall()
+                    ]
+                    for did in ids:
+                        conn.execute("DELETE FROM depositos_conta WHERE despesa_id=?", (did,))
+                        conn.execute("DELETE FROM despesas WHERE id=?", (did,))
+                    # BUG-5: ao des-excluir a fixa de uma célula já PAGA, a soma
+                    # materializada (e o débito na conta vinculada) não pode
+                    # simplesmente sumir — a célula continua paga. Re-materializar.
+                    status = conn.execute(
+                        "SELECT status FROM pagamento_status WHERE ano=? AND mes=? AND categoria=?",
                         (payload["ano"], payload["mes"], cat["nome"]),
-                    ).fetchall()
-                ]
-                for did in ids:
-                    conn.execute("DELETE FROM depositos_conta WHERE despesa_id=?", (did,))
-                    conn.execute("DELETE FROM despesas WHERE id=?", (did,))
-        conn.commit()
-        conn.close()
+                    ).fetchone()
+                    if status and status["status"] > 0:
+                        self._materializar_soma_fixas(
+                            conn,
+                            ano=payload["ano"],
+                            mes=payload["mes"],
+                            categoria=cat["nome"],
+                        )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def save_pagamento_status(self, status: PagamentoStatus) -> None:
         conn = self.connection_factory(auto_sync=True)
@@ -220,56 +239,71 @@ class SQLitePlanejamentoRepository:
             )
 
         if status_atual == 0 and status.status > 0:
-            cat = conn.execute(
-                "SELECT id, inclui_fixas, conta_vinculada_id FROM categorias WHERE nome=? AND ano=?",
-                (status.categoria, status.ano),
-            ).fetchone()
-            if cat:
-                cat_id = cat["id"]
-                exc = conn.execute(
-                    "SELECT 1 FROM fixas_excecoes WHERE ano=? AND mes=? AND cat_id=?",
-                    (status.ano, status.mes, cat_id),
-                ).fetchone()
-                if not exc:
-                    if cat["inclui_fixas"]:
-                        fixas = conn.execute(
-                            "SELECT * FROM despesas_fixas_cartao WHERE ativa=1 AND ano=? AND (cat_id=? OR cat_id IS NULL)",
-                            (status.ano, cat_id),
-                        ).fetchall()
-                    else:
-                        fixas = conn.execute(
-                            "SELECT * FROM despesas_fixas_cartao WHERE ativa=1 AND ano=? AND cat_id=?",
-                            (status.ano, cat_id),
-                        ).fetchall()
-                    if fixas:
-                        total_fixas = 0
-                        for f in fixas:
-                            if not self._is_fixa_expirada(f["dia"], status.ano, status.mes):
-                                total_fixas += f["valor"]
-                                
-                        total_fixas = round(total_fixas, 2)
-                        if total_fixas != 0:
-                            nota_fixa = "Soma das Despesas Fixas\u200b"
-                            cur_desp = conn.execute(
-                                "INSERT INTO despesas(ano,mes,categoria,valor,nota) VALUES(?,?,?,?,?)",
-                                (status.ano, status.mes, status.categoria, total_fixas, nota_fixa),
-                            )
-                            if cat["conta_vinculada_id"]:
-                                conn.execute(
-                                    "INSERT INTO depositos_conta(ano,mes,conta_id,valor,nota,despesa_id) VALUES(?,?,?,?,?,?)",
-                                    (
-                                        status.ano,
-                                        status.mes,
-                                        cat["conta_vinculada_id"],
-                                        -total_fixas,
-                                        nota_fixa,
-                                        cur_desp.lastrowid,
-                                    ),
-                                )
-                        conn.execute(
-                            "INSERT INTO fixas_excecoes(ano,mes,cat_id) VALUES(?,?,?)",
-                            (status.ano, status.mes, cat_id),
-                        )
+            self._materializar_soma_fixas(conn, status.ano, status.mes, status.categoria)
+
+    def _materializar_soma_fixas(self, conn, ano: int, mes: int, categoria: str) -> None:
+        """Materializa o lançamento 'Soma das Despesas Fixas' de uma célula.
+
+        Recalcula o total das fixas ativas não expiradas da categoria e cria o
+        lançamento físico em `despesas` (+ débito em `depositos_conta` quando a
+        categoria tem conta vinculada), além do marcador em `fixas_excecoes`
+        (duplo papel documentado: célula materializada). Deve ser chamado
+        dentro de uma transação aberta (`conn`) — usado por
+        `_save_pagamento_status_conn` e por `toggle_fixa_excecao` (BUG-5).
+        """
+        cat = conn.execute(
+            "SELECT id, inclui_fixas, conta_vinculada_id FROM categorias WHERE nome=? AND ano=?",
+            (categoria, ano),
+        ).fetchone()
+        if not cat:
+            return
+        cat_id = cat["id"]
+        exc = conn.execute(
+            "SELECT 1 FROM fixas_excecoes WHERE ano=? AND mes=? AND cat_id=?",
+            (ano, mes, cat_id),
+        ).fetchone()
+        if exc:
+            return
+        if cat["inclui_fixas"]:
+            fixas = conn.execute(
+                "SELECT * FROM despesas_fixas_cartao WHERE ativa=1 AND ano=? AND (cat_id=? OR cat_id IS NULL)",
+                (ano, cat_id),
+            ).fetchall()
+        else:
+            fixas = conn.execute(
+                "SELECT * FROM despesas_fixas_cartao WHERE ativa=1 AND ano=? AND cat_id=?",
+                (ano, cat_id),
+            ).fetchall()
+        if not fixas:
+            return
+        total_fixas = 0
+        for f in fixas:
+            if not self._is_fixa_expirada(f["dia"], ano, mes):
+                total_fixas += f["valor"]
+
+        total_fixas = round(total_fixas, 2)
+        if total_fixas != 0:
+            nota_fixa = "Soma das Despesas Fixas\u200b"
+            cur_desp = conn.execute(
+                "INSERT INTO despesas(ano,mes,categoria,valor,nota) VALUES(?,?,?,?,?)",
+                (ano, mes, categoria, total_fixas, nota_fixa),
+            )
+            if cat["conta_vinculada_id"]:
+                conn.execute(
+                    "INSERT INTO depositos_conta(ano,mes,conta_id,valor,nota,despesa_id) VALUES(?,?,?,?,?,?)",
+                    (
+                        ano,
+                        mes,
+                        cat["conta_vinculada_id"],
+                        -total_fixas,
+                        nota_fixa,
+                        cur_desp.lastrowid,
+                    ),
+                )
+        conn.execute(
+            "INSERT INTO fixas_excecoes(ano,mes,cat_id) VALUES(?,?,?)",
+            (ano, mes, cat_id),
+        )
 
     def toggle_fixa_aplicada_manual(self, payload: dict, method: str) -> None:
         conn = self.connection_factory(auto_sync=True)

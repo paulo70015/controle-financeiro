@@ -49,7 +49,10 @@ def init_db(connection_factory):
     # 5c. Adicionar coluna tipo em movimentacoes_mensais (idempotente).
     _migrate_movimentacoes_tipo(cur)
 
-    # 5d. Índices para consultas frequentes (idempotente).
+    # 5d. Coluna rendimento_lancamento_id em movimentacoes_mensais (idempotente).
+    _migrate_movimentacoes_rendimento_lancamento(cur)
+
+    # 5e. Índices para consultas frequentes (idempotente).
     _migrate_indexes(cur)
 
     # 6. Atualizar schema_version para a versão corrente (1 = schema unificado)
@@ -86,7 +89,8 @@ def _create_schema(cur):
         tooltip TEXT,
         ano INTEGER NOT NULL,
         is_cartao INTEGER DEFAULT 0,
-        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE,
+        FOREIGN KEY(conta_vinculada_id) REFERENCES contas_correntes(id) ON DELETE SET NULL)"""
     )
 
     # --- despesas ---
@@ -174,6 +178,7 @@ def _create_schema(cur):
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
         tipo TEXT DEFAULT '',
+        rendimento_lancamento_id INTEGER DEFAULT NULL,
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
     )
     cur.execute(
@@ -317,7 +322,8 @@ def _upgrade_to_anos(cur):
         tooltip TEXT,
         ano INTEGER NOT NULL,
         is_cartao INTEGER DEFAULT 0,
-        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)""",
+        FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE,
+        FOREIGN KEY(conta_vinculada_id) REFERENCES contas_correntes(id) ON DELETE SET NULL)""",
     )
 
     _recreate_with_fk(
@@ -395,6 +401,7 @@ def _upgrade_to_anos(cur):
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)""",
+        columns=["id", "ano", "mes", "conta_id", "valor", "nota"],
     )
     cur.execute(
         "CREATE INDEX IF NOT EXISTS idx_movimentacoes_ano_mes_conta ON movimentacoes_mensais(ano, mes, conta_id)"
@@ -574,6 +581,7 @@ def _migrate_movimentacoes_multiplas(cur):
         valor REAL NOT NULL DEFAULT 0,
         nota TEXT DEFAULT '',
         tipo TEXT DEFAULT '',
+        rendimento_lancamento_id INTEGER DEFAULT NULL,
         FOREIGN KEY(ano) REFERENCES anos(ano) ON DELETE CASCADE)"""
     )
     cur.execute(
@@ -595,6 +603,22 @@ def _migrate_movimentacoes_tipo(cur):
     try:
         cur.execute("ALTER TABLE movimentacoes_mensais ADD COLUMN tipo TEXT DEFAULT ''")
         logging.info("Coluna 'tipo' adicionada em movimentacoes_mensais.")
+    except Exception:
+        pass  # Coluna já existe — ignorar
+
+
+def _migrate_movimentacoes_rendimento_lancamento(cur):
+    """
+    Adiciona a coluna `rendimento_lancamento_id` em movimentacoes_mensais
+    se ela não existir. Idempotente: se a coluna já existir, ignora o erro.
+    O vínculo identifica a movimentação refletida automaticamente a partir
+    de um lançamento da aba Rendimentos (somente leitura na conta).
+    """
+    try:
+        cur.execute(
+            "ALTER TABLE movimentacoes_mensais ADD COLUMN rendimento_lancamento_id INTEGER DEFAULT NULL"
+        )
+        logging.info("Coluna 'rendimento_lancamento_id' adicionada em movimentacoes_mensais.")
     except Exception:
         pass  # Coluna já existe — ignorar
 

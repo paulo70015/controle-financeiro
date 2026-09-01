@@ -74,6 +74,21 @@ def register_blueprints(flask_app):
 def create_app():
     flask_app = Flask(__name__, template_folder=BASE_DIR)
     register_blueprints(flask_app)
+
+    # BUG-8: payloads inválidos/parciais não devem gerar 500 genérico.
+    # KeyError (campo obrigatório ausente) e ValueError (valor inválido)
+    # viram 400 com corpo JSON — as rotas que já capturam ValueError
+    # localmente continuam retornando antes de chegar aqui.
+    from flask import jsonify
+
+    @flask_app.errorhandler(KeyError)
+    def _tratar_key_error(e):
+        return jsonify({"ok": False, "erro": f"Campo obrigatório ausente: {e.args[0]}"}), 400
+
+    @flask_app.errorhandler(ValueError)
+    def _tratar_value_error(e):
+        return jsonify({"ok": False, "erro": str(e)}), 400
+
     return flask_app
 
 

@@ -193,6 +193,18 @@ class SupabasePlanejamentoRepository:
                         .in_("id", ids) \
                         .execute()
 
+                # BUG-5: ao des-excluir a fixa de uma célula já PAGA, a soma
+                # materializada (e o débito na conta vinculada) não pode
+                # simplesmente sumir — a célula continua paga. Re-materializar.
+                status_response = client.table("pagamento_status") \
+                    .select("status") \
+                    .eq("ano", payload["ano"]) \
+                    .eq("mes", payload["mes"]) \
+                    .eq("categoria", cat_nome) \
+                    .execute()
+                if status_response.data and status_response.data[0]["status"] > 0:
+                    self._materializar_soma_fixas(payload["ano"], payload["mes"], cat_nome)
+
     def save_pagamento_status(self, status: PagamentoStatus) -> None:
         """Salva status de pagamento e gera despesa fixa se necessário"""
         client: Client = self.client_factory()
@@ -266,85 +278,103 @@ class SupabasePlanejamentoRepository:
 
         # Gerar despesa fixa se status mudou de 0 para > 0
         if status_atual == 0 and status.status > 0:
-            cat_response = client.table("categorias") \
-                .select("id, inclui_fixas, conta_vinculada_id") \
-                .eq("nome", status.categoria) \
-                .eq("ano", status.ano) \
+            self._materializar_soma_fixas(status.ano, status.mes, status.categoria)
+
+    def _materializar_soma_fixas(self, ano: int, mes: int, categoria: str) -> None:
+        """Materializa o lançamento 'Soma das Despesas Fixas' de uma célula.
+
+        Recalcula o total das fixas ativas não expiradas da categoria e cria o
+        lançamento físico em `despesas` (+ débito em `depositos_conta` quando a
+        categoria tem conta vinculada), além do marcador em `fixas_excecoes`
+        (duplo papel documentado: célula materializada). Usado por
+        `save_pagamento_status` e por `toggle_fixa_excecao` (BUG-5).
+        """
+        client: Client = self.client_factory()
+
+        cat_response = client.table("categorias") \
+            .select("id, inclui_fixas, conta_vinculada_id") \
+            .eq("nome", categoria) \
+            .eq("ano", ano) \
+            .execute()
+
+        if not cat_response.data:
+            return
+        cat = cat_response.data[0]
+        cat_id = cat["id"]
+
+        # Verificar se não há exceção
+        exc_response = client.table("fixas_excecoes") \
+            .select("id") \
+            .eq("ano", ano) \
+            .eq("mes", mes) \
+            .eq("cat_id", cat_id) \
+            .execute()
+
+        if exc_response.data:
+            return
+
+        # Buscar fixas aplicáveis
+        if cat["inclui_fixas"]:
+            fixas_response = client.table("despesas_fixas_cartao") \
+                .select("*") \
+                .eq("ativa", 1) \
+                .eq("ano", ano) \
+                .or_(f"cat_id.eq.{cat_id},cat_id.is.null") \
                 .execute()
-            
-            if cat_response.data:
-                cat = cat_response.data[0]
-                cat_id = cat["id"]
-                
-                # Verificar se não há exceção
-                exc_response = client.table("fixas_excecoes") \
-                    .select("id") \
-                    .eq("ano", status.ano) \
-                    .eq("mes", status.mes) \
-                    .eq("cat_id", cat_id) \
-                    .execute()
-                
-                if not exc_response.data:
-                    # Buscar fixas aplicáveis
-                    if cat["inclui_fixas"]:
-                        fixas_response = client.table("despesas_fixas_cartao") \
-                            .select("*") \
-                            .eq("ativa", 1) \
-                            .eq("ano", status.ano) \
-                            .or_(f"cat_id.eq.{cat_id},cat_id.is.null") \
-                            .execute()
-                    else:
-                        fixas_response = client.table("despesas_fixas_cartao") \
-                            .select("*") \
-                            .eq("ativa", 1) \
-                            .eq("ano", status.ano) \
-                            .eq("cat_id", cat_id) \
-                            .execute()
-                    
-                    fixas = fixas_response.data
-                    
-                    if fixas:
-                        total_fixas = sum(
-                            f["valor"]
-                            for f in fixas
-                            if not self._is_fixa_expirada(f.get("dia"), status.ano, status.mes)
-                        )
-                        total_fixas = round(total_fixas, 2)
-                        
-                        if total_fixas != 0:
-                            nota_fixa = "Soma das Despesas Fixas\u200b"
-                            
-                            # Inserir despesa
-                            desp_response = client.table("despesas").insert({
-                                "ano": status.ano,
-                                "mes": status.mes,
-                                "categoria": status.categoria,
-                                "valor": total_fixas,
-                                "nota": nota_fixa
-                            }).execute()
-                            
-                            despesa_id = desp_response.data[0]["id"]
-                            
-                            # Inserir depósito se conta vinculada
-                            if cat["conta_vinculada_id"]:
-                                client.table("depositos_conta").insert({
-                                    "ano": status.ano,
-                                    "mes": status.mes,
-                                    "conta_id": cat["conta_vinculada_id"],
-                                    "valor": -total_fixas,
-                                    "nota": nota_fixa,
-                                    "despesa_id": despesa_id
-                                }).execute()
-                        
-                        # Inserir exceção para evitar duplicação
-                        try:
-                            client.table("fixas_excecoes").insert({
-                                "ano": status.ano,
-                                "mes": status.mes,
-                                "cat_id": cat_id
-                            }).execute()
-                        except Exception:
-                            pass  # Ignorar se já existe
+        else:
+            fixas_response = client.table("despesas_fixas_cartao") \
+                .select("*") \
+                .eq("ativa", 1) \
+                .eq("ano", ano) \
+                .eq("cat_id", cat_id) \
+                .execute()
+
+        fixas = fixas_response.data
+
+        if not fixas:
+            return
+
+        total_fixas = sum(
+            f["valor"]
+            for f in fixas
+            if not self._is_fixa_expirada(f.get("dia"), ano, mes)
+        )
+        total_fixas = round(total_fixas, 2)
+
+        if total_fixas != 0:
+            nota_fixa = "Soma das Despesas Fixas\u200b"
+
+            # Inserir despesa
+            desp_response = client.table("despesas").insert({
+                "ano": ano,
+                "mes": mes,
+                "categoria": categoria,
+                "valor": total_fixas,
+                "nota": nota_fixa
+            }).execute()
+
+            despesa_id = desp_response.data[0]["id"]
+
+            # Inserir depósito se conta vinculada
+            if cat["conta_vinculada_id"]:
+                client.table("depositos_conta").insert({
+                    "ano": ano,
+                    "mes": mes,
+                    "conta_id": cat["conta_vinculada_id"],
+                    "valor": -total_fixas,
+                    "nota": nota_fixa,
+                    "despesa_id": despesa_id
+                }).execute()
+
+        # Inserir exceção para evitar duplicação
+        try:
+            client.table("fixas_excecoes").insert({
+                "ano": ano,
+                "mes": mes,
+                "cat_id": cat_id
+            }).execute()
+        except Exception:
+            pass  # Ignorar se já existe
 
     def save_pagamento_status_lote(self, statuses: list[PagamentoStatus]) -> None:
         """Salva status em lote.
