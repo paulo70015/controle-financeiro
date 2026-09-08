@@ -78,11 +78,15 @@
     const despesas = totalDespesasMes(dados, categorias, mes, funcTotalFixas);
     const movMes = dados.movimentacoes && dados.movimentacoes[mes] ? dados.movimentacoes[mes] : null;
     const items = movMes ? (movMes.items || []) : [];
-    // Movimentações subtraídas do saldo (saque/transferência), exceto tipo 'rendimento'
-    const mv = items
-      .filter(function(item) { return item.tipo !== 'rendimento'; })
+    // 'outro' é um ajuste de saldo: soma ao saldo quando positivo, subtrai quando negativo.
+    const ajustes = items
+      .filter(function(item) { return item.tipo === 'outro'; })
       .reduce(function(s, item) { return s + (item.valor || 0); }, 0);
-    return receita - despesas - mv;
+    // Movimentações subtraídas do saldo (saque/transferência), exceto tipo 'rendimento' e 'outro'
+    const mv = items
+      .filter(function(item) { return item.tipo !== 'rendimento' && item.tipo !== 'outro'; })
+      .reduce(function(s, item) { return s + (item.valor || 0); }, 0);
+    return receita - despesas - mv + ajustes;
   }
 
   global.CFAppTabela = {

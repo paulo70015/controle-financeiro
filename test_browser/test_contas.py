@@ -15,6 +15,16 @@ from test_browser.helpers import (
     modal_should_be_hidden,
 )
 
+# Avalia a coluna "Saldo" (saldoMes) de um mês, no contexto do app já carregado.
+# Ignora fixas (funcTotalFixas=0) para isolar o efeito das movimentações.
+_SALDO_MES_JS = """
+(mes) => {
+  const d = window.dados;
+  if (!d) return null;
+  return window.CFAppTabela.saldoMes(d, d.categorias || [], d.receitas || {}, mes, () => 0);
+}
+"""
+
 
 class TestCriarConta:
     def test_abrir_modal_conta(self, page: Page):
@@ -222,3 +232,61 @@ class TestEditarExcluirConta:
         link_excluir.first.click(force=True)
         page.wait_for_timeout(500)
         assert dialog_msg[0] is not None, "Esperado confirm de exclusao"
+
+
+class TestMovimentacaoTipoOutro:
+    """
+    Tipo 'outro' na Movimentação Mensal (aba Despesas): representa dinheiro
+    recebido por PIX/dinheiro depositado na conta. Valor positivo = crédito.
+    Deve aparecer na lista com a tag [Outro].
+    """
+
+    def test_outro_depositado_na_conta(self, page: Page):
+        wait_for_table(page)
+        conta_nome = "Conta Mov Outro"
+        if page.locator(f"#tw:has-text('{conta_nome}')").count() == 0:
+            page.click('button:has-text("+ Conta")')
+            page.wait_for_selector("#ovConta.show", timeout=3000)
+            fill_input(page, "#ctN", conta_nome)
+            fill_input(page, "#ctSI", "0")
+            page.click("#ovConta button:has-text('Salvar')")
+            wait_for_load(page)
+            wait_for_table(page)
+
+        mes_teste = 5
+        # Baseline da coluna "Saldo" antes do ajuste (o 'outro' deve SOMAR ao saldo).
+        saldo_antes = page.evaluate(_SALDO_MES_JS, mes_teste)
+        page.locator("tr.tr-mov td").nth(mes_teste).click()
+        page.wait_for_selector("#ovMov.show", timeout=3000)
+        modal_should_be_visible(page, "ovMov")
+
+        select_option(page, "#movConta", "❖ " + conta_nome)
+        select_option(page, "#movTipo", "outro")
+        fill_input(page, "#movValor", "300,00")
+        fill_input(page, "#movNota", "PIX recebido")
+        page.click("#movBtnSave")
+        wait_for_load(page)
+
+        lista = page.locator("#movL")
+        expect(lista).to_contain_text("[Outro]")
+        expect(lista).to_contain_text("PIX recebido")
+        expect(lista).to_contain_text(conta_nome)
+
+        page.click("#ovMov button:has-text('Salvar e fechar')")
+        wait_for_load(page)
+        modal_should_be_hidden(page, "ovMov")
+        wait_for_table(page)
+
+        mov_mes = page.locator("tr.tr-mov td").nth(mes_teste)
+        assert "300" in mov_mes.inner_text()
+
+        # Garante que o lançamento já chegou em window.dados (render pós-load).
+        page.wait_for_function(
+            "() => (window.dados.movimentacoes || {})[5]?.items?.some(i => i.tipo === 'outro' && (i.nota || '').includes('PIX recebido')) || false"
+        )
+        saldo_depois = page.evaluate(_SALDO_MES_JS, mes_teste)
+        assert saldo_antes is not None and saldo_depois is not None, "saldoMes indisponível na página"
+        # O ajuste 'outro' (+300) deve AUMENTAR o saldo em 300. O bug antigo subtraía (-300).
+        assert abs((saldo_depois - saldo_antes) - 300) < 0.01, (
+            f"Esperado 'outro' somar 300 ao saldo; delta foi {saldo_depois - saldo_antes:.2f}"
+        )

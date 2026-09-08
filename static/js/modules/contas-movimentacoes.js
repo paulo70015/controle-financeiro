@@ -393,6 +393,7 @@ function abrirMov(mes) {
       <select id="movTipo" class="ab-select">
         <option value="">Normal (saque/transferência)</option>
         <option value="rendimento">Rendimento</option>
+        <option value="outro">Outro</option>
       </select>
     `,
     btnSaveId: 'movBtnSave',
@@ -478,7 +479,7 @@ function carregarMovLocal() {
       ? (mv.nota || 'Rendimento vinculado')
       : (nomeConta ? `❖ ${nomeConta} ${mv.nota ? '- '+mv.nota : ''}` : (mv.nota || ''));
     const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.nota || '') : (mv.nota || '').replace(/'/g, "\\'");
-    const tipoTagMap = {rendimento: 'Rendimento', aporte: 'Aporte', saque: 'Saque'};
+    const tipoTagMap = {rendimento: 'Rendimento', aporte: 'Aporte', saque: 'Saque', outro: 'Outro'};
     const tipoTag = tipoTagMap[mv.tipo] ? ` <span style="font-size:0.7em;opacity:0.7;">[${tipoTagMap[mv.tipo]}]</span>` : '';
     const tipoEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(mv.tipo || '') : (mv.tipo || '').replace(/'/g, "\\'");
     // Linhas refletidas pela aba Rendimentos são somente leitura.
