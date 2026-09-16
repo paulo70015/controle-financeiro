@@ -25,16 +25,19 @@ if [ -z "$PYTHON_CMD" ]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════
+# FORÇAR SQLite — os testes NUNCA devem tocar no Supabase
+# Precisa vir ANTES da verificacao de ambiente: ela bloqueia quando o .env
+# esta em DB_MODE=supabase (padrao do projeto) e so libera se DB_MODE=sqlite
+# ja estiver no ambiente — sem isto, o runner abortava em toda execucao.
+# ═══════════════════════════════════════════════════════════════════
+export DB_MODE=sqlite
+
+# ═══════════════════════════════════════════════════════════════════
 # VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
 # ═══════════════════════════════════════════════════════════════════
 cd ..
 $PYTHON_CMD test_browser/verificar_ambiente.py || exit 1
 cd "$(dirname "$0")"
-
-# ═══════════════════════════════════════════════════════════════════
-# FORÇAR SQLite — os testes NUNCA devem tocar no Supabase
-# ═══════════════════════════════════════════════════════════════════
-export DB_MODE=sqlite
 
 echo -e "${AZUL}Python detectado:${SEM_COR} $($PYTHON_CMD --version)"
 

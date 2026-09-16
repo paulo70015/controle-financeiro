@@ -7,3 +7,4 @@ Pillow
 pyinstaller
 pytest
 playwright
+requests

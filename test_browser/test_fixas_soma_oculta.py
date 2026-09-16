@@ -11,7 +11,7 @@ contabilizado/exibido (fixa removida). Este teste garante isso.
 
 import requests
 import pytest
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 
 from test_browser.helpers import (
     wait_for_load,
@@ -115,6 +115,12 @@ class TestSomaFixasOcultaNoModal:
         page.click(f"#tw table tbody tr:nth-child({linha_idx + 1}) td:nth-child({MES_TESTE + 1})")
         page.wait_for_selector("#ovDet.show", timeout=5000)
         modal_should_be_visible(page, "ovDet")
+
+        # abrirDet() (lancamentos.js) abre o modal com o titulo do estado local e
+        # so DEPOIS busca a lista (carregarDetLocal e assincrono). Sem esperar a
+        # lista, o teste le o modal ainda vazio e falha por corrida — nao por
+        # contagem/exibicao errada.
+        expect(page.locator("#detL")).to_contain_text("Gasto manual e2e", timeout=5000)
 
         conteudo = page.locator("#ovDet").inner_text()
         assert "Soma das Despesas Fixas" not in conteudo, \

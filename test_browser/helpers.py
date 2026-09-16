@@ -170,7 +170,17 @@ def abrir_drawer(page: Page, nome: str):
         page.click("#tabFixas")
     else:
         page.click("#tabMetas")
-    page.wait_for_selector(f"#drawer{nome.capitalize()}.open", timeout=3000)
+    drawer_id = f"drawer{nome.capitalize()}"
+    page.wait_for_selector(f"#{drawer_id}.open", timeout=3000)
+    # O painel desliza da direita (right: -340px -> 0) em 0.3s (ver .drawer-panel
+    # no app.css). Enquanto anima, os itens ficam FORA do viewport e qualquer
+    # click/check falha com "Element is outside of the viewport" — aguarda o fim
+    # da transicao antes de devolver o controle ao teste.
+    page.wait_for_function(
+        "id => getComputedStyle(document.getElementById(id)).right === '0px'",
+        arg=drawer_id,
+        timeout=3000,
+    )
 
 
 def fechar_drawer(page: Page):
