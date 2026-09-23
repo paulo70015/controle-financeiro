@@ -1,4 +1,4 @@
-﻿﻿var drawerAtivo = null;
+﻿var drawerAtivo = null;
 function toggleDrawer(nome) {
   if (!nome || drawerAtivo === nome) {
     fecharDrawer();

@@ -1,4 +1,4 @@
-﻿﻿var renCtx = {};
+﻿var renCtx = {};
 
 // ═══════════════════════════════════════════════════════════════
 // DRY — estrutura visual compartilhada (Drawer de Fixas e de Metas)

@@ -1,4 +1,4 @@
-﻿﻿async function importarCSV(input) {
+﻿async function importarCSV(input) {
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) {
     alert('Este ano está travado. Desbloqueie para importar dados.');
     input.value = '';
@@ -67,7 +67,7 @@ async function excluirCategoriaMenu(catId, nome) {
     alert('Este ano está travado e não pode ser alterado.');
     return;
   }
-  if (!confirm('Remover a categoria "' + nome + '" e TODOS os seus lançamentos em TODOS os anos?\nEsta ação não pode ser desfeita.')) return;
+  if (!confirm('Remover a categoria "' + nome + '" e TODOS os seus lançamentos em ' + ano + '?\nEsta ação não pode ser desfeita.')) return;
   
   try {
     await fetch('/api/categoria/' + catId, { method: 'DELETE' });

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿var detCtx = {};
+﻿var detCtx = {};
 var editandoId = null;
 var editandoTipo = null;
 var depEditandoId = null;

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿var rendCtx = { local_id: null, mes: null, nome: '' };
+﻿var rendCtx = { local_id: null, mes: null, nome: '' };
 var rendProjCtx = { local_id: null, nome: '' };
 var rendDeleteQueue = [];
 var rendEditandoId = null;
