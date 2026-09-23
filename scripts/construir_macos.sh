@@ -2,9 +2,10 @@
 # Gera o pacote .app (macOS) do Controle Financeiro via PyInstaller.
 #
 # Uso:
-#   ./construir_macos.sh --com-env         credenciais Supabase embutidas (NAO compartilhar)
-#   ./construir_macos.sh --com-env-vazio   Supabase sem credenciais (seguro para compartilhar)
-#   ./construir_macos.sh --com-sqlite      standalone com banco SQLite local
+#   ./construir_macos.sh                  credenciais Supabase embutidas (padrao, NAO compartilhar)
+#   ./construir_macos.sh --com-sqlite     standalone com banco SQLite local
+#   ./construir_macos.sh --com-env-vazio  Supabase sem credenciais (seguro para compartilhar)
+#   ./construir_macos.sh --com-env        equivalente ao modo padrao
 #
 # Requer Python 3.10+ com as dependencias de requirements.txt instaladas.
 # Sem venv: o script procura, nesta ordem, $PYTHON_CMD, python3.13, python3.12,
@@ -19,15 +20,14 @@ INCLUIR_ENV=""
 
 mostrar_uso() {
     echo "Escolha um modo de build:"
+    echo "  ./construir_macos.sh                  (padrao: Supabase com .env)"
     echo "  ./construir_macos.sh --com-sqlite"
     echo "  ./construir_macos.sh --com-env-vazio"
     echo "  ./construir_macos.sh --com-env"
 }
 
 if [ $# -eq 0 ]; then
-    echo "ERRO: Parametro obrigatorio nao fornecido!"
-    mostrar_uso
-    exit 1
+    set -- "--com-env"
 fi
 
 NOVO_MODO=""
@@ -45,6 +45,10 @@ for arg in "$@"; do
         --com-env)
             NOVO_MODO="pessoal-supabase"
             NOVO_ENV=".env"
+            ;;
+        -h|--help)
+            mostrar_uso
+            exit 0
             ;;
         *)
             echo "ERRO: Parametro invalido: $arg"
@@ -150,6 +154,10 @@ echo "[2/3] Gerando pacote .app com PyInstaller..."
 
 ADD_DATA_ENV=()
 if [ -n "$INCLUIR_ENV" ]; then
+    if [ ! -f "$INCLUIR_ENV" ]; then
+        echo "ERRO: Arquivo $INCLUIR_ENV nao encontrado!"
+        exit 1
+    fi
     echo "Preparando ambiente embutido ($INCLUIR_ENV)..."
     cp "$INCLUIR_ENV" ".env_embutido"
     # O arquivo temporario nao pode sobrar nem quando o build falha.
