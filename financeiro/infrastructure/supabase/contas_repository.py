@@ -206,12 +206,14 @@ class SupabaseContasRepository:
             .eq("id", movimentacao_id) \
             .execute()
 
-    def delete_movimentacoes_mes(self, ano: int, mes: int) -> None:
-        """Deleta todas as movimentações de um mês"""
+    def delete_movimentacoes_mes(self, ano: int, mes: int, conta_id: int | None = None) -> None:
+        """Deleta movimentações de um mês (opcionalmente de uma conta específica)"""
         client: Client = self.client_factory()
 
-        client.table("movimentacoes_mensais") \
+        query = client.table("movimentacoes_mensais") \
             .delete() \
             .eq("ano", ano) \
-            .eq("mes", mes) \
-            .execute()
+            .eq("mes", mes)
+        if conta_id is not None:
+            query = query.eq("conta_id", conta_id)
+        query.execute()

@@ -61,5 +61,5 @@ class ContasUseCases:
     def excluir_movimentacao(self, movimentacao_id: int) -> None:
         self.repository.delete_movimentacao(movimentacao_id)
 
-    def excluir_movimentacoes_mes(self, ano: int, mes: int) -> None:
-        self.repository.delete_movimentacoes_mes(ano=ano, mes=mes)
+    def excluir_movimentacoes_mes(self, ano: int, mes: int, conta_id: int | None = None) -> None:
+        self.repository.delete_movimentacoes_mes(ano=ano, mes=mes, conta_id=conta_id)

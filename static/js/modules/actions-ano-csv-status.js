@@ -203,7 +203,8 @@ function exportarDB() {
   const url = '/api/db/exportar';
   const a = document.createElement('a');
   a.href = url;
-  a.download = nomeArquivoExportacao('controle-financeiro-bd', 'txt');
+  const isSqlite = (typeof window.CF_BOOT !== 'undefined' && window.CF_BOOT.db_mode === 'sqlite');
+  a.download = nomeArquivoExportacao('controle-financeiro-bd', isSqlite ? 'db' : 'txt');
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -214,7 +215,9 @@ async function importarDB(input) {
   if (!file) return;
   input.value = '';
 
-  if (!confirm('Importar este TXT substituirá todos os dados atuais do banco de dados. Deseja continuar?')) {
+  const isSqlite = (typeof window.CF_BOOT !== 'undefined' && window.CF_BOOT.db_mode === 'sqlite');
+  const tipoDesc = isSqlite ? 'arquivo .DB' : 'arquivo TXT';
+  if (!confirm(`Importar este ${tipoDesc} substituirá todos os dados atuais do banco de dados. Deseja continuar?`)) {
     return;
   }
 

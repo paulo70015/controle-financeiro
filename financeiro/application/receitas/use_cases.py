@@ -1,4 +1,5 @@
 from financeiro.domain.receitas.entities import Receita, ReceitaLote
+from financeiro.domain.validacao import parse_valor_finito
 
 
 class ReceitasUseCases:
@@ -10,7 +11,7 @@ class ReceitasUseCases:
             ano=int(payload["ano"]),
             mes=int(payload["mes"]),
             descricao=payload.get("descricao", "Salario"),
-            valor=float(payload["valor"]),
+            valor=parse_valor_finito(payload["valor"]),
             nota=payload.get("nota", ""),
         )
         return self.repository.add_receita(receita)
@@ -25,8 +26,8 @@ class ReceitasUseCases:
         lote = ReceitaLote(
             ano=int(payload["ano"]),
             descricao=payload.get("descricao", "Receita"),
-            valor_base=float(payload["valor"]),
-            acrescimo=float(payload.get("acrescimo", 0)),
+            valor_base=parse_valor_finito(payload["valor"]),
+            acrescimo=parse_valor_finito(payload.get("acrescimo", 0), "acrescimo"),
             nota=payload.get("nota", ""),
         )
         meses = payload.get("meses", list(range(1, 13)))
@@ -36,8 +37,9 @@ class ReceitasUseCases:
         self.repository.delete_receitas_ano(ano)
 
     def editar(self, receita_id: int, payload: dict) -> None:
-        valor = float(payload.get("valor", 0))
+        valor = parse_valor_finito(payload["valor"]) if "valor" in payload else parse_valor_finito(payload.get("valor", 0))
         nota = payload.get("nota", "")
         descricao = payload.get("descricao", "Receita")
         mes = payload.get("mes")
         self.repository.update_receita(receita_id, valor, nota, descricao, int(mes) if mes is not None else None)
+

@@ -206,7 +206,7 @@ async function carregarDetLocal() {
       }
     }
 
-    const total = visiveis.reduce((s, r) => s + (r.valor || 0), 0) + totalFixas;
+    const total = visiveis.reduce((s, r) => s + (r.ignorar_total === 1 || r.ignorar_total === true ? 0 : (r.valor || 0)), 0) + totalFixas;
     const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(detCtx.tit || '') : (detCtx.tit || '');
     document.getElementById('detT').innerHTML = tituloFormatado;
     setDetTotal(total, false);

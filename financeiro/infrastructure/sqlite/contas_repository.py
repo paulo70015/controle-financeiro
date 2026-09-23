@@ -173,8 +173,11 @@ class SQLiteContasRepository:
         conn.commit()
         conn.close()
 
-    def delete_movimentacoes_mes(self, ano: int, mes: int) -> None:
+    def delete_movimentacoes_mes(self, ano: int, mes: int, conta_id: int | None = None) -> None:
         conn = self.connection_factory(auto_sync=True)
-        conn.execute("DELETE FROM movimentacoes_mensais WHERE ano=? AND mes=?", (ano, mes))
+        if conta_id is not None:
+            conn.execute("DELETE FROM movimentacoes_mensais WHERE ano=? AND mes=? AND conta_id=?", (ano, mes, conta_id))
+        else:
+            conn.execute("DELETE FROM movimentacoes_mensais WHERE ano=? AND mes=?", (ano, mes))
         conn.commit()
         conn.close()

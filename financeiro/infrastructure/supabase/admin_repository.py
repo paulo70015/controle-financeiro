@@ -39,6 +39,7 @@ class SupabaseAdminRepository:
             .eq("ano", ano_origem) \
             .execute()
         
+        cat_conta_map = {}
         for c in cats_response.data:
             new_cat_response = client.table("categorias").insert({
                 "nome": c["nome"],
@@ -46,9 +47,12 @@ class SupabaseAdminRepository:
                 "inclui_fixas": c["inclui_fixas"],
                 "conta_vinculada_id": c["conta_vinculada_id"],
                 "tooltip": c["tooltip"],
-                "ano": ano_destino
+                "ano": ano_destino,
+                "is_cartao": c.get("is_cartao", 0),
             }).execute()
             cat_map[c["id"]] = new_cat_response.data[0]["id"]
+            if c.get("conta_vinculada_id"):
+                cat_conta_map[c["nome"]] = c["conta_vinculada_id"]
         
         # Duplicar fixas (remapear cat_id)
         fixas_response = client.table("despesas_fixas_cartao") \
@@ -71,41 +75,37 @@ class SupabaseAdminRepository:
         if fixas_insert:
             client.table("despesas_fixas_cartao").insert(fixas_insert).execute()
         
-        # Duplicar despesas (e depósitos vinculados)
+        # Duplicar despesas (e depósitos vinculados em lote)
         desp_response = client.table("despesas") \
-            .select("mes, categoria, valor, nota") \
+            .select("mes, categoria, valor, nota, ignorar_total") \
             .eq("ano", ano_origem) \
             .neq("nota", "Soma das Despesas Fixas\u200b") \
             .execute()
         
-        for r in desp_response.data:
-            # Inserir despesa
-            desp_insert_response = client.table("despesas").insert({
+        if desp_response.data:
+            desp_insert = [{
                 "ano": ano_destino,
                 "mes": r["mes"],
                 "categoria": r["categoria"],
                 "valor": r["valor"],
-                "nota": r["nota"]
-            }).execute()
+                "nota": r["nota"],
+                "ignorar_total": r.get("ignorar_total", 0),
+            } for r in desp_response.data]
             
-            despesa_id = desp_insert_response.data[0]["id"]
+            desp_res = client.table("despesas").insert(desp_insert).execute()
+            inserted_desps = desp_res.data or []
             
-            # Verificar se categoria tem conta vinculada
-            cat_response = client.table("categorias") \
-                .select("conta_vinculada_id") \
-                .eq("nome", r["categoria"]) \
-                .eq("ano", ano_destino) \
-                .execute()
+            depositos_insert = [{
+                "ano": ano_destino,
+                "mes": d["mes"],
+                "conta_id": cat_conta_map[d["categoria"]],
+                "valor": -d["valor"],
+                "nota": d["nota"],
+                "despesa_id": d["id"],
+            } for d in inserted_desps if d.get("categoria") in cat_conta_map and not d.get("ignorar_total") and (d.get("valor") or 0) > 0]
             
-            if cat_response.data and cat_response.data[0]["conta_vinculada_id"]:
-                client.table("depositos_conta").insert({
-                    "ano": ano_destino,
-                    "mes": r["mes"],
-                    "conta_id": cat_response.data[0]["conta_vinculada_id"],
-                    "valor": -r["valor"],
-                    "nota": r["nota"],
-                    "despesa_id": despesa_id
-                }).execute()
+            if depositos_insert:
+                client.table("depositos_conta").insert(depositos_insert).execute()
         
         # Duplicar receitas
         rec_response = client.table("receitas") \
@@ -127,7 +127,7 @@ class SupabaseAdminRepository:
         # Duplicar rendimentos - locais
         rend_locais_map = {}
         rend_locais_response = client.table("rendimentos_locais") \
-            .select("id, nome, ordem, conta_vinculada_id") \
+            .select("id, nome, ordem, conta_vinculada_id, projecao_taxa") \
             .eq("ano", ano_origem) \
             .execute()
         
@@ -137,6 +137,7 @@ class SupabaseAdminRepository:
                 "nome": rl["nome"],
                 "ordem": rl["ordem"],
                 "conta_vinculada_id": rl.get("conta_vinculada_id"),
+                "projecao_taxa": rl.get("projecao_taxa"),
             }).execute()
             rend_locais_map[rl["id"]] = new_local_response.data[0]["id"]
         

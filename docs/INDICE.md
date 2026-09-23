@@ -48,6 +48,15 @@ Bem-vindo à documentação do Controle Financeiro Pessoal! Escolha o guia adequ
 
 ## 👨‍💻 Para Desenvolvedores
 
+### [`REGRAS-DE-NEGOCIO.md`](REGRAS-DE-NEGOCIO.md) - Regras de Negócio Canônicas
+**Fonte da verdade do domínio financeiro!** Especificação completa segundo o framework Diátaxis.
+- ✅ Fatura de cartão vs. Despesas fixas (Commit `93d93e3`)
+- ✅ Cartão de crédito e `ignorar_total`
+- ✅ Saldo acumulado, aportes, saques e rendimentos nominais/negativos
+- ✅ Reflexo automático em contas bancárias (Visão B) e ajuste de saldo (`outro`)
+- ✅ Independência de metas e duplicação de ano com remapeamento
+- ✅ Lazy Commit e proteções de concorrência
+
 ### [`README.md`](README.md) - Visão Geral Técnica
 **Quer contribuir?** Documentação técnica do projeto.
 - ✅ Arquitetura

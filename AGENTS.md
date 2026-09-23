@@ -5,6 +5,7 @@
 Este projeto e o Controle Financeiro Pessoal.
 
 Antes de alterar codigo, leia quando relevante:
+- `docs/REGRAS-DE-NEGOCIO.md`
 - `.kiro/steering/project-context.md`
 - `.kiro/steering/conventions.md`
 

@@ -26,7 +26,7 @@ class PlanejamentoUseCases:
             descricao=payload["descricao"],
             valor=float(payload.get("valor", 0)),
             ano_meta=payload.get("ano_meta"),
-            ano_criacao=int(payload.get("ano_criacao")),
+            ano_criacao=int(payload["ano_criacao"]),
         )
         self.repository.add_meta(meta)
 

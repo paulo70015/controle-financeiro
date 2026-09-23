@@ -99,9 +99,25 @@ class UndoManager {
  */
 async function flushDeleteQueue(items, urlBuilder) {
   if (!items || !items.length) return false;
-  for (const item of items) {
-    await fetch(urlBuilder(item), { method: 'DELETE' });
+  let teveSucesso = false;
+  const falhas = [];
+  for (const item of [...items]) {
+    try {
+      const res = await fetch(urlBuilder(item), { method: 'DELETE' });
+      if (!res.ok) {
+        falhas.push(item);
+      } else {
+        teveSucesso = true;
+        const idx = items.indexOf(item);
+        if (idx !== -1) items.splice(idx, 1);
+      }
+    } catch (e) {
+      falhas.push(item);
+    }
   }
-  return true;
+  if (falhas.length > 0) {
+    console.error('Falha ao excluir alguns itens da fila:', falhas);
+  }
+  return teveSucesso;
 }
 window.flushDeleteQueue = flushDeleteQueue;

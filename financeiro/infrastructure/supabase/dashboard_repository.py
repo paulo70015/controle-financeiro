@@ -102,7 +102,7 @@ class SupabaseDashboardRepository:
         metas_response = client.table("metas") \
             .select("*") \
             .lte("ano_criacao", ano) \
-            .gte("ano_meta", ano) \
+            .or_(f"ano_meta.gte.{ano},ano_meta.is.null") \
             .order("concluida") \
             .order("ano_meta") \
             .execute()
@@ -215,7 +215,7 @@ class SupabaseDashboardRepository:
             .eq("ano", ano) \
             .execute()
         fixas_aplicadas_manual = {f"{r['fixa_id']}_{r['mes']}": True for r in fixas_manual_response.data}
-        
+
         # Status de pagamento
         pg_response = client.table("pagamento_status") \
             .select("mes, categoria, status") \

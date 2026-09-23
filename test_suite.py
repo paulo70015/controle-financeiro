@@ -833,6 +833,135 @@ def test_regressao_bug16_reorder_cross_ano(r):
         for lid in ids:
             requests.delete(f"{BASE_URL}/api/rendimento/local/{lid}")
 
+
+@runner.test("Caçada: Receita rejeita valores infinitos e NaN")
+def test_regressao_receita_validacao_finito(r):
+    for val in ["nan", "inf", "-inf"]:
+        resp = requests.post(f"{BASE_URL}/api/receita", json={
+            "ano": ANO_TESTE, "mes": MES_TESTE, "descricao": "Teste Invalido", "valor": val,
+        })
+        assert resp.status_code == 400, f"Receita com valor {val} deveria retornar 400, veio {resp.status_code}"
+    print("    ✓ Receita com NaN/Inf rejeitada com 400")
+
+
+@runner.test("Caçada: Meta sem ano_criacao retorna 400 em vez de 500")
+def test_regressao_meta_validacao_ano_criacao(r):
+    resp = requests.post(f"{BASE_URL}/api/meta", json={
+        "descricao": "Meta sem ano criacao",
+        "valor": 100.0,
+        "ano_meta": ANO_TESTE,
+    })
+    assert resp.status_code == 400, f"Meta sem ano_criacao deveria dar 400, veio {resp.status_code}: {resp.text}"
+    print("    ✓ Meta sem ano_criacao rejeitada com 400")
+
+
+@runner.test("Caçada: Duplicar ano preserva is_cartao, ignorar_total e projecao_taxa")
+def test_regressao_duplicar_ano_cartao_e_taxa(r):
+    ano_origem = ANO_TESTE + 2
+    ano_destino = ANO_TESTE + 3
+    requests.post(f"{BASE_URL}/api/ano", json={"ano": ano_origem})
+
+    nome_conta = f"Conta Dup {ano_origem}"
+    resp = requests.post(f"{BASE_URL}/api/conta", json={"nome": nome_conta, "saldo_inicial": 1000})
+    assert resp.status_code == 200, f"Criar conta: {resp.text}"
+    conta_id = _query_db("SELECT id FROM contas_correntes WHERE nome=?", (nome_conta,))[0][0]
+
+    try:
+        resp = requests.post(f"{BASE_URL}/api/categoria", json={
+            "ano": ano_origem,
+            "nome": "Cat Cartao Dup",
+            "ordem": 1,
+            "inclui_fixas": False,
+            "is_cartao": 1,
+            "conta_vinculada_id": conta_id,
+        })
+        assert resp.status_code == 200, f"Criar categoria: {resp.text}"
+
+        resp = requests.post(f"{BASE_URL}/api/despesa", json={
+            "ano": ano_origem,
+            "mes": 1,
+            "categoria": "Cat Cartao Dup",
+            "valor": 250.0,
+            "nota": "Compra cartao",
+            "ignorar_total": 1,
+        })
+        assert resp.status_code == 200, f"Criar despesa: {resp.text}"
+
+        resp = requests.post(f"{BASE_URL}/api/rendimento/local", json={
+            "ano": ano_origem,
+            "nome": "Local Taxa Dup",
+        })
+        assert resp.status_code == 200, f"Criar local: {resp.text}"
+        local_id = resp.json().get("id")
+
+        resp = requests.post(f"{BASE_URL}/api/rendimento/projecao", json={
+            "local_id": local_id,
+            "taxa": 0.85,
+        })
+        assert resp.status_code == 200, f"Definir taxa: {resp.text}"
+
+        resp = requests.post(f"{BASE_URL}/api/duplicar_ano", json={
+            "ano_origem": ano_origem,
+            "ano_destino": ano_destino,
+        })
+        assert resp.status_code == 200, f"Duplicar ano: {resp.status_code} {resp.text}"
+
+        cat_dest = _query_db("SELECT is_cartao FROM categorias WHERE ano=? AND nome=?", (ano_destino, "Cat Cartao Dup"))
+        assert cat_dest and cat_dest[0][0] == 1, f"is_cartao deveria ser 1, veio {cat_dest}"
+
+        desp_dest = _query_db("SELECT ignorar_total FROM despesas WHERE ano=? AND categoria=?", (ano_destino, "Cat Cartao Dup"))
+        assert desp_dest and desp_dest[0][0] == 1, f"ignorar_total deveria ser 1, veio {desp_dest}"
+
+        deps_dest = _query_db("SELECT 1 FROM depositos_conta WHERE ano=? AND conta_id=?", (ano_destino, conta_id))
+        assert not deps_dest, "Não deveria criar lançamento de conta para despesa de cartão (ignorar_total=1)"
+
+        local_dest = _query_db("SELECT projecao_taxa FROM rendimentos_locais WHERE ano=? AND nome=?", (ano_destino, "Local Taxa Dup"))
+        assert local_dest and abs(local_dest[0][0] - 0.85) < 0.001, f"projecao_taxa deveria ser 0.85, veio {local_dest}"
+
+        print("    ✓ Duplicação de ano preserva is_cartao, ignorar_total, projecao_taxa e sem débitos indevidos")
+    finally:
+        requests.delete(f"{BASE_URL}/api/ano/{ano_destino}")
+        requests.delete(f"{BASE_URL}/api/ano/{ano_origem}")
+        if conta_id:
+            requests.delete(f"{BASE_URL}/api/conta/{conta_id}")
+
+
+@runner.test("Caçada: DELETE /api/movimentacao/<ano>/<mes> aceita filtro por conta_id")
+def test_regressao_del_movimentacao_conta_id(r):
+    resp = requests.post(f"{BASE_URL}/api/conta", json={"nome": "Conta Mov 1", "saldo_inicial": 0})
+    assert resp.status_code == 200
+    c1 = _query_db("SELECT id FROM contas_correntes WHERE nome=?", ("Conta Mov 1",))[0][0]
+
+    resp = requests.post(f"{BASE_URL}/api/conta", json={"nome": "Conta Mov 2", "saldo_inicial": 0})
+    assert resp.status_code == 200
+    c2 = _query_db("SELECT id FROM contas_correntes WHERE nome=?", ("Conta Mov 2",))[0][0]
+
+    try:
+        resp1 = requests.post(f"{BASE_URL}/api/movimentacao", json={
+            "ano": ANO_TESTE, "mes": MES_TESTE, "conta_id": c1, "valor": 100, "nota": "Mov C1", "tipo": "entrada"
+        })
+        assert resp1.status_code == 200, f"Criar mov 1: {resp1.text}"
+        resp2 = requests.post(f"{BASE_URL}/api/movimentacao", json={
+            "ano": ANO_TESTE, "mes": MES_TESTE, "conta_id": c2, "valor": 200, "nota": "Mov C2", "tipo": "entrada"
+        })
+        assert resp2.status_code == 200, f"Criar mov 2: {resp2.text}"
+
+        resp = requests.delete(f"{BASE_URL}/api/movimentacao/{ANO_TESTE}/{MES_TESTE}?conta_id={c1}")
+        assert resp.status_code == 200, f"Deletar mov c1: {resp.text}"
+
+        m1 = _query_db("SELECT 1 FROM movimentacoes_mensais WHERE ano=? AND mes=? AND conta_id=?", (ANO_TESTE, MES_TESTE, c1))
+        m2 = _query_db("SELECT 1 FROM movimentacoes_mensais WHERE ano=? AND mes=? AND conta_id=?", (ANO_TESTE, MES_TESTE, c2))
+        assert not m1, "Movimentações da conta 1 deveriam ter sido excluídas"
+        assert m2, "Movimentações da conta 2 deveriam permanecer intactas"
+        print("    ✓ DELETE /api/movimentacao com conta_id respeita isolamento de contas")
+    finally:
+        requests.delete(f"{BASE_URL}/api/movimentacao/{ANO_TESTE}/{MES_TESTE}?conta_id={c2}")
+        if c1:
+            requests.delete(f"{BASE_URL}/api/conta/{c1}")
+        if c2:
+            requests.delete(f"{BASE_URL}/api/conta/{c2}")
+
+
 # ============================================================================
 # EXECUÇÃO
 # ============================================================================

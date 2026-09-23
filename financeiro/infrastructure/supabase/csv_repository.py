@@ -465,7 +465,8 @@ class SupabaseCSVRepository:
                 despesas[cat] = {}
             if mes not in despesas[cat]:
                 despesas[cat][mes] = {"v": 0, "notas": []}
-            despesas[cat][mes]["v"] += r["valor"]
+            if not r.get("ignorar_total"):
+                despesas[cat][mes]["v"] += r["valor"]
             if r["nota"] and r["nota"].strip():
                 despesas[cat][mes]["notas"].append(r["nota"].strip())
         
@@ -485,7 +486,7 @@ class SupabaseCSVRepository:
         fixas = fixas_response.data
         
         # Metas — aparecem nos anos criados entre ano_criacao e ano_meta (ano informativo)
-        metas_response = client.table("metas").select("*").lte("ano_criacao", ano).gte("ano_meta", ano).order("concluida").order("ano_meta").execute()
+        metas_response = client.table("metas").select("*").lte("ano_criacao", ano).or_(f"ano_meta.gte.{ano},ano_meta.is.null").order("concluida").order("ano_meta").execute()
         metas = metas_response.data
         
         # Rendimentos - locais (com conta vinculada)

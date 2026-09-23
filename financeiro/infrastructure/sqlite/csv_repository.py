@@ -406,7 +406,7 @@ class SQLiteCSVRepository:
             ).fetchall()
         ]
         despesas_raw = conn.execute(
-            "SELECT mes,categoria,SUM(valor) as v, GROUP_CONCAT(NULLIF(TRIM(nota), ''), ' | ') as notas FROM despesas WHERE ano=? GROUP BY mes,categoria",
+            "SELECT mes,categoria,SUM(CASE WHEN ignorar_total = 1 THEN 0 ELSE valor END) as v, GROUP_CONCAT(NULLIF(TRIM(nota), ''), ' | ') as notas FROM despesas WHERE ano=? GROUP BY mes,categoria",
             (ano,),
         ).fetchall()
         despesas = {}

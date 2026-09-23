@@ -114,10 +114,10 @@ function renderFixas() {
     
     // Botão de aplicar/desaplicar manual
     const btnAplicar = isAplicadaManual 
-      ? `<button class="btn-aplicar-fixa aplicada" onclick="toggleFixaAplicadaManual(${f.id}, ${mesAtualNum}, false)" title="Desmarcar como aplicada">✓</button>`
+      ? `<button class="btn-aplicar-fixa aplicada" onclick="toggleFixaAplicadaManual(${f.id}, ${mesAtualNum}, false, ${anoAtualNum})" title="Desmarcar como aplicada">✓</button>`
       : (isExpiredAuto 
           ? '' 
-          : `<button class="btn-aplicar-fixa" onclick="toggleFixaAplicadaManual(${f.id}, ${mesAtualNum}, true)" title="Marcar como aplicada">✓</button>`);
+          : `<button class="btn-aplicar-fixa" onclick="toggleFixaAplicadaManual(${f.id}, ${mesAtualNum}, true, ${anoAtualNum})" title="Marcar como aplicada">✓</button>`);
 
     return itemDrawerHtml({
       itemClass: 'di',
@@ -515,14 +515,15 @@ async function dragDrop(e, targetId) {
 }
 
 
-async function toggleFixaAplicadaManual(fixaId, mes, aplicar) {
+async function toggleFixaAplicadaManual(fixaId, mes, aplicar, anoCompetencia) {
   if (typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado) return;
   
   try {
+    const anoAlvo = anoCompetencia || ano;
     await safeApiCall('/api/fixa_aplicada_manual', {
       method: aplicar ? 'POST' : 'DELETE',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ano: ano, mes: mes, fixa_id: fixaId})
+      body: JSON.stringify({ano: anoAlvo, mes: mes, fixa_id: fixaId})
     });
     await debouncedLoad();
   } catch (error) { 

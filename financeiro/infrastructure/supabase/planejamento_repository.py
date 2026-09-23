@@ -11,25 +11,43 @@ class SupabasePlanejamentoRepository:
     def __init__(self, client_factory):
         self.client_factory = client_factory
 
-    def _is_fixa_expirada(self, dia_fixa, ano_status, mes_status) -> bool:
+    def _is_fixa_expirada(self, dia_fixa, ano_status, mes_status, dia_inicio_mes_fiscal: int = 25) -> bool:
         from datetime import datetime
         hoje = datetime.now()
         ano_atual = hoje.year
         mes_atual = hoje.month
         dia_atual = hoje.day
 
-        if ano_status < ano_atual:
+        mes_fiscal = mes_atual + 1
+        ano_fiscal = ano_atual
+        if dia_atual >= dia_inicio_mes_fiscal:
+            mes_fiscal = mes_atual + 2
+        if mes_fiscal > 12:
+            mes_fiscal -= 12
+            ano_fiscal += 1
+
+        if ano_status < ano_fiscal:
             return True
-        if ano_status == ano_atual:
-            if mes_status < mes_atual:
+        if ano_status > ano_fiscal:
+            return False
+        if mes_status < mes_fiscal:
+            return True
+        if mes_status > mes_fiscal:
+            return False
+
+        try:
+            dia = int(dia_fixa) if dia_fixa else 0
+        except Exception:
+            return False
+        if dia <= 0:
+            return False
+
+        if dia_atual < dia_inicio_mes_fiscal:
+            if dia >= dia_inicio_mes_fiscal or dia <= dia_atual:
                 return True
-            if mes_status == mes_atual:
-                try:
-                    dia = int(dia_fixa) if dia_fixa else 0
-                    if 0 < dia < dia_atual:
-                        return True
-                except Exception:
-                    pass
+        else:
+            if dia >= dia_inicio_mes_fiscal and dia <= dia_atual:
+                return True
         return False
 
     def _normalizar_cat_id(self, client: Client, cat_id, ano):
@@ -334,10 +352,20 @@ class SupabasePlanejamentoRepository:
         if not fixas:
             return
 
+        cfg_res = client.table("config").select("valor").eq("chave", "dia_inicio_mes_fiscal").execute()
+        dia_inicio = int(cfg_res.data[0]["valor"]) if cfg_res.data and cfg_res.data[0].get("valor") else 25
+
+        fixas_manuais_res = client.table("fixas_aplicadas_manual") \
+            .select("fixa_id") \
+            .eq("ano", ano) \
+            .eq("mes", mes) \
+            .execute()
+        fixas_manuais = {r["fixa_id"] for r in (fixas_manuais_res.data or [])}
+
         total_fixas = sum(
             f["valor"]
             for f in fixas
-            if not self._is_fixa_expirada(f.get("dia"), ano, mes)
+            if f.get("id") not in fixas_manuais and not self._is_fixa_expirada(f.get("dia"), ano, mes, dia_inicio)
         )
         total_fixas = round(total_fixas, 2)
 

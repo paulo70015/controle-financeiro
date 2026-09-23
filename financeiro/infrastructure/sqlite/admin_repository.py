@@ -24,9 +24,10 @@ class SQLiteAdminRepository:
         cat_map = {}
         cats = conn.execute("SELECT * FROM categorias WHERE ano=?", (ano_origem,)).fetchall()
         for c in cats:
+            is_cartao = c["is_cartao"] if "is_cartao" in c.keys() else 0
             cur = conn.execute(
-                "INSERT INTO categorias(nome,ordem,inclui_fixas,conta_vinculada_id,tooltip,ano) VALUES(?,?,?,?,?,?)",
-                (c["nome"], c["ordem"], c["inclui_fixas"], c["conta_vinculada_id"], c["tooltip"], ano_destino),
+                "INSERT INTO categorias(nome,ordem,inclui_fixas,conta_vinculada_id,tooltip,ano,is_cartao) VALUES(?,?,?,?,?,?,?)",
+                (c["nome"], c["ordem"], c["inclui_fixas"], c["conta_vinculada_id"], c["tooltip"], ano_destino, is_cartao),
             )
             cat_map[c["id"]] = cur.lastrowid
 
@@ -39,19 +40,20 @@ class SQLiteAdminRepository:
             )
 
         desp = conn.execute(
-            "SELECT mes,categoria,valor,nota FROM despesas WHERE ano=? AND nota != 'Soma das Despesas Fixas\u200b'",
+            "SELECT mes,categoria,valor,nota,ignorar_total FROM despesas WHERE ano=? AND nota != 'Soma das Despesas Fixas\u200b'",
             (ano_origem,),
         ).fetchall()
         for r in desp:
+            ignorar_total = r["ignorar_total"] if "ignorar_total" in r.keys() else 0
             cur = conn.execute(
-                "INSERT INTO despesas(ano,mes,categoria,valor,nota) VALUES(?,?,?,?,?)",
-                (ano_destino, r["mes"], r["categoria"], r["valor"], r["nota"]),
+                "INSERT INTO despesas(ano,mes,categoria,valor,nota,ignorar_total) VALUES(?,?,?,?,?,?)",
+                (ano_destino, r["mes"], r["categoria"], r["valor"], r["nota"], ignorar_total),
             )
             cat = conn.execute(
                 "SELECT conta_vinculada_id FROM categorias WHERE nome=? AND ano=?",
                 (r["categoria"], ano_destino),
             ).fetchone()
-            if cat and cat["conta_vinculada_id"]:
+            if cat and cat["conta_vinculada_id"] and not ignorar_total and r["valor"] > 0:
                 conn.execute(
                     "INSERT INTO depositos_conta(ano,mes,conta_id,valor,nota,despesa_id) VALUES(?,?,?,?,?,?)",
                     (ano_destino, r["mes"], cat["conta_vinculada_id"], -r["valor"], r["nota"], cur.lastrowid),
@@ -66,13 +68,14 @@ class SQLiteAdminRepository:
 
         rend_locais_map = {}
         rend_locais = conn.execute(
-            "SELECT id,nome,ordem,conta_vinculada_id FROM rendimentos_locais WHERE ano=?",
+            "SELECT id,nome,ordem,conta_vinculada_id,projecao_taxa FROM rendimentos_locais WHERE ano=?",
             (ano_origem,),
         ).fetchall()
         for rl in rend_locais:
+            projecao_taxa = rl["projecao_taxa"] if "projecao_taxa" in rl.keys() else None
             cur = conn.execute(
-                "INSERT INTO rendimentos_locais(ano,nome,ordem,conta_vinculada_id) VALUES(?,?,?,?)",
-                (ano_destino, rl["nome"], rl["ordem"], rl["conta_vinculada_id"]),
+                "INSERT INTO rendimentos_locais(ano,nome,ordem,conta_vinculada_id,projecao_taxa) VALUES(?,?,?,?,?)",
+                (ano_destino, rl["nome"], rl["ordem"], rl["conta_vinculada_id"], projecao_taxa),
             )
             rend_locais_map[rl["id"]] = cur.lastrowid
 

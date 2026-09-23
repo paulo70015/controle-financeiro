@@ -54,7 +54,8 @@ def create_contas_blueprint(client_factory=None):
 
     @bp.route("/api/movimentacao/<int:ano>/<int:mes>", methods=["DELETE"])
     def del_movimentacoes_mes(ano, mes):
-        use_cases.excluir_movimentacoes_mes(ano=ano, mes=mes)
+        conta_id = request.args.get("conta_id", type=int)
+        use_cases.excluir_movimentacoes_mes(ano=ano, mes=mes, conta_id=conta_id)
         return jsonify({"ok": True})
 
     return bp

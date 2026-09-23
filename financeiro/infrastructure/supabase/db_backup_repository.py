@@ -82,12 +82,6 @@ TABLES = [
         "refs": {"conta_id": "contas_correntes", "despesa_id": "despesas"},
     },
     {
-        "name": "movimentacoes_mensais",
-        "pk": "id",
-        "columns": ["id", "ano", "mes", "conta_id", "valor", "nota", "tipo"],
-        "refs": {"conta_id": "contas_correntes"},
-    },
-    {
         "name": "rendimentos_locais",
         "pk": "id",
         "columns": ["id", "ano", "nome", "ordem", "projecao_taxa", "conta_vinculada_id"],
@@ -98,6 +92,15 @@ TABLES = [
         "pk": "id",
         "columns": ["id", "ano", "mes", "local_id", "tipo", "valor", "nota", "data_alteracao"],
         "refs": {"local_id": "rendimentos_locais"},
+    },
+    {
+        "name": "movimentacoes_mensais",
+        "pk": "id",
+        "columns": ["id", "ano", "mes", "conta_id", "valor", "nota", "tipo", "rendimento_lancamento_id"],
+        "refs": {
+            "conta_id": "contas_correntes",
+            "rendimento_lancamento_id": "rendimentos_lancamentos",
+        },
     },
 ]
 

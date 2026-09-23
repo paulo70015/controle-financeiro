@@ -50,7 +50,7 @@ function abrirCfgApp() {
   abrirModal('ovCfgApp');
 }
 
-function salvarCfgApp() {
+async function salvarCfgApp() {
   const elLinhas = document.getElementById('cfgLinhas');
   const elDia = document.getElementById('cfgDiaInicioMesFiscal');
   if (!elLinhas || !elDia) return alert('Formulário de configuração indisponível');
@@ -71,12 +71,16 @@ function salvarCfgApp() {
     document.documentElement.classList.toggle('dark-mode', _cfgTemaEscuro);
   }
 
-  // Salvar no backend
-  fetch('/api/config', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({dia_inicio_mes_fiscal: diaInicio})
-  }).catch(err => console.error('Erro ao salvar configuração:', err));
+  // Salvar no backend antes de recarregar os dados
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({dia_inicio_mes_fiscal: diaInicio})
+    });
+  } catch (err) {
+    console.error('Erro ao salvar configuração:', err);
+  }
 
   fecharModal('ovCfgApp');
   
