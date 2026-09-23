@@ -44,10 +44,6 @@ Veja [docs/DISTRIBUICAO.md](docs/DISTRIBUICAO.md) para mais detalhes.
 - **Banco:** SQLite (local) ou Supabase (nuvem)
 - **Arquitetura:** DDD (Domain-Driven Design)
 
-## 📄 Licença
-
-MIT License - Veja [LICENSE](LICENSE) para detalhes.
-
 ---
 
 **Documentação completa:** [`docs/`](docs/)

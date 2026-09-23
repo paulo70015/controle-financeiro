@@ -39,7 +39,7 @@ Bem-vindo à documentação completa do projeto!
 ## 🗂️ Estrutura
 
 ```
-controle_financeiro_v1.2.1/
+controle_financeiro/
 ├── COMECE-AQUI.txt          ← Comece por aqui!
 ├── LEIAME.txt               ← Guia completo
 ├── README.md                ← Este arquivo
