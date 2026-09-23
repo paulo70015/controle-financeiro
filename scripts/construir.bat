@@ -10,56 +10,33 @@ echo  Windows (PyInstaller)
 echo ============================================
 echo.
 
-:: Verificar se parametro foi fornecido
-if "%1"=="" (
-    echo ERRO: Parametro obrigatorio nao fornecido!
-    echo.
-    echo Escolha um modo de build:
-    echo.
-    echo   construir.bat --com-sqlite
-    echo     ^> Modo STANDALONE com SQLite local
-    echo     ^> Funciona imediatamente, sem configuracao
-    echo     ^> Ideal para compartilhar
-    echo     ^> Cada usuario tem seu proprio banco local
-    echo.
-    echo   construir.bat --com-env-vazio
-    echo     ^> Modo Supabase SEM credenciais
-    echo     ^> Usuario precisa criar .env com suas credenciais
-    echo     ^> Ideal para compartilhar quando quer que cada um use seu Supabase
-    echo.
-    echo   construir.bat --com-env
-    echo     ^> Modo Supabase COM suas credenciais embutidas
-    echo     ^> NAO compartilhe - acessa SEU banco Supabase
-    echo     ^> Ideal para uso pessoal em outro computador
-    echo.
-    pause
-    exit /b 1
-)
+:: Processar parametro (padrao: --com-env)
+set "PARAM=%~1"
+if "%PARAM%"=="" set "PARAM=--com-env"
 
-:: Processar parametro
 set INCLUIR_ENV=
 set BUILD_MODE=
 
-if "%1"=="--com-sqlite" (
+if "%PARAM%"=="--com-sqlite" (
     set INCLUIR_ENV=.env.sqlite
     set BUILD_MODE=standalone-sqlite
     echo [INFO] Build STANDALONE com SQLite - banco local embutido
     echo.
-) else if "%1"=="--com-env-vazio" (
+) else if "%PARAM%"=="--com-env-vazio" (
     set INCLUIR_ENV=.env.example
     set BUILD_MODE=compartilhar-supabase
     echo [INFO] Build Supabase SEM credenciais - seguro para compartilhar
     echo.
-) else if "%1"=="--com-env" (
+) else if "%PARAM%"=="--com-env" (
     set INCLUIR_ENV=.env
     set BUILD_MODE=pessoal-supabase
     echo [AVISO] Build com suas credenciais Supabase - NAO compartilhe!
     echo.
 ) else (
-    echo ERRO: Parametro invalido: %1
+    echo ERRO: Parametro invalido: %PARAM%
     echo.
-    echo Use: --com-sqlite, --com-env-vazio ou --com-env
-    echo Execute 'construir.bat' sem parametros para ver as opcoes.
+    echo Opcoes: construir.bat [--com-sqlite ^| --com-env-vazio ^| --com-env]
+    echo         Sem parametros executa o build padrao com Supabase
     echo.
     pause
     exit /b 1
@@ -89,7 +66,8 @@ echo.
 echo [2/3] Gerando executavel com PyInstaller...
 
 echo Preparando ambiente embutido...
-copy /Y "%INCLUIR_ENV%" ".env_embutido" >nul
+if exist "%INCLUIR_ENV%" copy /Y "%INCLUIR_ENV%" ".env_embutido" >nul
+if not exist ".env_embutido" echo DB_MODE=sqlite>".env_embutido"
 
 :: Gerar BUILD_NUMBER se nao existir (para que a versao exiba o build)
 if not exist "BUILD_NUMBER" (

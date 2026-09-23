@@ -114,11 +114,12 @@ scripts\construir.bat --com-env-vazio
 - Cada pessoa precisa criar conta no Supabase
 - Dados ficam na nuvem de cada um
 
-### Modo Pessoal (suas credenciais)
+### Modo Pessoal (PADRAO - suas credenciais)
 ```
-scripts\construir.bat --com-env
+scripts\construir.bat
 ```
-- ⚠️ **NÃO COMPARTILHE** - acessa SEU banco
+(ou `scripts\construir.bat --com-env`)
+- ⚠️ **NAO COMPARTILHE** - acessa SEU banco
 - Use apenas para você em outro computador
 
 **Mais detalhes:** Veja o arquivo `DISTRIBUICAO.md`

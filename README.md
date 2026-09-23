@@ -25,14 +25,14 @@ Toda a documentação está organizada na pasta [`docs/`](docs/):
 ## 📦 Gerar Executável
 
 ```bash
+# Pessoal (padrao - suas credenciais Supabase do .env)
+scripts\construir.bat
+
 # Standalone SQLite (recomendado para compartilhar)
 scripts\construir.bat --com-sqlite
 
 # Supabase vazio (cada um cria conta)
 scripts\construir.bat --com-env-vazio
-
-# Pessoal (suas credenciais - não compartilhe)
-scripts\construir.bat --com-env
 ```
 
 Veja [docs/DISTRIBUICAO.md](docs/DISTRIBUICAO.md) para mais detalhes.
