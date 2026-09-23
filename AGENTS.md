@@ -2,7 +2,7 @@
 
 ## Contexto do Projeto
 
-Este projeto e o Controle Financeiro Pessoal v1.3.0.
+Este projeto e o Controle Financeiro Pessoal.
 
 Antes de alterar codigo, leia quando relevante:
 - `.kiro/steering/project-context.md`

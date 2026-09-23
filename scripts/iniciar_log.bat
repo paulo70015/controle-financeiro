@@ -3,7 +3,7 @@ title Controle Financeiro - Log
 cd /d "%~dp0.."
 
 echo ============================================
-echo  Controle Financeiro v1.3.0
+echo  Controle Financeiro
 echo  Log de inicializacao: %DATE% %TIME%
 echo ============================================
 echo.

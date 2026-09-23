@@ -1,5 +1,5 @@
 -- ============================================
--- Schema PostgreSQL para Supabase v1.3.0
+-- Schema PostgreSQL para Supabase
 -- Migração de SQLite → PostgreSQL
 -- Inclui tabela `anos` + FKs ON DELETE CASCADE
 -- ============================================

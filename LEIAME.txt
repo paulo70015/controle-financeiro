@@ -1,4 +1,4 @@
-# 💰 Controle Financeiro Pessoal v1.3.0
+# 💰 Controle Financeiro Pessoal
 
 Bem-vindo! Este é um aplicativo de controle financeiro pessoal que roda no seu computador.
 Interface moderna acessada pelo navegador, com opção de banco local (SQLite) ou na nuvem (Supabase).

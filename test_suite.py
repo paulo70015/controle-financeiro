@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Suite de Testes de Integração - Controle Financeiro v1.2.3
+Suite de Testes de Integração - Controle Financeiro
 Valida todas as refatorações DRY/DDD implementadas
 """
 
@@ -65,7 +65,7 @@ class TestRunner:
     
     def run(self):
         print(f"\n{Colors.BLUE}{'='*70}{Colors.RESET}")
-        print(f"{Colors.BLUE}SUITE DE TESTES - Controle Financeiro v1.2.3{Colors.RESET}")
+        print(f"{Colors.BLUE}SUITE DE TESTES - Controle Financeiro{Colors.RESET}")
         print(f"{Colors.BLUE}{'='*70}{Colors.RESET}\n")
         
         for name, func in self.tests:

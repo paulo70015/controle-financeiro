@@ -1,6 +1,6 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
-║     💰 CONTROLE FINANCEIRO PESSOAL v1.3.0                   ║
+║     💰 CONTROLE FINANCEIRO PESSOAL                          ║
 ║                                                              ║
 ║     Bem-vindo! Você está a 30 segundos de começar.          ║
 ║                                                              ║

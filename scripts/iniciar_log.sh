@@ -21,7 +21,7 @@ if [ -z "$PYTHON_CMD" ]; then
 fi
 
 echo "============================================"
-echo " Controle Financeiro v1.3.0 (Supabase)"
+echo " Controle Financeiro (Supabase)"
 echo " Log de inicializacao: $(date +'%d/%m/%Y %H:%M:%S')"
 echo "============================================"
 echo ""

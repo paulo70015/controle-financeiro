@@ -1,4 +1,4 @@
-# 💰 Controle Financeiro Pessoal v1.3.0
+# 💰 Controle Financeiro Pessoal
 
 Aplicativo de controle financeiro pessoal com interface web moderna.
 
