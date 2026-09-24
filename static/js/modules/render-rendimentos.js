@@ -1,4 +1,4 @@
-﻿var rendCtx = { local_id: null, mes: null, nome: '' };
+var rendCtx = { local_id: null, mes: null, nome: '' };
 var rendProjCtx = { local_id: null, nome: '' };
 var rendDeleteQueue = [];
 var rendEditandoId = null;
@@ -102,10 +102,12 @@ function obterLancamentosLocalRendimento(localId) {
   return (dados.rendimentos || {})[String(localId)] || {};
 }
 
-function calcularSaldoAcumuladoLocal(localId, ateOMes = 12, lancamentosAdicionais = null) {
+function calcularSaldoAcumuladoLocal(localId, ateOMes = 12, lancamentosAdicionais = null, taxaProjecaoOverride = null) {
   const localLancs = obterLancamentosLocalRendimento(localId);
   const local = (dados.rendimentos_locais || []).find(l => l.id === localId);
-  const taxaProjecao = (local?.projecao_taxa || 0) / 100;
+  const taxaProjecao = (taxaProjecaoOverride !== null && taxaProjecaoOverride !== undefined)
+    ? (parseFloat(taxaProjecaoOverride) || 0) / 100
+    : ((local?.projecao_taxa || 0) / 100);
   
   let saldo = 0;
   const historico = [];
@@ -156,7 +158,7 @@ function calcularSaldoAcumuladoLocal(localId, ateOMes = 12, lancamentosAdicionai
 
 function calcularProjecoesRendimento(localId, percentual) {
   const taxaDecimal = (parseFloat(percentual) || 0) / 100;
-  const { historico } = calcularSaldoAcumuladoLocal(localId, 12);
+  const { historico } = calcularSaldoAcumuladoLocal(localId, 12, null, percentual);
   
   const projecoes = [];
   historico.forEach(h => {

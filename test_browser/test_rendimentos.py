@@ -259,7 +259,14 @@ class TestProjecaoTaxa:
         page.wait_for_timeout(300)
         preview = page.locator("#rendProjPreview")
         expect(preview).to_be_visible()
-        assert len(preview.inner_text()) > 10, "Preview vazio ou muito curto"
+        texto_150 = preview.inner_text()
+        assert len(texto_150) > 10, "Preview vazio ou muito curto"
+
+        fill_input(page, "#rendProjPct", "3,00")
+        page.wait_for_timeout(300)
+        texto_300 = preview.inner_text()
+        assert texto_300 != texto_150, "Preview não atualizou ao alterar a taxa"
+        page.locator("#ovRendProj button:has-text('Cancelar')").first.click()
 
 
 class TestStatusRealizado:
