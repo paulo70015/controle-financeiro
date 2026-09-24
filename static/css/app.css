@@ -506,7 +506,7 @@ td {
 }
 
 tr:hover td {
-  background-color: rgba(99,102,241,0.03);
+  background-color: rgba(99,102,241,0.05);
 }
 
 td.cat-nome {
@@ -521,6 +521,25 @@ td.cat-nome {
   width: auto;
   z-index: 2;
   font-size: 12px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+tr.cat-row:hover td.cat-nome {
+  background-color: var(--bg-hover);
+  color: var(--primary);
+}
+
+tr.cat-row:hover td.total-col {
+  background-color: var(--bg-hover-forte);
+}
+
+tr.tr-conta:hover td.cat-nome {
+  background-color: var(--bg-hover-forte);
+  color: var(--primary);
+}
+
+tr.tr-conta:hover td.total-col {
+  background-color: var(--bg-hover-forte);
 }
 
 td.total-col {
@@ -529,6 +548,7 @@ td.total-col {
   padding: 0 8px;
   text-align: right;
   vertical-align: middle;
+  transition: background-color 0.15s;
 }
 
 .td-num {
@@ -1552,6 +1572,19 @@ td:hover .st-icon:hover {
 
 td.pg-1 { background: var(--bg-st1) !important; }
 td.pg-2 { background: var(--bg-st2) !important; }
+
+tr:hover td.pg-1 {
+  background: linear-gradient(rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.08)), var(--bg-st1) !important;
+}
+
+tr:hover td.pg-2 {
+  background: linear-gradient(rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.08)), var(--bg-st2) !important;
+}
+
+td.pg-1 .vc:hover,
+td.pg-2 .vc:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
 
 #detStatus.st-sel-1 { background-color: var(--bg-st1); border-color: var(--borda-st1); color: var(--txt-st1); }
 #detStatus.st-sel-2 { background-color: var(--bg-st2); border-color: var(--borda-st2); color: var(--txt-st2); }
