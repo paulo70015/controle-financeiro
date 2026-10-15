@@ -108,6 +108,17 @@ if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 8080))
 
+    # Bind exclusivo e sincrono: impede 2 instancias na mesma porta
+    # (no Windows o SO_REUSEADDR padrao do werkzeug permitia).
+    from financeiro.infrastructure.runtime.server import criar_servidor, PortaEmUsoError
+    try:
+        servidor = criar_servidor(app, port)
+    except PortaEmUsoError:
+        print(f"\n A porta {port} ja esta em uso (outra instancia aberta?). Abrindo a instancia existente.\n")
+        if not os.getenv("FLASK_SKIP_BROWSER"):
+            webbrowser.open(f"http://localhost:{port}")
+        sys.exit(1)
+
     if not args.show_console:
         import logging; logging.getLogger("werkzeug").setLevel(logging.ERROR)
         
@@ -117,7 +128,7 @@ if __name__ == "__main__":
         atexit.register(lambda: null_file.close())
     else:
         print(f"\n Controle de Financas {get_version_full()} ({db_mode.upper()}) em: http://localhost:{port}\n")
-    threading.Thread(target=lambda:app.run(debug=False,port=port,use_reloader=False),daemon=True).start()
+    threading.Thread(target=servidor.serve_forever,daemon=True).start()
     if not os.getenv("FLASK_SKIP_BROWSER"):
         threading.Timer(1.2,lambda:webbrowser.open(f"http://localhost:{port}")).start()
     try:

@@ -70,7 +70,7 @@ echo(
 if "%EXIT_CODE%"=="0" (
     echo Todos os testes passaram!
 ) else (
-    echo Alguns testes falharam (codigo: %EXIT_CODE%).
+    echo Alguns testes falharam ^(codigo: %EXIT_CODE%^).
 )
 pause
 exit /b %EXIT_CODE%
