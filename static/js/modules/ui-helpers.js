@@ -229,6 +229,7 @@ function criarGuardaSubmit() {
   let _submitting = false;
   let _btn = null;
   let _originalHTML = '';
+  let _loadingHTML = '';
   return {
     iniciar(buttonSelector, loadingText) {
       if (_submitting) return false;
@@ -238,6 +239,7 @@ function criarGuardaSubmit() {
         _originalHTML = _btn.innerHTML;
         _btn.disabled = true;
         _btn.textContent = loadingText || 'Salvando...';
+        _loadingHTML = _btn.innerHTML;
       }
       return true;
     },
@@ -245,7 +247,9 @@ function criarGuardaSubmit() {
       _submitting = false;
       if (_btn) {
         _btn.disabled = false;
-        _btn.innerHTML = _originalHTML;
+        if (_btn.innerHTML === _loadingHTML) {
+          _btn.innerHTML = _originalHTML;
+        }
       }
     }
   };

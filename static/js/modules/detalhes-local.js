@@ -1,4 +1,4 @@
-﻿var detCtx = {};
+var detCtx = {};
 var editandoId = null;
 var editandoTipo = null;
 var depEditandoId = null;
@@ -123,6 +123,9 @@ async function addLancEFechar() {
     await flushDeleteQueue(detDeleteQueue, item => item.tipo === 'receita' ? '/api/receita/' + item.id : '/api/despesa/' + item.id);
     detDeleteQueue = [];
     detUndoManager.clear();
+    editandoId = null;
+    editandoTipo = null;
+    toggleEditUiDet(false, false);
     fecharModal('ovDet');
     await debouncedLoad();
   } finally {

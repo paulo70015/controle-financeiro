@@ -96,8 +96,27 @@ class TestEditarDespesa:
         assert linha_idx is not None
         page.click(f"#tw table tbody tr:nth-child({linha_idx + 1}) td:nth-child(5)")
         page.wait_for_selector("#ovDet.show", timeout=3000)
+
+        btn_add = page.locator('#ovDet button[onclick="addLanc()"]')
+        btn_close = page.locator('#ovDet button[onclick="addLancEFechar()"]')
+        expect(btn_add).to_have_text("+ Lançar")
+        expect(btn_close).to_have_text("Salvar e fechar")
+
+        botoes_edit = page.locator("#ovDet button[onclick^='editarDet']")
+        assert botoes_edit.count() > 0
+        botoes_edit.first.click()
+
+        expect(btn_add).to_have_text("Alterar")
+        expect(btn_close).to_have_text("Alterar e fechar")
+
         fill_input(page, "#aV", "250,00")
-        page.click('button:has-text("Salvar e fechar")')
+        btn_add.click()
+        wait_for_load(page)
+
+        expect(btn_add).to_have_text("+ Lançar")
+        expect(btn_close).to_have_text("Salvar e fechar")
+
+        page.click('#ovDet button:has-text("Fechar")')
         wait_for_load(page)
         modal_should_be_hidden(page, "ovDet")
 

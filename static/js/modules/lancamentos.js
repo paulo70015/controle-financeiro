@@ -1,4 +1,4 @@
-﻿// Guarda contra dupla submissão (double-click / Enter duplicado)
+// Guarda contra dupla submissão (double-click / Enter duplicado)
 var _guardLanc = criarGuardaSubmit();
 
 function popularSel() {
@@ -32,7 +32,9 @@ function abrirDet(mes, cat, tit) {
   document.getElementById('aV').placeholder = 'Valor (R$)';
   if (typeof preencherMesesEdicaoDet === 'function') preencherMesesEdicaoDet();
   if (document.getElementById('detMesEditar')) document.getElementById('detMesEditar').value = String(mes);
-  if (typeof toggleMesEdicaoDet === 'function') toggleMesEdicaoDet(false);
+  editandoId = null;
+  editandoTipo = null;
+  if (typeof toggleEditUiDet === 'function') toggleEditUiDet(false, false);
 
   const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
   const selStatus = document.getElementById('detStatus');
@@ -90,7 +92,9 @@ async function verRec(mes) {
   document.getElementById('aV').placeholder = 'Valor (R$)';
   if (typeof preencherMesesEdicaoDet === 'function') preencherMesesEdicaoDet();
   if (document.getElementById('detMesEditar')) document.getElementById('detMesEditar').value = String(mes);
-  if (typeof toggleMesEdicaoDet === 'function') toggleMesEdicaoDet(false);
+  editandoId = null;
+  editandoTipo = null;
+  if (typeof toggleEditUiDet === 'function') toggleEditUiDet(false, false);
   document.getElementById('detStatus').style.display = 'none';
   
   const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
