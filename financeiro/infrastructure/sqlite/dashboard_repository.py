@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from financeiro.domain.busca import filtrar_busca_ano
 from financeiro.infrastructure.fixas_utils import subtrair_soma_fixas_ocultas
 from financeiro.infrastructure.sqlite.anos_utils import descobrir_anos
 
@@ -288,3 +289,99 @@ class SQLiteDashboardRepository:
         ).fetchone()
         conn.close()
         return row is not None and row["valor"] == "1"
+
+    def buscar_no_ano(self, ano: int, termo: str) -> list[dict]:
+        conn = self.connection_factory()
+        try:
+            categorias = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, nome, tooltip FROM categorias WHERE ano=? ORDER BY ordem",
+                    (ano,),
+                ).fetchall()
+            ]
+            despesas = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, mes, categoria, valor, nota, ignorar_total FROM despesas WHERE ano=? ORDER BY mes, id",
+                    (ano,),
+                ).fetchall()
+            ]
+            receitas = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, mes, descricao, valor, nota FROM receitas WHERE ano=? ORDER BY mes, id",
+                    (ano,),
+                ).fetchall()
+            ]
+            contas = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, nome, saldo_inicial FROM contas_correntes ORDER BY ordem"
+                ).fetchall()
+            ]
+            depositos = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, mes, conta_id, valor, nota FROM depositos_conta WHERE ano=? ORDER BY mes, id",
+                    (ano,),
+                ).fetchall()
+            ]
+            movimentacoes = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, mes, conta_id, valor, nota, tipo FROM movimentacoes_mensais WHERE ano=? ORDER BY mes, id",
+                    (ano,),
+                ).fetchall()
+            ]
+            fixas = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, descricao, valor, dia, cat_id FROM despesas_fixas_cartao WHERE ativa=1 AND ano=? ORDER BY dia",
+                    (ano,),
+                ).fetchall()
+            ]
+            metas = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, descricao, valor, ano_meta, concluida FROM metas WHERE ano_criacao <= ? AND (ano_meta >= ? OR ano_meta IS NULL) ORDER BY concluida, ano_meta",
+                    (ano, ano),
+                ).fetchall()
+            ]
+            rendimentos_locais = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, nome FROM rendimentos_locais WHERE ano=? ORDER BY ordem, id",
+                    (ano,),
+                ).fetchall()
+            ]
+            rendimentos_lancamentos = [
+                dict(r)
+                for r in conn.execute(
+                    "SELECT id, mes, local_id, tipo, valor, nota FROM rendimentos_lancamentos WHERE ano=? ORDER BY mes, id",
+                    (ano,),
+                ).fetchall()
+            ]
+            exc_rows = conn.execute(
+                "SELECT mes, cat_id FROM fixas_excecoes WHERE ano=?", (ano,)
+            ).fetchall()
+            fixas_excecoes = {f"{r['cat_id']}_{r['mes']}": True for r in exc_rows}
+        finally:
+            conn.close()
+
+        return filtrar_busca_ano(
+            termo,
+            {
+                "categorias": categorias,
+                "despesas": despesas,
+                "receitas": receitas,
+                "contas": contas,
+                "depositos": depositos,
+                "movimentacoes": movimentacoes,
+                "fixas": fixas,
+                "metas": metas,
+                "rendimentos_locais": rendimentos_locais,
+                "rendimentos_lancamentos": rendimentos_lancamentos,
+                "fixas_excecoes": fixas_excecoes,
+            },
+        )

@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 
 from postgrest.exceptions import APIError
+from financeiro.domain.busca import filtrar_busca_ano
 from financeiro.infrastructure.fixas_utils import eh_soma_fixas, subtrair_soma_fixas_ocultas
 
 from financeiro.infrastructure.supabase.client import Client
@@ -431,3 +432,131 @@ class SupabaseDashboardRepository:
             valor = response.data[0]["valor"]
             return str(valor) == "1"
         return False
+
+    def buscar_no_ano(self, ano: int, termo: str) -> list[dict]:
+        """Busca lançamentos, categorias, locais, fixas e metas no ano selecionado."""
+        client: Client = self.client_factory()
+        categorias = (
+            client.table("categorias")
+            .select("id, nome, tooltip")
+            .eq("ano", ano)
+            .order("ordem")
+            .execute()
+            .data
+            or []
+        )
+        despesas = (
+            client.table("despesas")
+            .select("id, mes, categoria, valor, nota, ignorar_total")
+            .eq("ano", ano)
+            .order("mes")
+            .order("id")
+            .execute()
+            .data
+            or []
+        )
+        receitas = (
+            client.table("receitas")
+            .select("id, mes, descricao, valor, nota")
+            .eq("ano", ano)
+            .order("mes")
+            .order("id")
+            .execute()
+            .data
+            or []
+        )
+        contas = (
+            client.table("contas_correntes")
+            .select("id, nome, saldo_inicial")
+            .order("ordem")
+            .execute()
+            .data
+            or []
+        )
+        depositos = (
+            client.table("depositos_conta")
+            .select("id, mes, conta_id, valor, nota")
+            .eq("ano", ano)
+            .order("mes")
+            .order("id")
+            .execute()
+            .data
+            or []
+        )
+        movimentacoes = (
+            client.table("movimentacoes_mensais")
+            .select("id, mes, conta_id, valor, nota, tipo")
+            .eq("ano", ano)
+            .order("mes")
+            .order("id")
+            .execute()
+            .data
+            or []
+        )
+        fixas = (
+            client.table("despesas_fixas_cartao")
+            .select("id, descricao, valor, dia, cat_id")
+            .eq("ativa", 1)
+            .eq("ano", ano)
+            .order("dia")
+            .execute()
+            .data
+            or []
+        )
+        metas = (
+            client.table("metas")
+            .select("id, descricao, valor, ano_meta, concluida")
+            .lte("ano_criacao", ano)
+            .or_(f"ano_meta.gte.{ano},ano_meta.is.null")
+            .order("concluida")
+            .order("ano_meta")
+            .execute()
+            .data
+            or []
+        )
+        rendimentos_locais = (
+            client.table("rendimentos_locais")
+            .select("id, nome")
+            .eq("ano", ano)
+            .order("ordem")
+            .order("id")
+            .execute()
+            .data
+            or []
+        )
+        rendimentos_lancamentos = (
+            client.table("rendimentos_lancamentos")
+            .select("id, mes, local_id, tipo, valor, nota")
+            .eq("ano", ano)
+            .order("mes")
+            .order("id")
+            .execute()
+            .data
+            or []
+        )
+        exc_data = (
+            client.table("fixas_excecoes")
+            .select("mes, cat_id")
+            .eq("ano", ano)
+            .execute()
+            .data
+            or []
+        )
+        fixas_excecoes = {f"{r['cat_id']}_{r['mes']}": True for r in exc_data}
+
+        return filtrar_busca_ano(
+            termo,
+            {
+                "categorias": categorias,
+                "despesas": despesas,
+                "receitas": receitas,
+                "contas": contas,
+                "depositos": depositos,
+                "movimentacoes": movimentacoes,
+                "fixas": fixas,
+                "metas": metas,
+                "rendimentos_locais": rendimentos_locais,
+                "rendimentos_lancamentos": rendimentos_lancamentos,
+                "fixas_excecoes": fixas_excecoes,
+            },
+        )

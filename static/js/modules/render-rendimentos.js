@@ -261,9 +261,9 @@ function renderRendimentos() {
 
         const cellClass = `${isProjecao ? 'rend-projecao ' : ''}${mesRealizado ? 'pg-2 ' : ''}${classeValorRendimento(saldoLocal)}`.trim();
         const titAttr = window.escapeAttr ? window.escapeAttr(tit) : tit;
-        h += `<td class="rend-cell ${cellClass}" title="${titAttr}" onmouseenter="carregarTooltipRendimentos(this, ${local.id}, ${m})" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})">${BRL(saldoLocal)}</td>`;
+        h += `<td data-mes="${m}" class="rend-cell ${cellClass}" title="${titAttr}" onmouseenter="carregarTooltipRendimentos(this, ${local.id}, ${m})" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})">${BRL(saldoLocal)}</td>`;
       } else {
-        h += `<td class="rend-cell ${mesRealizado ? 'pg-2' : ''}" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})"><div class="rend-vazio">+</div></td>`;
+        h += `<td data-mes="${m}" class="rend-cell ${mesRealizado ? 'pg-2' : ''}" onclick="abrirRendimentoLanc(${local.id},'${nomeSafe}',${m})"><div class="rend-vazio">+</div></td>`;
       }
     }
 
@@ -761,7 +761,7 @@ async function carregarRendimentoDetalhe() {
       const notaExibicao = formatarValorMonetario(row.nota);
       const notaEscaped = (row.nota || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
       const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
-      return buildRowDetalheHtml(`${tipoTxt}: ${valorTxt}`, tipoColor, notaExibicao, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`);
+      return buildRowDetalheHtml(`${tipoTxt}: ${valorTxt}`, tipoColor, notaExibicao, locked ? '' : `excluirRendimentoLancamento(${row.id})`, locked ? '' : `editarRend(${row.id}, '${row.tipo}', ${valor}, '${notaEscaped}')`, row.id);
     }).join('');
   } catch (error) {
     el.innerHTML = `<p style="color:var(--vermelho);font-size:12px;padding:6px 0">Erro: ${error.message}</p>`;

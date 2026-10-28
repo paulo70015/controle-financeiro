@@ -43,6 +43,14 @@
         <button id="viewTabDespesas" class="view-tab ativo" onclick="setView('despesas')">Despesas</button>
         <button id="viewTabRendimentos" class="view-tab" onclick="setView('rendimentos')">Rendimentos</button>
       </div>
+      <div class="search-box" id="searchBox">
+        <div class="search-input-wrap">
+          <input type="text" id="inputBusca" class="search-input" placeholder="Buscar..." maxlength="60" autocomplete="off">
+          <button type="button" id="btnLimparBusca" class="search-clear" title="Limpar busca" style="display:none"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-x"></use></svg></button>
+          <button type="button" id="btnExecutarBusca" class="search-btn" title="Pesquisar"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-search"></use></svg></button>
+        </div>
+        <div id="dropdownBusca" class="search-dropdown" style="display:none"></div>
+      </div>
       <div id="acoesDespesas" class="acoes-group" style="display:flex">
         <button class="btn bv bs" onclick="abrirD()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-receipt"></use></svg> + Despesa</button>
         <button class="btn ba bs" onclick="abrirR()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-hand-coins"></use></svg> + Receita</button>
@@ -78,6 +86,7 @@
 <script src="/static/js/modules/detalhes-local.js?v={{ versao }}"></script>
 <script src="/static/js/modules/lancamentos.js?v={{ versao }}"></script>
 <script src="/static/js/modules/magic-square.js?v={{ versao }}"></script>
+<script src="/static/js/modules/busca.js?v={{ versao }}"></script>
 <script>window.CF_BOOT = { ano: {{ ano|tojson }}, meses: {{ meses|tojson }}, meses_abrev: {{ meses_abrev|tojson }}, anos: {{ anos|tojson }}, db_mode: {{ db_mode|tojson }} };</script>
 <script src="/static/js/app-main.js?v={{ versao }}"></script>
 </body>

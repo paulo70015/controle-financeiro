@@ -106,9 +106,10 @@ window.injectBankSelector = function(inputId) {
   input.dataset.hasBankSelector = 'true';
 };
 
-function buildRowDetalheHtml(valStr, color, text, btnAction, btnEditAction = '') {
+function buildRowDetalheHtml(valStr, color, text, btnAction, btnEditAction = '', itemId = '') {
   const formattedText = window.formatBankIcons ? window.formatBankIcons(text) : text;
-  return `<div class="di">
+  const attrId = itemId !== '' && itemId !== null && itemId !== undefined ? ` data-item-id="${itemId}"` : '';
+  return `<div class="di"${attrId}>
     <div class="di-texts">
       <span class="di-val" style="color:${color}">${valStr}</span>
       ${formattedText ? `<span class="di-desc">${formattedText}</span>` : ''}

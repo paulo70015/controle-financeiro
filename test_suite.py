@@ -962,6 +962,73 @@ def test_regressao_del_movimentacao_conta_id(r):
             requests.delete(f"{BASE_URL}/api/conta/{c2}")
 
 
+@runner.test("Backend: Busca unificada no ano (/api/busca/<ano>)")
+def test_busca_unificada_ano(r):
+    ano_outro = ANO_TESTE + 4
+    requests.post(f"{BASE_URL}/api/ano", json={"ano": ano_outro})
+
+    resp_cat = requests.post(f"{BASE_URL}/api/categoria", json={
+        "ano": ANO_TESTE, "nome": "Saúde Busca", "inclui_fixas": 0
+    })
+    assert resp_cat.status_code == 200
+
+    resp_desp = requests.post(f"{BASE_URL}/api/despesa", json={
+        "ano": ANO_TESTE, "mes": 3, "categoria": "Saúde Busca",
+        "valor": 345.67, "nota": "Farmácia São João"
+    })
+    assert resp_desp.status_code == 200
+    desp_id = resp_desp.json().get("id")
+
+    resp_desp_outro = requests.post(f"{BASE_URL}/api/despesa", json={
+        "ano": ano_outro, "mes": 3, "categoria": "Saúde Busca",
+        "valor": 999.00, "nota": "Farmácia Outro Ano"
+    })
+    assert resp_desp_outro.status_code == 200
+    desp_outro_id = resp_desp_outro.json().get("id")
+
+    resp_loc = requests.post(f"{BASE_URL}/api/rendimento/local", json={
+        "ano": ANO_TESTE, "nome": "Tesouro Selic Busca"
+    })
+    assert resp_loc.status_code == 200
+    local_id = resp_loc.json().get("id")
+
+    resp_rend = requests.post(f"{BASE_URL}/api/rendimento/lancamento", json={
+        "ano": ANO_TESTE, "mes": 5, "local_id": local_id,
+        "tipo": "aporte", "valor": 1234.56, "nota": "Reserva Emergência"
+    })
+    assert resp_rend.status_code == 200
+
+    try:
+        # 1. Busca sem acento ("farmacia") no ANO_TESTE
+        b1 = requests.get(f"{BASE_URL}/api/busca/{ANO_TESTE}?q=farmacia").json()
+        res1 = b1.get("resultados", [])
+        assert len(res1) == 1, f"Esperava 1 resultado para 'farmacia' em {ANO_TESTE}, veio: {res1}"
+        assert res1[0]["tipo"] == "despesa"
+        assert res1[0]["id"] == desp_id
+        assert res1[0]["mes"] == 3
+
+        # 2. Busca por valor formatado ("345,67")
+        b2 = requests.get(f"{BASE_URL}/api/busca/{ANO_TESTE}?q=345,67").json()
+        res2 = b2.get("resultados", [])
+        assert any(x["id"] == desp_id and x["tipo"] == "despesa" for x in res2), f"Busca por valor falhou: {res2}"
+
+        # 3. Busca em rendimentos ("emergencia")
+        b3 = requests.get(f"{BASE_URL}/api/busca/{ANO_TESTE}?q=emergencia").json()
+        res3 = b3.get("resultados", [])
+        assert any(x["tipo"] == "rendimento_lanc" and x["local_id"] == local_id for x in res3), f"Busca rendimento falhou: {res3}"
+
+        print("    ✓ Busca por texto sem acento, valor em R$, rendimentos e isolamento por ano validados")
+    finally:
+        if desp_id:
+            requests.delete(f"{BASE_URL}/api/despesa/{desp_id}")
+        if desp_outro_id:
+            requests.delete(f"{BASE_URL}/api/despesa/{desp_outro_id}")
+        if local_id:
+            requests.delete(f"{BASE_URL}/api/rendimento/local/{local_id}")
+        requests.delete(f"{BASE_URL}/api/ano/{ano_outro}")
+
+
+
 # ============================================================================
 # EXECUÇÃO
 # ============================================================================

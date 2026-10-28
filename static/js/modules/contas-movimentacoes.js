@@ -1,4 +1,4 @@
-﻿var depCtx = {};
+var depCtx = {};
 var editContaCtx = {};
 var movCtx = {};
 var movDeleteQueue = [];
@@ -207,7 +207,7 @@ async function carregarDep(contaId, mes) {
     let htmlMovs = visiveis.map(r => {
       const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.nota || '') : (r.nota || '').replace(/'/g, "\\'");
       const valTxt = r.valor < 0 ? `-${BRL(r.valor)}` : BRL(r.valor);
-      return buildRowDetalheHtml(valTxt, r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)', r.nota, locked ? '' : `delDep(${r.id})`, locked ? '' : `editarDep(${r.id}, ${r.valor}, '${notaEscaped}')`);
+      return buildRowDetalheHtml(valTxt, r.valor < 0 ? 'var(--vermelho)' : 'var(--verde)', r.nota, locked ? '' : `delDep(${r.id})`, locked ? '' : `editarDep(${r.id}, ${r.valor}, '${notaEscaped}')`, r.id);
     }).join('');
 
     if (despesasVincMes > 0) {
@@ -490,7 +490,8 @@ function carregarMovLocal() {
       mv.valor < 0 ? 'var(--vermelho)' : 'var(--verde)',
       texto + tipoTag,
       locked ? '' : onDel,
-      locked ? '' : onEdit
+      locked ? '' : onEdit,
+      mv.id
     );
   }).join('');
 }

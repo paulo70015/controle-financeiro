@@ -165,7 +165,7 @@ async function carregarDetLocal() {
       const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.nota || '') : (r.nota || '').replace(/'/g, "\\'");
       let notaFormatada = r.descricao + (r.nota ? ` (${r.nota})` : '');
       if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);
-      return buildRowDetalheHtml(BRL(r.valor), 'var(--verde)', notaFormatada, locked ? '' : `delR(${r.id})`, locked ? '' : `editarDet(${r.id}, 'receita', ${r.valor}, '${descricaoEscaped}', false, '${notaEscaped}')`);
+      return buildRowDetalheHtml(BRL(r.valor), 'var(--verde)', notaFormatada, locked ? '' : `delR(${r.id})`, locked ? '' : `editarDet(${r.id}, 'receita', ${r.valor}, '${descricaoEscaped}', false, '${notaEscaped}')`, r.id);
     }).join('');
   } else {
     const r = await fetch(`/api/despesas_detalhe/${ano}/${mes}/${encodeURIComponent(cat)}?_=${Date.now()}`);
@@ -222,7 +222,7 @@ async function carregarDetLocal() {
       let notaFormatada = ehCartao ? (r.nota ? r.nota + ' (Não somado)' : 'Cartão (Não somado)') : r.nota;
       if (window.formatBankIcons) notaFormatada = window.formatBankIcons(notaFormatada);
       const notaEscaped = window.escapeJsSingleQuoted ? window.escapeJsSingleQuoted(r.nota || '') : (r.nota || '').replace(/'/g, "\\'");
-      return buildRowDetalheHtml(icone + BRL(r.valor), cor, notaFormatada, locked ? '' : `delD(${r.id})`, locked ? '' : `editarDet(${r.id}, 'despesa', ${r.valor}, '${notaEscaped}', ${ehCartao})`);
+      return buildRowDetalheHtml(icone + BRL(r.valor), cor, notaFormatada, locked ? '' : `delD(${r.id})`, locked ? '' : `editarDet(${r.id}, 'despesa', ${r.valor}, '${notaEscaped}', ${ehCartao})`, r.id);
     }).join('');
     
     el.innerHTML = htmlDesp + htmlFixas; // Adiciona as fixas no final da lista

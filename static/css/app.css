@@ -1684,3 +1684,239 @@ html.dark-mode .sticky-scroll-shadow {
 .sticky-scroll-shadow.is-visible {
   opacity: 1;
 }
+
+/* ========================================= */
+/* 11. BUSCA UNIFICADA E DESTAQUES           */
+/* ========================================= */
+.search-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 4px;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 215px;
+  height: 28px;
+  padding: 4px 52px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-body);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus {
+  outline: none;
+  background: var(--bg-card);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.search-btn {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.search-btn:hover {
+  color: var(--primary);
+  background: var(--bg-hover);
+}
+
+.search-clear {
+  position: absolute;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.search-clear:hover {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 340px;
+  max-width: 440px;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+  padding: 6px;
+  z-index: 60;
+}
+
+.search-status {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.search-status.search-error {
+  color: var(--error);
+}
+
+.search-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font-body);
+  transition: background 0.12s;
+}
+
+.search-item + .search-item {
+  border-top: 1px solid var(--border);
+}
+
+.search-item:hover,
+.search-item:focus {
+  outline: none;
+  background: var(--bg-hover);
+}
+
+.search-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.search-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.sb-despesa, .sb-categoria { background: var(--bg-linha-total-desp); color: var(--txt-linha-total-desp); }
+.sb-receita { background: var(--bg-st2); color: var(--txt-st2); }
+.sb-rendimento { background: var(--bg-st1); color: var(--txt-st1); }
+.sb-conta { background: var(--bg-linha-total-contas); color: var(--primary); }
+.sb-mov { background: var(--bg-linha-mov); color: var(--txt-st1); }
+.sb-fixa, .sb-meta { background: var(--bg-tab); color: var(--primary); }
+.sb-default { background: var(--cinza); color: var(--text-muted); }
+
+.search-mes {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--cinza);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-tit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-val {
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.search-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-mark {
+  background: rgba(245, 158, 11, 0.3);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+
+@keyframes searchPulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 2px var(--primary), 0 0 0 0 rgba(99, 102, 241, 0.45);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px var(--warning), 0 0 12px 3px rgba(245, 158, 11, 0.5);
+    background-color: rgba(245, 158, 11, 0.22);
+  }
+}
+
+.search-highlight-pulse {
+  animation: searchPulse 0.9s ease-in-out 3;
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  position: relative;
+  z-index: 5;
+}
+
+.search-item-highlight {
+  animation: searchPulse 0.9s ease-in-out 3;
+  border-radius: 6px;
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  outline: 2px solid var(--primary);
+}

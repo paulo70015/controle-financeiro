@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from financeiro.application.dashboard.use_cases import DashboardUseCases
 from financeiro.infrastructure.repository_factory import get_dashboard_repository
@@ -12,5 +12,11 @@ def create_dashboard_blueprint(client_factory=None):
     def api_dados(ano):
         data = use_cases.carregar_dados_ano(ano)
         return jsonify(data)
+
+    @bp.route("/api/busca/<int:ano>")
+    def api_busca(ano):
+        termo = request.args.get("q", "", type=str)
+        resultados = use_cases.buscar_dados_ano(ano, termo)
+        return jsonify({"resultados": resultados})
 
     return bp

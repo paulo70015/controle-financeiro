@@ -7,4 +7,11 @@ class DashboardUseCases:
         data["is_bloqueado"] = self.repository.is_ano_bloqueado(ano)
         return data
 
+    def buscar_dados_ano(self, ano: int, termo: str) -> list[dict]:
+        termo_limpo = (termo or "").strip()
+        if not termo_limpo:
+            return []
+        return self.repository.buscar_no_ano(ano, termo_limpo)
+
+
 

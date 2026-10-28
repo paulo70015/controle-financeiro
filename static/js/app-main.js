@@ -117,6 +117,7 @@ async function mudarAno(event, novoAno) {
   if (numNovoAno === Number(ano)) return false; // Cláusula de guarda rigorosa
 
   ano = numNovoAno;
+  if (typeof limparBuscaAoMudarAno === 'function') limparBuscaAoMudarAno();
   // Atualiza a URL na barra de endereços silenciosamente
   window.history.pushState({ ano: numNovoAno }, '', '?ano=' + numNovoAno);
   

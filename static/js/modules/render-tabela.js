@@ -124,12 +124,12 @@ function renderTabela(){
           txt+=`<br><small class="txt-fixas-ativas">(${BRL(vFixasAtivas)} fixas)</small>`;
         }
         const stUI = buildCellStatusUI(cat.nome, m, dados);
-        h+=`<td class="${stUI.pgClass} td-status-cell">
+        h+=`<td data-mes="${m}" class="${stUI.pgClass} td-status-cell">
           <span class="vc vc-multiline ${vTotalDisplay<0?'neg':''} ${nota_class}" onclick="abrirDet(${m},'${cnSafe}','${tit_onclick}')" onmouseenter="carregarTooltipDet(this, ${m}, '${cnSafe}', '${lastMod||''}')" title="${tit}">${txt}</span>
           <i class="st-icon ${stUI.stClass}" onclick="event.stopPropagation();toggleStatus('${cnSafe}',${m})" title="${stUI.stTip}">${stUI.iconTxt}</i>
         </td>`;
       } else {
-        h+=`<td><span class="vc vz" onclick="abrirDet(${m},'${cnSafe}','${tit_onclick}')" title="Clique para lançar">+</span></td>`;
+        h+=`<td data-mes="${m}"><span class="vc vz" onclick="abrirDet(${m},'${cnSafe}','${tit_onclick}')" title="Clique para lançar">+</span></td>`;
       }
     }
     h+=`<td class="total-col ${tot<0?'neg':''}">${BRL(tot)}</td></tr>`;
@@ -151,12 +151,12 @@ function renderTabela(){
     const stUI = buildCellStatusUI('__rec__', m, dados);
 
     if(v) {
-      h+=`<td class="${stUI.pgClass} td-status-cell">
+      h+=`<td data-mes="${m}" class="${stUI.pgClass} td-status-cell">
         <span class="vc pos vc-multiline" onclick="verRec(${m})" onmouseenter="carregarTooltipDet(this, ${m}, '__rec__', '${lastMod||''}')" title="${titRec}">${BRL(v)}</span>
         <i class="st-icon ${stUI.stClass}" onclick="event.stopPropagation();toggleStatus('__rec__',${m})" title="${stUI.stTip}">${stUI.iconTxt}</i>
       </td>`;
     } else {
-      h+=`<td><span class="vc vz" onclick="verRec(${m})" title="Lançar receita">+</span></td>`;
+      h+=`<td data-mes="${m}"><span class="vc vz" onclick="verRec(${m})" title="Lançar receita">+</span></td>`;
     }
   }
   h+=`<td class="total-col pos">${BRL(totR)}</td></tr>`;
@@ -177,9 +177,9 @@ function renderTabela(){
     const v=mv?(typeof mv.valor === 'number' ? mv.valor : itens.reduce((s,item)=>s+(item.valor||0),0)):0; totMov+=v;
     const tit=itens.length ? (`${itens.length} movimentação(ões) - ${MESES[m-1]}`) : MESES[m-1];
     if(v!==0){
-      h+=`<td><span class="vc ${v<0?'neg':'pos'}" onclick="abrirMov(${m})" title="${tit}">${BRL(v)}</span></td>`;
+      h+=`<td data-mes="${m}"><span class="vc ${v<0?'neg':'pos'}" onclick="abrirMov(${m})" title="${tit}">${BRL(v)}</span></td>`;
     } else {
-      h+=`<td><span class="vc vz" onclick="abrirMov(${m})" title="Lançar movimentação">+</span></td>`;
+      h+=`<td data-mes="${m}"><span class="vc vz" onclick="abrirMov(${m})" title="Lançar movimentação">+</span></td>`;
     }
   }
   h+=`<td class="total-col ${totMov<0?'neg':totMov>0?'pos':''}">${BRL(totMov)}</td></tr>`;
@@ -207,11 +207,11 @@ function renderTabela(){
     const linksConta = `
       <a href="#" onclick="event.preventDefault(); abrirEditConta(${conta.id},'${cnSafeC}',${conta.saldo_inicial||0})">${window.iconSVG('pencil', 'sm')} Editar</a>
       <a href="#" class="text-danger" onclick="event.preventDefault(); confirmarDelConta(${conta.id})">${window.iconSVG('trash-2', 'sm')} Excluir</a>`;
-    h+=`<tr class="tr-conta"><td class="cat-nome" title=""><div class="cc"><span title="${contaNomeHtmlSafe}">${window.iconSVG('building-2', 'sm')} ${nomeFormatado}</span>${window.buildKebabMenuHtml(linksConta, false)}</div></td>`;
+    h+=`<tr class="tr-conta" data-conta-id="${conta.id}"><td class="cat-nome" title=""><div class="cc"><span title="${contaNomeHtmlSafe}">${window.iconSVG('building-2', 'sm')} ${nomeFormatado}</span>${window.buildKebabMenuHtml(linksConta, false)}</div></td>`;
     for(let m=1;m<=12;m++){
       const saldoMes=saldoConta[m]!==undefined?saldoConta[m]:null;
       const cls=saldoMes===null?'':saldoMes<0?'neg':'pos';
-      h+=`<td><span class="vc-conta ${cls}" onclick="abrirDep(${conta.id},'${cnSafeC}',${m})" title="Saldo acumulado — clique para lançar">${saldoMes!==null?BRL(saldoMes):'<span class=\"txt-muted\">+</span>'}</span></td>`;
+      h+=`<td data-mes="${m}"><span class="vc-conta ${cls}" onclick="abrirDep(${conta.id},'${cnSafeC}',${m})" title="Saldo acumulado — clique para lançar">${saldoMes!==null?BRL(saldoMes):'<span class=\"txt-muted\">+</span>'}</span></td>`;
     }
     const saldoDez=saldoConta[12]||0;
     h+=`<td class="total-col ${saldoDez<0?'neg':'pos'}">${BRL(saldoDez)}</td></tr>`;
