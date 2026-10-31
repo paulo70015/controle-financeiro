@@ -743,7 +743,10 @@ async function carregarRendimentoDetalhe() {
     const visiveis = rows.filter(r => !rendDeleteQueue.includes(r.id));
     recalcularProjecaoModal(visiveis);
 
-    const total = visiveis.reduce((s, r) => s + (r.tipo === 'saque' ? -(r.valor || 0) : (r.valor || 0)), 0);
+    const { historico } = calcularSaldoAcumuladoLocal(local_id, mes, visiveis);
+    const saldoMesAnterior = historico[mes - 1]?.saldoMesAnterior || 0;
+    const totalMes = visiveis.reduce((s, r) => s + (r.tipo === 'saque' ? -(r.valor || 0) : (r.valor || 0)), 0);
+    const total = arred2(saldoMesAnterior + totalMes);
     const tituloFormatado = window.formatBankIcons ? window.formatBankIcons(rendCtx.tit || '') : (rendCtx.tit || '');
     document.getElementById('rendLancTit').innerHTML = `${tituloFormatado} <span style="font-size:13px; font-weight:bold; color:${corValorRendimento(total, 'var(--azul)')}; background:var(--bg-linha-total-contas); padding:3px 8px; border-radius:12px; margin-left:6px; vertical-align:middle">${BRL(total)}</span>`;
 

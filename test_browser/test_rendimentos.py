@@ -363,7 +363,8 @@ class TestRendimentoPorDiferencaComAporte:
         linha_local.locator("td").nth(2).click()
         page.wait_for_selector("#ovRendLanc.show", timeout=3000)
 
-        # Confirma que o label reflete o saldo antes do rendimento (10.000 + 2.000 = 12.000)
+        # Confirma que o cabeçalho e o label refletem o saldo antes do rendimento (10.000 + 2.000 = 12.000)
+        expect(page.locator("#rendLancTit")).to_contain_text("12.000,00")
         label = page.locator("#rendLancDiffLabel").inner_text()
         assert "12.000,00" in label, f"Label inesperado: {label}"
 
@@ -378,6 +379,7 @@ class TestRendimentoPorDiferencaComAporte:
 
         # Reabre o detalhe para validar o valor persistido
         page.wait_for_selector("#rendLancLista", timeout=3000)
+        expect(page.locator("#rendLancTit")).to_contain_text("12.500,00")
         lista = page.locator("#rendLancLista").inner_text()
         # Deve haver uma linha "Rendimento: R$ 500,00" (positivo, sem sinal de menos)
         assert "Rendimento: R$ 500,00" in lista, (
