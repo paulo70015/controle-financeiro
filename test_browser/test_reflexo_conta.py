@@ -60,7 +60,6 @@ class TestReflexoRendimentoConta:
         select_option(page, "#rendAddTipo", "aporte")
         select_option(page, "#rendAddMes", "1")
         fill_input(page, "#rendAddValor", "1000,00")
-        fill_input(page, "#rendAddNota", "Aporte reflexo")
         page.click("#ovRendAdd .btn.ba")
         wait_for_load(page)
         modal_should_be_hidden(page, "ovRendAdd")
@@ -72,7 +71,6 @@ class TestReflexoRendimentoConta:
         select_option(page, "#rendAddTipo", "rendimento")
         select_option(page, "#rendAddMes", "2")
         fill_input(page, "#rendAddValor", "50,00")
-        fill_input(page, "#rendAddNota", "Rendimento reflexo")
         page.click("#ovRendAdd .btn.ba")
         wait_for_load(page)
         modal_should_be_hidden(page, "ovRendAdd")
@@ -111,7 +109,7 @@ class TestReflexoRendimentoConta:
         linha_local = page.locator("#tw tbody tr").filter(has_text=LOCAL_NOME).first
         linha_local.locator("td").nth(2).click()  # mês 2
         page.wait_for_selector("#ovRendLanc.show", timeout=3000)
-        linha_rend = page.locator("#rendLancLista .di").filter(has_text="Rendimento reflexo").first
+        linha_rend = page.locator("#rendLancLista .di").filter(has_text="Rendimento").first
         linha_rend.locator(".btn-edit").click()
         fill_input(page, "#rendLancValor", "75,00")
         page.locator('button[onclick="salvarRendimentoLancamento()"]').click()
@@ -133,7 +131,7 @@ class TestReflexoRendimentoConta:
         wait_for_table(page)
         linha_local.locator("td").nth(1).click()  # mês 1
         page.wait_for_selector("#ovRendLanc.show", timeout=3000)
-        linha_aporte = page.locator("#rendLancLista .di").filter(has_text="Aporte reflexo").first
+        linha_aporte = page.locator("#rendLancLista .di").filter(has_text="Aporte").first
         linha_aporte.locator(".btn-delete").click()
         page.wait_for_timeout(300)
         page.locator('button[onclick="salvarRendimentoLancamentoEFechar()"]').click()

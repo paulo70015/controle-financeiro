@@ -292,15 +292,14 @@
       <option value="rendimento">Rendimento</option>
       <option value="saque">Saque</option>
     </select>
-    <div id="rendLancDiffBox" style="display:none;flex-basis:100%;margin:0">
-      <label class="check-label" style="font-size:13px">
-        <input type="checkbox" id="rendLancDiff" checked>
-        <span id="rendLancDiffLabel">Usar valor final informado e lançar só a diferença em relação ao mês anterior (R$ 0,00).</span>
-      </label>
-    </div>
     <input type="text" id="rendLancValor" placeholder="Valor (R$)" style="flex:1;min-width:85px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-body);background:var(--bg-card);color:var(--text-main)">
-    <input type="text" id="rendLancNota" placeholder="Nota" style="flex:2;min-width:90px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-body);background:var(--bg-card);color:var(--text-main)">
     <button class="btn bv bs" onclick="salvarRendimentoLancamento()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-plus"></use></svg> Lançar</button>
+  </div>
+  <div id="rendLancDiffBox" style="display:none;margin-top:8px">
+    <label class="check-label" style="font-size:13px">
+      <input type="checkbox" id="rendLancDiff" checked>
+      <span id="rendLancDiffLabel">Usar valor final informado e lançar só a diferença em relação ao mês anterior (R$ 0,00).</span>
+    </label>
   </div>
   <div class="mb" style="margin-top:8px">
     <button class="btn" id="rendBtnUndo" style="display:none;background:var(--warning);color:#fff" onclick="desfazerRend()"><svg class="icon icon-sm" aria-hidden="true"><use href="/static/icons/sprite.svg#icon-undo-2"></use></svg> Desfazer</button>
@@ -322,7 +321,6 @@
   </div>
   <div class="fr"><label>Mês</label><select id="rendAddMes"></select></div>
   <div class="fr"><label>Valor (R$)</label><input type="text" id="rendAddValor" placeholder="0,00"></div>
-  <div class="fr"><label>Nota</label><textarea id="rendAddNota"></textarea></div>
   <div class="mb">
     <button class="btn" onclick="fecharModal('ovRendAdd')">Cancelar</button>
     <button class="btn ba" onclick="salvarRendimentoAdd()">Salvar</button>

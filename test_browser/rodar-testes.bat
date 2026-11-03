@@ -1,31 +1,29 @@
 @echo off
-chcp 65001 > nul
 REM Rodar testes E2E com Playwright (Windows)
 REM Uso: rodar-testes.bat [opcoes do pytest]
 
 cd /d "%~dp0"
 
-REM ═══════════════════════════════════════════════════════════════════
-REM VERIFICAR Supabase — aborta se Supabase estiver ativo/acessivel
-REM ═══════════════════════════════════════════════════════════════════
+REM ===================================================================
+REM FORCAR SQLite - os testes NUNCA devem tocar no Supabase
+REM Precisa vir ANTES da verificacao de ambiente.
+REM ===================================================================
+set DB_MODE=sqlite
+
+REM ===================================================================
+REM VERIFICAR Supabase - aborta se Supabase estiver ativo/acessivel
+REM ===================================================================
 cd /d "%~dp0.."
 python test_browser/verificar_ambiente.py
 if %ERRORLEVEL% NEQ 0 (
-    pause
     exit /b 1
 )
 cd /d "%~dp0"
-
-REM ═══════════════════════════════════════════════════════════════════
-REM FORCAR SQLite — os testes NUNCA devem tocar no Supabase
-REM ═══════════════════════════════════════════════════════════════════
-set DB_MODE=sqlite
 
 echo [1/3] Verificando Python...
 where python >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo Python nao encontrado. Instale Python 3.10+ e tente novamente.
-    pause
     exit /b 1
 )
 python --version
@@ -72,5 +70,4 @@ if "%EXIT_CODE%"=="0" (
 ) else (
     echo Alguns testes falharam ^(codigo: %EXIT_CODE%^).
 )
-pause
 exit /b %EXIT_CODE%

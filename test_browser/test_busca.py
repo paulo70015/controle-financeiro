@@ -10,6 +10,7 @@ from test_browser.helpers import (
     criar_categoria,
     criar_despesa,
     fill_input,
+    select_option,
     wait_for_load,
     wait_for_table,
 )
@@ -41,8 +42,8 @@ class TestBuscaUnificada:
 
         dropdown = page.locator("#dropdownBusca")
 
-        # Mais de 5 caracteres ("Supermercado"): busca automatica ao digitar
-        fill_input(page, "#inputBusca", "Supermercado")
+        # Mais de 5 caracteres ("Supermercado Extra"): busca automatica ao digitar
+        fill_input(page, "#inputBusca", "Supermercado Extra")
         expect(dropdown).to_be_visible(timeout=3000)
         item = dropdown.locator(".search-item").first
         expect(item).to_contain_text("Mercado Busca")
@@ -68,8 +69,8 @@ class TestBuscaUnificada:
 
         page.click('button:has-text("+ Lançamento")')
         page.wait_for_selector("#ovRendAdd.show")
+        select_option(page, "#rendAddLocal", "Tesouro Busca")
         fill_input(page, "#rendAddValor", "1500,00")
-        fill_input(page, "#rendAddNota", "Aporte Semestral")
         page.click("#ovRendAdd .btn.ba")
         wait_for_load(page)
 
@@ -78,7 +79,7 @@ class TestBuscaUnificada:
         expect(page.locator("#viewTabDespesas")).to_have_class("view-tab ativo")
 
         # Pesquisa pelo lancamento de rendimento (> 5 caracteres -> automatico)
-        fill_input(page, "#inputBusca", "Semestral")
+        fill_input(page, "#inputBusca", "Tesouro Busca")
         dropdown = page.locator("#dropdownBusca")
         expect(dropdown).to_be_visible(timeout=3000)
         item = dropdown.locator(".search-item").first

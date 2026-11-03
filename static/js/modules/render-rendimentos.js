@@ -21,7 +21,7 @@ function atualizarRendLancDiffUi() {
   if (!tipoEl || !boxEl) return;
 
   const isRendimento = tipoEl.value === 'rendimento';
-  boxEl.style.display = isRendimento ? 'flex' : 'none';
+  boxEl.style.display = isRendimento ? 'block' : 'none';
   if (diffEl && !rendEditandoId) diffEl.checked = isRendimento;
   if (labelEl) {
     labelEl.textContent = `Usar valor final informado e lançar só a diferença em relação ao saldo antes do rendimento (${BRL(obterValorAnteriorRendimentoLancamento())}).`;
@@ -59,7 +59,14 @@ function obterValorRendimentoPorDiferenca(localId, mes, valorFinalInformado) {
 }
 
 document.addEventListener('change', function(e) {
-  if (e.target && e.target.id === 'rendLancTipo') atualizarRendLancDiffUi();
+  if (e.target && e.target.id === 'rendLancTipo') {
+    atualizarRendLancDiffUi();
+    const valEl = document.getElementById('rendLancValor');
+    if (valEl) valEl.focus();
+  } else if (e.target && e.target.id === 'rendAddTipo') {
+    const valEl = document.getElementById('rendAddValor');
+    if (valEl) valEl.focus();
+  }
 });
 
 window.editarRend = function(id, tipo, valor, nota) {
@@ -74,8 +81,7 @@ window.editarRend = function(id, tipo, valor, nota) {
       // Saque é armazenado positivo; exibir com sinal negativo para ficar
       // consistente com a linha do modal ("-R$ 2.700,00"). O salvamento
       // normaliza o sinal de volta.
-      { id: 'rendLancValor', valor: tipo === 'saque' ? -Math.abs(parseFloat(valor) || 0) : valor, formatar: v => fmtNum(v) },
-      { id: 'rendLancNota', valor: nota }
+      { id: 'rendLancValor', valor: tipo === 'saque' ? -Math.abs(parseFloat(valor) || 0) : valor, formatar: v => fmtNum(v) }
     ],
     toggleFn: isEdit => toggleEditUiRend(isEdit),
     focusId: 'rendLancValor'
@@ -347,7 +353,6 @@ function abrirRendimentoAdd() {
   selMes.value = String(new Date().getMonth() + 1);
   document.getElementById('rendAddTipo').value = 'rendimento';
   document.getElementById('rendAddValor').value = '';
-  document.getElementById('rendAddNota').value = '';
   abrirModal('ovRendAdd');
   setTimeout(() => document.getElementById('rendAddValor').focus(), 120);
 }
@@ -405,10 +410,10 @@ async function salvarRendimentoAdd() {
   let tipo = document.getElementById('rendAddTipo').value;
   const mes = parseInt(document.getElementById('rendAddMes').value || '0');
   let valor = parseVal(document.getElementById('rendAddValor').value);
-  const nota = (document.getElementById('rendAddNota').value || '').trim();
+  const nota = '';
 
   if (!local_id) return alert('Selecione o local');
-  if (valor === null && !nota) return alert('Informe valor ou nota');
+  if (valor === null) return alert('Informe o valor');
   // Normalização de sinais: saque aceita valor positivo ou negativo; aporte negativo vira saque.
   if (tipo === 'aporte' && valor !== null && valor < 0) {
     tipo = 'saque';
@@ -691,16 +696,15 @@ async function abrirRendimentoLanc(localId, localNome, mes) {
   const tipoEl = document.getElementById('rendLancTipo');
   if (!tipoEl) return;
   tipoEl.value = 'aporte';
-  document.getElementById('rendLancValor').value = '';
-  document.getElementById('rendLancNota').value = '';
+  const valEl = document.getElementById('rendLancValor');
+  if (valEl) valEl.value = '';
   const diffEl = document.getElementById('rendLancDiff');
   if (diffEl) diffEl.checked = true;
   atualizarRendLancDiffUi();
 
   const locked = typeof isAnoBloqueado !== 'undefined' && isAnoBloqueado;
   tipoEl.disabled = locked;
-  document.getElementById('rendLancValor').disabled = locked;
-  document.getElementById('rendLancNota').disabled = locked;
+  if (valEl) valEl.disabled = locked;
   if (diffEl) diffEl.disabled = locked;
   const b1 = document.querySelector('button[onclick="salvarRendimentoLancamento()"]');
   const b2 = document.querySelector('button[onclick="salvarRendimentoLancamentoEFechar()"]');
@@ -777,14 +781,14 @@ async function salvarRendimentoLancamento() {
   const mes = parseInt(document.getElementById('rendLancMes').value || '0');
   let tipo = document.getElementById('rendLancTipo').value;
   let valor = parseVal(document.getElementById('rendLancValor').value);
-  let nota = (document.getElementById('rendLancNota').value || '').trim();
+  const nota = rendEditandoId ? (rendOriginalData?.nota || '') : '';
   const diffEl = document.getElementById('rendLancDiff');
   if (!local_id || !mes) {
     alert('Local/mês inválido');
     return false;
   }
-  if (valor === null && !nota && rendDeleteQueue.length === 0) {
-      alert('Informe valor ou nota');
+  if (valor === null && rendDeleteQueue.length === 0) {
+      alert('Informe o valor');
       return false;
   }
   // Normalização de sinais: saque aceita valor positivo ou negativo (o saldo é
@@ -800,16 +804,9 @@ async function salvarRendimentoLancamento() {
       }
       if (valor < 0) valor = -valor;
   }
-  if (tipo === 'rendimento' && valor === null && nota && parseVal(nota) !== null) {
-      // Valor digitado no campo "Nota" (sem valor no campo "Valor (R$)"):
-      // tratar como o valor final informado, para que o diff considere
-      // aportes/saques do período e o rendimento (mesmo negativo) seja calculado.
-      valor = parseVal(nota);
-      nota = '';
-  }
 
   try {
-    if (valor !== null || nota) {
+    if (valor !== null) {
       const valorLancamento = tipo === 'rendimento' && valor !== null && diffEl?.checked
         ? obterValorRendimentoPorDiferenca(local_id, mes, valor)
         : valor;
@@ -833,8 +830,8 @@ async function salvarRendimentoLancamento() {
     rendDeleteQueue = [];
     rendUndoManager.clear();
 
-    document.getElementById('rendLancValor').value = '';
-    document.getElementById('rendLancNota').value = '';
+    const valInput = document.getElementById('rendLancValor');
+    if (valInput) valInput.value = '';
     if (diffEl && !rendEditandoId) diffEl.checked = tipo === 'rendimento';
     await debouncedLoad();
     setView('rendimentos', false);
@@ -847,10 +844,9 @@ async function salvarRendimentoLancamento() {
 }
 
 async function salvarRendimentoLancamentoEFechar() {
-  const valor = parseVal(document.getElementById('rendLancValor').value);
-  const nota = (document.getElementById('rendLancNota').value || '').trim();
+  const valor = parseVal(document.getElementById('rendLancValor')?.value);
 
-  if (valor !== null || nota || rendDeleteQueue.length > 0) {
+  if (valor !== null || rendDeleteQueue.length > 0) {
     const ok = await salvarRendimentoLancamento();
     if (ok) fecharModal('ovRendLanc');
   } else {
